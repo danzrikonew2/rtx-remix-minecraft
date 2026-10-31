@@ -40,6 +40,7 @@ public final class RemixFirstPersonPass implements AutoCloseable {
     private static final Logger LOGGER = LoggerFactory.getLogger(RemixFirstPersonPass.class);
     private static final String CAPTURE_TYPE_KEY = "rtx-remix:first_person_model";
     private static final float[] EMPTY_BONES = new float[0];
+    private static final boolean DEBUG_HISTORY = Boolean.getBoolean("rtxremix.debug.firstPersonHistory");
 
     /**
      * Camera-relative scale used to pull first-person geometry in front of
@@ -65,6 +66,8 @@ public final class RemixFirstPersonPass implements AutoCloseable {
     private final Matrix4f correctedBone = new Matrix4f();
     private final Matrix4f viewCorrection = new Matrix4f();
     private final Matrix4f inverseModelView = new Matrix4f();
+    private final Matrix4f modelView = new Matrix4f();
+    private FirstPersonHistoryProbe historyProbe;
     private final Vector3f eye = new Vector3f();
 
     private RemixEntityPass.EntityCaptureResult pendingResult;
@@ -96,7 +99,7 @@ public final class RemixFirstPersonPass implements AutoCloseable {
             // hurt tilt and bob on top, and carries the camera rotation in the
             // model-view, so the model-view's origin is where the eye sits in the
             // capture's space.
-            Matrix4f modelView = RenderSystem.getModelViewMatrixCopy();
+            modelView.set(RenderSystem.getModelViewStack());
             modelView.invert(inverseModelView).transformPosition(eye.set(0.0f, 0.0f, 0.0f));
             context.setEye(eye.x, eye.y, eye.z);
 
@@ -114,6 +117,17 @@ public final class RemixFirstPersonPass implements AutoCloseable {
             int boneCount = context.getBoneCount();
             reusableBoneData = snapshotCorrectedBones(context, boneCount, reusableBoneData);
             setCameraToWorld(camera, cameraToWorld);
+            if (DEBUG_HISTORY) {
+                if (historyProbe == null) historyProbe = new FirstPersonHistoryProbe();
+                FirstPersonHistoryProbe.Sample sample = historyProbe.sample(
+                        cameraToWorld.matrix, reusableBoneData, boneCount, layers.size());
+                if (sample != null) {
+                    LOGGER.info("First-person history (120 captures): cameraChanges={}, boneChanges={}, "
+                                    + "layoutChanges={}, consecutiveStableCaptures={}",
+                            sample.cameraChanges(), sample.boneChanges(), sample.layoutChanges(),
+                            sample.stationaryFrames());
+                }
+            }
             pendingMainHandLightPosition = findHeldBlockLightPosition(
                     layers, context, reusableBoneData, boneCount, InteractionHand.MAIN_HAND);
             pendingOffHandLightPosition = findHeldBlockLightPosition(

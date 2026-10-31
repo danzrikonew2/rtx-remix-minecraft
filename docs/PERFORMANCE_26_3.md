@@ -222,6 +222,33 @@ Compare the same stationary item/view at a higher DLSS quality and, separately,
 without temporal upscaling if available. Record the selected mode and whether
 the effect changes. Do not change heap, world or camera position in that test.
 
+### Upscaler comparison and transform probe
+
+The user subsequently reported jitter across the tested DLSS modes and with
+Upscaler Type None, with geometry/texture/shadow variation settling after
+movement stops. Their screenshots show the Ray Reconstruction controls hidden
+when None is selected. This rules out DLSS upscaling as the sole explanation;
+it does not prove all temporal denoising is disabled. Repeating the same DLSS
+comparison is not the next diagnostic step.
+
+`-Drtxremix.debug.firstPersonHistory=true` enables a small render-thread probe
+that reports every 120 first-person captures. It counts changes in fingerprints
+of the camera-to-world root, used corrected bone matrices, and bone/layer counts,
+plus consecutive captures with unchanged fingerprints. It ignores unused pooled
+bone storage. This is not a measurement of native motion vectors, mesh identity,
+lighting noise or pixel stability. Stable fingerprints with visible shimmer
+would narrow investigation beyond these submitted transforms; changing ones
+would identify a capture input to inspect. No jitter fix is claimed yet.
+
+The hand pass also reuses its model-view snapshot matrix instead of allocating
+a new matrix for each capture. This is a small allocation reduction with no
+measured frame-time benefit claimed.
+
+Later local GC logs have zero full collections and maximum completed pauses
+of 28.757, 22.217 and 22.682 ms respectively. Pinned-evacuation messages remain.
+Routes, durations and graphics differ, so these are observations, not matched
+before/after optimization results.
+
 The first session's recordings, samples and local logs are under ignored
 `build/captures/stability-20261031-112641/`. Raw JFR files may contain environment
 variables, process metadata and account information. They are not published.

@@ -29,6 +29,10 @@ also part of every mod file name.
 
 ### Developer tooling
 
+- Add opt-in first-person transform fingerprint diagnostics to distinguish
+  captured transform changes from visual shimmer. Reuse the hand model-view
+  snapshot matrix; no measured frame-time improvement or jitter fix is claimed.
+
 - Record board-wide VRAM used/total, GPU utilization and minimum recording-window
   memory headroom in benchmark telemetry.
 - Correct JFR physical-memory reporting: OS-wide RAM is not Minecraft RSS.
