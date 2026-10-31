@@ -286,7 +286,7 @@ def fetchRuntimeSdkTasks = ['win64', 'arm64'].collectEntries { arch ->
                 logger.lifecycle("Pulling remix-sdk-${arch} -> ${targetDir}")
                 runtimeFetchServices.execOperations.exec {
                     workingDir packmanDirectory
-                    commandLine 'cmd', '/d', '/c', new File(packmanDirectory, 'packman.cmd').absolutePath,
+                    commandLine 'cmd', '/d', '/c', '.\\packman.cmd',
                             'pull', temporaryManifest.absolutePath, '-p', 'windows-x86_64'
                 }
             } finally {
