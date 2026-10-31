@@ -640,6 +640,11 @@ def stageReleaseArchiveTask = tasks.register('stageReleaseArchive', Sync) {
         into 'docs'
     }
     from 'CHANGELOG.md'
+    from 'CONTRIBUTING.md', 'AGENTS.md'
+    from('packaging') {
+        into 'packaging'
+        include 'INSTALL.md', 'installer.ps1'
+    }
     // The notices link their license texts by repository path, so the texts
     // keep that path here as they do inside the JAR.
     from 'LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.md'

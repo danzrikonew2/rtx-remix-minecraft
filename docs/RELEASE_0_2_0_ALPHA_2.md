@@ -52,8 +52,14 @@ JNI signatures and the pinned Remix API/runtime are unchanged.
 
 - Java and Windows x64 JNI compilation, 767 JVM tests, native ABI probe, and
   packaged runtime/license inventory validation passed.
-- Locked tooling formatting, lint, types, 1,135 tests and 178 subtests passed;
-  one tooling test was skipped.
+- Locked tooling formatting, lint, types, 1,137 tests and 178 subtests passed
+  with the public commit-range check enabled.
+- The extracted `install.bat` passed Install, Repair and Upgrade in disposable
+  Windows x64 Prism folders with real dependency downloads, Java 25 selection,
+  correct Minecraft/Fabric versions and preserved simulated 1.21.1 files.
+  No account sign-in or game launch was automated in that installer test.
+- The ZIP's scripts, documentation, licenses and embedded mod identity are
+  checked by `verifyReleaseArchive`.
 - Local launch logs confirm Remix initialization. User testing confirmed basic
   terrain/demo-scene rendering and hands, world reopening, and RTX off/on
   toggles. The supplied status screenshot reports renderer initialized and

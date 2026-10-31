@@ -31,6 +31,14 @@ also part of every mod file name.
 
 Rendering implementation and known visual limitations are unchanged from alpha 1.
 
+### Validation
+
+- Extracted batch installer Install, Repair and Upgrade passed in disposable
+  x64 Prism user folders using real prerequisite downloads. Correct game/loader
+  versions, Java 25 pin, mod identity and preservation of 1.21.1 sentinels passed.
+- Tooling checks passed 1,137 tests and 178 subtests. Microsoft launcher
+  end-to-end installation remains untested.
+
 ## 0.2.0-alpha.1 - 2026-10-31
 
 Unofficial community Minecraft 26.3 port, published as an experimental

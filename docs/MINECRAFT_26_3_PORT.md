@@ -68,18 +68,30 @@ Unchecked runtime checks have not passed locally merely because code exists.
 - [x] User-confirmed world reopening and RTX toggling without observed failures.
 - [x] User-supplied `/rtx status` screenshot reports renderer initialized, SDK
   available, and world/entity/block-entity/particle/sky capture active.
-- [x] Locked tooling checks: formatting, lint and types pass; 1,135 tests and
-  178 subtests pass, with one skipped test.
+- [x] Alpha 2 locked tooling checks: formatting, lint and types pass; 1,137
+  tests and 178 subtests pass with the public commit-range check enabled.
+- [x] Installer ZIP inventory and embedded mod identity verified by
+  `verifyReleaseArchive`.
+- [x] Extracted Windows batch installer passed Install, Repair and Upgrade
+  in disposable x64 Prism folders, downloading real Java/Prism/Fabric API,
+  pinning Java 25, selecting Minecraft/Fabric, and preserving 1.21.1 sentinels.
 - [ ] Complete explicit overlay, fullscreen, focus and resize acceptance tests.
 - [ ] Complete repeated world-transition and resource-lifetime testing.
 - [ ] Measure GPU memory, frame pacing, and chunk-rebuild behavior on 8 GB VRAM.
-- [ ] Complete full installer execution against disposable launcher profiles.
+- [ ] Complete Microsoft launcher end-to-end installation testing.
 
 Build logs are retained locally under `build/port-validation/`, JVM XML results
 under `build/test-results/test/`, and the HTML report under
 `build/reports/tests/test/`. These are ignored outputs, not published source.
 The imported PR author reports in-game validation; those results are separate
 from this fork's local validation.
+
+The installer smoke test used temporary APPDATA, LOCALAPPDATA and TEMP roots
+inside ignored build outputs. It ran the archive's actual `install.bat` under
+Windows PowerShell 5.1 with `-Unattended -Launcher Prism`. No sign-in or game UI
+was automated. Fresh install downloaded the official prerequisites; Repair and
+Upgrade reused the instance and selected Java 25. This verifies installer
+staging, not a new authenticated game launch from that disposable profile.
 
 The user performed the demo-scene, reopen and toggle checks on 2026-10-31
 using the isolated Prism development instance and supplied screenshots. These
