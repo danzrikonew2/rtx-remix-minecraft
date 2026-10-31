@@ -163,6 +163,65 @@ while stationary and moving, wait for builds to settle, then check the same
 terrain and held blocks. Keep heap and graphics settings unchanged for this
 test. A 6 GiB heap experiment remains separate and has not been run.
 
+## First 6 GiB test follow-up
+
+The subsequent test exited normally at 23:00:03 Asia/Jakarta. The user confirmed
+the missing-terrain problem after RTX toggles no longer occurred. This is a
+manual pass for that reproduction, not proof that all terrain lifetime issues
+are resolved. Brief noticeable stutters while flying into new terrain remain.
+The user also reported small hand/held-item vibration with RTX on, including
+while stationary; RTX off appeared steady. Temporal reconstruction, motion
+history and capture transforms remain investigation candidates, not diagnoses.
+
+The saved `gc-6gb-2026-10-31_22-56-15.log` contains 178 completed GC pauses,
+zero full collections, and a maximum pause of 49.118 ms. None exceeded 50 ms.
+This differs from the earlier 2 GiB capture's full compactions and approximately
+390 ms maximum, but the route, duration and instrumentation were not matched:
+it is not a controlled speedup measurement. GC can still interrupt frames below
+50 ms, and this log alone cannot assign individual terrain-loading stutters.
+
+The local instance used a 6 GiB maximum heap with lightweight GC/safepoint
+logging. Earlier JFR/Java-phase flags persisted in Prism's saved instance
+configuration; they were removed with Prism stopped before this follow-up.
+The release heap defaults and published release assets remain unchanged.
+
+## JNI matrix-copy investigation
+
+The 6 GiB GC log contains 21 lines mentioning pinned evacuation failures
+(including start/detail lines; this is not a count of distinct pauses). The
+bridge used four `GetPrimitiveArrayCritical` sites solely to copy 12- or
+16-float matrices into native structures. These sites now use
+`GetFloatArrayRegion`, checking pending exceptions before invoking the runtime
+and releasing the newly allocated dome structure if its input copy fails.
+The Java signatures, native structure layouts and runtime pin are unchanged.
+
+JNI critical access can restrict GC; array-region reads copy directly into a
+supplied native buffer. See the [JNI specification](https://docs.oracle.com/en/java/javase/25/docs/specs/jni/functions.html).
+The log does not identify which pinned object caused a particular pause, so
+this change must not be described as a confirmed fix for all chunk stutters.
+
+Windows x64 native compilation and the 771 JVM tests passed. A standalone
+`-Xcheck:jni` smoke test passed 10,000 dome-matrix copy/free roundtrips, verified
+adjacent native fields, and checked the short-array exception path. Camera and
+instance runtime calls still require in-game acceptance; ARM64 was not tested.
+From the repository root after building, run the smoke test with Java 25:
+
+```powershell
+javac -cp build/classes/java/main -d build/native-tests rtxremix-java/tests/MatrixCopySmoke.java
+$matrixBridge = (Resolve-Path build/native/win64/remixbridge.dll).Path
+java --enable-native-access=ALL-UNNAMED -Xcheck:jni -cp "build/classes/java/main;build/native-tests" MatrixCopySmoke "$matrixBridge"
+```
+
+## Hand jitter investigation
+
+The supplied Remix settings screenshot shows DLSS Preset Enabled, DLSS Auto,
+and Computed DLSS Mode Max Performance at 960x540 internal resolution. The
+individual controls appear disabled under the preset. This confirms the
+displayed mode, not the cause of jitter. No hand-transform fix is claimed.
+Compare the same stationary item/view at a higher DLSS quality and, separately,
+without temporal upscaling if available. Record the selected mode and whether
+the effect changes. Do not change heap, world or camera position in that test.
+
 The first session's recordings, samples and local logs are under ignored
 `build/captures/stability-20261031-112641/`. Raw JFR files may contain environment
 variables, process metadata and account information. They are not published.

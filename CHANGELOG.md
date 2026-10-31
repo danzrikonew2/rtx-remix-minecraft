@@ -13,6 +13,10 @@ also part of every mod file name.
 
 ### Fixed
 
+- Copy fixed-size JNI camera, instance and dome matrices with array-region
+  reads instead of critical heap pointers. This removes unnecessary critical
+  array access; its effect on gameplay stutters remains unmeasured.
+
 - Defer terrain recapture until Minecraft 26.3 finishes geometry invalidation.
   Previously the next extraction cancelled rebuilds queued by RTX re-enabling
   or terrain/material reloads, potentially leaving large terrain gaps. JVM

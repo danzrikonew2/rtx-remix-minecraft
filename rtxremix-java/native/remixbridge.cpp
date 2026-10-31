@@ -1108,13 +1108,11 @@ Java_com_nvidia_rtxremix_RemixBridge_setupCamera(JNIEnv* env, jclass,
     info.pNext = (void*)(uintptr_t)pNext;
     info.type  = (remixapi_CameraType)type;
 
-    jfloat* v = (jfloat*)env->GetPrimitiveArrayCritical(jView, nullptr);
-    memcpy(&info.view, v, 16 * sizeof(float));
-    env->ReleasePrimitiveArrayCritical(jView, v, JNI_ABORT);
-
-    jfloat* p = (jfloat*)env->GetPrimitiveArrayCritical(jProj, nullptr);
-    memcpy(&info.projection, p, 16 * sizeof(float));
-    env->ReleasePrimitiveArrayCritical(jProj, p, JNI_ABORT);
+    // These fixed-size copies need no critical pointer into the Java heap.
+    env->GetFloatArrayRegion(jView, 0, 16, reinterpret_cast<jfloat*>(&info.view));
+    if (env->ExceptionCheck()) return REMIXAPI_ERROR_CODE_INVALID_ARGUMENTS;
+    env->GetFloatArrayRegion(jProj, 0, 16, reinterpret_cast<jfloat*>(&info.projection));
+    if (env->ExceptionCheck()) return REMIXAPI_ERROR_CODE_INVALID_ARGUMENTS;
 
     return (jint)g_remix.SetupCamera(&info);
 }
@@ -1133,7 +1131,7 @@ Java_com_nvidia_rtxremix_RemixBridge_setCameraMediumMaterial(JNIEnv*, jclass, jl
 
 // ─── instances ───────────────────────────────────────────────────────────
 
-static void fillInstanceInfo(JNIEnv* env, remixapi_InstanceInfo& info,
+static bool fillInstanceInfo(JNIEnv* env, remixapi_InstanceInfo& info,
     jlong meshHandle, jfloatArray jTransform, jint categoryFlags,
     jint doubleSided, jlong pNext)
 {
@@ -1144,9 +1142,8 @@ static void fillInstanceInfo(JNIEnv* env, remixapi_InstanceInfo& info,
     info.mesh          = (remixapi_MeshHandle)(uintptr_t)meshHandle;
     info.doubleSided   = (uint32_t)doubleSided;
 
-    jfloat* t = (jfloat*)env->GetPrimitiveArrayCritical(jTransform, nullptr);
-    memcpy(&info.transform, t, 12 * sizeof(float));
-    env->ReleasePrimitiveArrayCritical(jTransform, t, JNI_ABORT);
+    env->GetFloatArrayRegion(jTransform, 0, 12, reinterpret_cast<jfloat*>(&info.transform));
+    return !env->ExceptionCheck();
 }
 
 JNIEXPORT jint JNICALL
@@ -1157,8 +1154,8 @@ Java_com_nvidia_rtxremix_RemixBridge_drawInstance(JNIEnv* env, jclass,
     if (!g_inited || !g_remix.DrawInstance) return REMIXAPI_ERROR_CODE_NOT_INITIALIZED;
 
     remixapi_InstanceInfo info;
-    fillInstanceInfo(env, info, meshHandle, jTransform, categoryFlags,
-                     doubleSided, pNext);
+    if (!fillInstanceInfo(env, info, meshHandle, jTransform, categoryFlags,
+                          doubleSided, pNext)) return REMIXAPI_ERROR_CODE_INVALID_ARGUMENTS;
     return (jint)g_remix.DrawInstance(&info);
 }
 
@@ -1170,8 +1167,8 @@ Java_com_nvidia_rtxremix_RemixBridge_sceneInstanceAdd(JNIEnv* env, jclass,
     if (!g_inited || !g_remix.SceneInstanceAdd) return 0;
 
     remixapi_InstanceInfo info;
-    fillInstanceInfo(env, info, meshHandle, jTransform, categoryFlags,
-                     doubleSided, pNext);
+    if (!fillInstanceInfo(env, info, meshHandle, jTransform, categoryFlags,
+                          doubleSided, pNext)) return 0;
 
     remixapi_SceneInstanceHandle handle = nullptr;
     remixapi_ErrorCode rc = g_remix.SceneInstanceAdd(&info, &handle);
@@ -1188,8 +1185,8 @@ Java_com_nvidia_rtxremix_RemixBridge_sceneInstanceUpdate(JNIEnv* env, jclass,
     }
 
     remixapi_InstanceInfo info;
-    fillInstanceInfo(env, info, meshHandle, jTransform, categoryFlags,
-                     doubleSided, pNext);
+    if (!fillInstanceInfo(env, info, meshHandle, jTransform, categoryFlags,
+                          doubleSided, pNext)) return REMIXAPI_ERROR_CODE_INVALID_ARGUMENTS;
     return (jint)g_remix.SceneInstanceUpdate(
         (remixapi_SceneInstanceHandle)(uintptr_t)sceneInstanceHandle, &info);
 }
@@ -1800,9 +1797,11 @@ Java_com_nvidia_rtxremix_RemixBridge_allocDomeExt(JNIEnv* env, jclass,
     ext->opacity      = opacity;
     ext->blendType    = blendType;
 
-    jfloat* t = (jfloat*)env->GetPrimitiveArrayCritical(jTransform, nullptr);
-    memcpy(&ext->transform, t, 12 * sizeof(float));
-    env->ReleasePrimitiveArrayCritical(jTransform, t, JNI_ABORT);
+    env->GetFloatArrayRegion(jTransform, 0, 12, reinterpret_cast<jfloat*>(&ext->transform));
+    if (env->ExceptionCheck()) {
+        delete ext;
+        return 0;
+    }
 
     return (jlong)(uintptr_t)ext;
 }
