@@ -11,6 +11,13 @@ also part of every mod file name.
 
 ## Unreleased
 
+### Experimental integrations
+
+- Add opt-in, pinned MFG Unlocker 1.7.0 installation for Prism, with checksum
+  validation, private Java, explicit pre-Remix loading and a reversible enable
+  marker. Actual FG/DLSS 5 compatibility remains unverified; this is not bundled
+  into already published Alpha 2 assets.
+
 ### Fixed
 
 - Send one final unchanged retained view-model pose after a changed description,

@@ -222,6 +222,12 @@ mixins. JVM tests do not exercise mixin injection or prove visual correctness.
 
 ## Contributing
 
+An [experimental MFG Unlocker integration](MFG_UNLOCKER.md) adds automatic,
+opt-in installation and private-Java loading for Prism. Native loading has a
+standalone smoke pass; actual Minecraft FG/DLSS 5 rendering is not verified.
+It is separate from the established 26.3 rendering acceptance and does not
+alter existing Alpha 2 release assets.
+
 Branch from `feat/minecraft-26.3` in your own fork and open review against this
 fork's development branch. Read [CONTRIBUTING.md](../CONTRIBUTING.md) and the
 nearest `AGENTS.md`; preserve render-thread ownership, bounded queues, mesh

@@ -176,3 +176,11 @@ bridge compiles its inline helpers into
 - Vendored copy of the NVIDIA Packman package-management bootstrap; used only
   to fetch the RTX Remix runtime payload at development/build time.
 
+## Optional MFG Unlocker
+
+The experimental Prism addon installer downloads MFG Unlocker v1.7.0 from
+https://github.com/dashdogy/MFG-Unlocker. Copyright (c) 2026 Michael Robles;
+MIT License. Its notice is preserved in
+`packaging/licenses/mfg-unlocker/LICENSE.txt` and copied with the optional DLL.
+The addon binary is not embedded in the mod JAR. Existing NVIDIA runtime
+libraries and their original licenses remain separate.

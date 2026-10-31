@@ -245,3 +245,11 @@ resource packs, any config you added, the extracted `remix-sdk\`, the
 too, so look inside the archive before sharing it. Because the runtime and its
 marker both travel, the recipient keeps using them until a mod version change
 triggers a fresh extraction.
+## Optional MFG addon
+
+`-EnableMfgUnlocker` opts a Prism installation into the pinned experimental
+addon and a private Java copy. Interactive Prism installs offer a default-no
+prompt. The payload is downloaded and hash-verified automatically; no proxy
+DLL is copied to shared Java. See [MFG integration](docs/MFG_UNLOCKER.md).
+Microsoft launcher and ARM64 addon paths are not implemented. Existing Alpha 2
+downloads do not contain this feature. Native FG/DLSS 5 output remains unverified.

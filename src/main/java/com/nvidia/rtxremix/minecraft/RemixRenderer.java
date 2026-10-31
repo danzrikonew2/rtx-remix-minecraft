@@ -248,6 +248,7 @@ public class RemixRenderer {
             int blankedValues = RemixAPI.redactCommandLineOptions(dllPath, ACCOUNT_OPTIONS);
             LOGGER.info("Blanked {} account values in the process command line", blankedValues);
 
+            MfgUnlockerBootstrap.load(FabricLoader.getInstance().getGameDir(), dll.getParent());
             remixApi = RemixAPI.load(dllPath);
             LOGGER.info("RTX Remix API loaded successfully");
 

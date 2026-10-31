@@ -43,6 +43,10 @@
     in CI / scripted contexts. (Replaces an earlier -Confirm flag which
     collided with PowerShell's reserved common parameter.)
 
+.PARAMETER EnableMfgUnlocker
+    Install the optional experimental pinned MFG addon in a Prism instance,
+    with private Java. Native graphics compatibility requires separate testing.
+
 .PARAMETER OutputPath
     Target path for -Mode Export. Must end in .zip. Parent dir must exist or
     be creatable. Absolute or relative; relative is resolved against the
@@ -107,6 +111,8 @@ param(
     [string]$Launcher,
 
     [switch]$Unattended,
+
+    [switch]$EnableMfgUnlocker,
 
     [switch]$AcknowledgeDataLoss,
 
@@ -2744,6 +2750,25 @@ function Invoke-InstallOrUpgrade {
     Write-Step 'Installing mod files'
     $script:ModFilesCopied = $true
     Install-ModFiles -McDir $mcDir
+
+    $installMfg = $EnableMfgUnlocker
+    if ($EnableMfgUnlocker -and $launcher -ne 'Prism') {
+        throw 'The experimental MFG addon currently requires the isolated Prism installation.'
+    }
+    if ($launcher -eq 'Prism' -and -not $Unattended -and -not $installMfg) {
+        $installMfg = (Read-Host 'Install experimental MFG Unlocker addon? (y/N)') -match '^(y|yes)$'
+    }
+    if ($installMfg) {
+        $mfgCfg = Join-Path $instanceDir 'instance.cfg'
+        $mfgJavaExe = Get-PrismCfgValue -Text (Read-PrismCfg -Cfg $mfgCfg) -Key 'JavaPath'
+        $mfgJavaHome = Split-Path -Parent (Split-Path -Parent ($mfgJavaExe -replace '/', '\'))
+        & (Join-Path $script:SCRIPT_DIR 'mfg-unlocker.ps1') -GameDir $mcDir -JavaHome $mfgJavaHome
+        if ($LASTEXITCODE -ne 0) { throw 'Optional MFG Unlocker installation failed.' }
+        Set-PrismCfgValues -Cfg $mfgCfg -Values ([ordered]@{
+            OverrideJavaLocation = 'true'
+            JavaPath = (Join-Path $mcDir 'rtx-remix-addons\mfg-unlocker\java\bin\javaw.exe') -replace '\\', '/'
+        })
+    }
 
     Write-Step 'Configuring Fabric API'
     Install-FabricApi -McDir $mcDir -Launcher $launcher

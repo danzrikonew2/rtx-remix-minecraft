@@ -300,3 +300,10 @@ MICROSOFT. Minecraft is a trademark of Mojang Synergies AB.
 
 NVIDIA, GeForce, and RTX are trademarks and/or registered trademarks of NVIDIA
 Corporation in the U.S. and other countries.
+
+## Optional experimental MFG addon
+
+Installer builds containing `mfg-unlocker.ps1` offer an opt-in Prism integration.
+See [the MFG integration guide](docs/MFG_UNLOCKER.md) for automatic installation,
+limitations and disable instructions. This does not establish DLSS 5 or MFG
+compatibility on a particular GPU.
