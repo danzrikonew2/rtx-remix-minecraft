@@ -257,7 +257,9 @@ diluting the sampler's candidate pool.
   changes; see [Cancelling Vanilla Render Work](CONTRIBUTING.md#cancelling-vanilla-render-work).
 - A terrain recapture must clear Remix terrain, reload vanilla terrain, and
   explicitly queue the previous built set. Snapshot `builtSections` before
-  `WorldRenderer.reload()` forgets it, then call `recaptureTerrainForRemix`.
+  `LevelExtractor.allChanged()` requests invalidation, then call `recaptureTerrainForRemix`.
+  In 26.3 the compile queue is cleared later by `LevelRenderer.invalidateCompiledGeometry`;
+  retained recapture positions are submitted only after that method returns.
   `RtxRemixMod.rebuildLoadedTerrain()` owns this sequence. Commit settings once
   per transaction, never once per slider step.
 - Schedule world-transition work through `client.execute`, not a flag drained

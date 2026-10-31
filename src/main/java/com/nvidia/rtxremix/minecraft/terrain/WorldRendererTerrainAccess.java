@@ -20,6 +20,9 @@ public interface WorldRendererTerrainAccess {
      */
     LongSet rtxremix$builtSectionPositions();
 
+    /** Filters a reload snapshot to currently resident, non-empty, lit sections. */
+    LongSet rtxremix$recapturableSectionPositions(LongSet sections);
+
     /**
      * Queues the loaded, non-empty, lit sections in {@code sections} for Remix
      * capture, nearest the camera first.

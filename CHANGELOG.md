@@ -11,6 +11,13 @@ also part of every mod file name.
 
 ## Unreleased
 
+### Fixed
+
+- Defer terrain recapture until Minecraft 26.3 finishes geometry invalidation.
+  Previously the next extraction cancelled rebuilds queued by RTX re-enabling
+  or terrain/material reloads, potentially leaving large terrain gaps. JVM
+  regression tests pass; in-game acceptance of this fix remains pending.
+
 ### Added
 
 - `/rtx sky status` reports weather, clock, sun angle and submitted direct sunlight

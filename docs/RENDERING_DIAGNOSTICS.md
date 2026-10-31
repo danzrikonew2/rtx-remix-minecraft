@@ -31,9 +31,20 @@ the first frame of the next world, during their reinitialization.
 `RtxRemixMod.rebuildLoadedTerrain()` owns the full recapture sequence:
 
 1. Clear the Remix terrain through `ChunkManager.clear()`.
-2. Snapshot `builtSections(client)` before `WorldRenderer.reload()` forgets
-   the old section slots, then reload vanilla terrain.
-3. Call `recaptureTerrainForRemix(client, built)` to explicitly queue that set.
+2. Snapshot `builtSections(client)` before requesting a vanilla terrain reload
+   through `LevelExtractor.allChanged()`.
+3. Call `recaptureTerrainForRemix(client, built)` to retain the currently
+   resident, non-empty, lit subset, scoped to this world.
+4. At the return of `LevelRenderer.invalidateCompiledGeometry`, queue that set
+   against the replacement section storage, rechecking residency and lighting.
+
+In 26.3, `allChanged()` defers geometry invalidation until extraction. That
+invalidation releases old buffers and cancels the old compile queue. Queueing
+recapture immediately after `allChanged()` therefore loses work on the next
+extraction, producing holes after toggles or reloads. `TerrainRecaptureState`
+holds positions across this boundary and retains only accepted work for a
+subsequent reload; disconnect cleanup is scheduled on the client thread and
+cannot erase another world's request.
 
 The RTX toggle and material/texture reload paths preserve the same contract.
 A clear alone leaves an empty path-traced world until vanilla happens to

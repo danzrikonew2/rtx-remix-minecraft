@@ -97,6 +97,12 @@ during the dark-daytime report. Clear-noon visual acceptance remains pending;
 use [daylight diagnostics](RENDERING_DIAGNOSTICS.md#dark-daytime-and-weather)
 and `/rtx sky status` in a build containing that command.
 
+Follow-up: clearing weather restored daylight. The user reported large terrain
+gaps after RTX off/on and reloads. A deferred geometry-invalidation ordering
+fix is implemented with 771 JVM tests passing; manual toggle/reload acceptance
+is still pending. Stutter with RTX off was also reported and does not by itself
+identify vanilla Minecraft as the cause, since the mod remains loaded.
+
 The installer smoke test used temporary APPDATA, LOCALAPPDATA and TEMP roots
 inside ignored build outputs. It ran the archive's actual `install.bat` under
 Windows PowerShell 5.1 with `-Unattended -Launcher Prism`. No sign-in or game UI

@@ -7,6 +7,7 @@ package com.nvidia.rtxremix.minecraft;
 import com.nvidia.rtxremix.minecraft.texture.BlockTextureManager;
 import com.nvidia.rtxremix.minecraft.texture.AtlasAnimationForwarder;
 import com.nvidia.rtxremix.minecraft.terrain.WorldRendererTerrainAccess;
+import com.nvidia.rtxremix.minecraft.terrain.TerrainRecaptureState;
 import com.nvidia.rtxremix.minecraft.terrain.SkyLightSurfaceScanPolicy;
 import com.nvidia.rtxremix.minecraft.terrain.NeighbourReflagFilter;
 import com.nvidia.rtxremix.minecraft.terrain.LocalChunkBatchPacing;
@@ -60,7 +61,6 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.longs.LongSets;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -517,6 +517,8 @@ public class RtxRemixMod implements ClientModInitializer {
         });
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            Object leavingWorld = client.level;
+            client.execute(() -> terrainRecapture.clearFor(leavingWorld));
             LOGGER.info("Disconnected from world, clearing Remix resources...");
             releaseRemixMenuCapture();
             closeOpenProfileScopes();
@@ -1818,22 +1820,20 @@ public class RtxRemixMod implements ClientModInitializer {
     }
 
     /**
-     * Sections the last recapture actually queued, kept until the next snapshot so a
-     * reload that lands while they are still building does not lose them: their new
-     * slots hold {@code ChunkData.EMPTY} until the rebuild completes and would otherwise
-     * fall out of the built set. Only what the queue accepted is kept, not its input:
+     * Eligible sections retained for or queued by the last recapture, kept until the
+     * next snapshot so a reload while they are still building does not lose them:
+     * their new slots hold {@code CompiledSectionMesh.UNCOMPILED} until completion
+     * and would otherwise fall out of the built set. Only eligible positions are kept:
      * the input unions the previous pending set, so storing it would carry every
      * position the residency, non-empty and lighting filters rejected from one
      * recapture to the next and grow without bound across locations. Scoped to the
      * world it was taken in.
      */
-    private static LongSet pendingRecapture =
-            LongSets.emptySet();
-    private static Object pendingRecaptureWorld;
+    private static final TerrainRecaptureState terrainRecapture = new TerrainRecaptureState();
 
     /**
-     * The sections vanilla has built, taken before a {@code WorldRenderer.reload()}
-     * forgets them, plus whatever the previous recapture queued in this world that may
+     * The sections vanilla has built, taken before geometry invalidation
+     * forgets them, plus whatever the previous recapture retained in this world that may
      * still be building. Vanilla builds a section when its occlusion walk reaches it, so
      * the built set is the frustum-driven subset of the loaded area: the terrain the
      * Remix scene held, and the same subset a world join produces.
@@ -1843,19 +1843,13 @@ public class RtxRemixMod implements ClientModInitializer {
             return LongSets.emptySet();
         }
         LongSet built = access.rtxremix$builtSectionPositions();
-        if (pendingRecaptureWorld == client.level && !pendingRecapture.isEmpty()) {
-            LongOpenHashSet union =
-                    new LongOpenHashSet(built);
-            union.addAll(pendingRecapture);
-            return union;
-        }
-        return built;
+        return terrainRecapture.includePending(client.level, built);
     }
 
     /**
-     * Recaptures {@code built} after a vanilla reload. The reload only marks fresh
-     * slots for rebuilding and vanilla then schedules the subset its occlusion graph
-     * reaches, so the explicit queue is what restores the scene the player had.
+     * Retains eligible positions until vanilla applies its deferred geometry invalidation.
+     * Queueing immediately after allChanged() would target old slots and the next
+     * extraction would cancel those compiles. The explicit queue runs after that reset.
      *
      * <p>Only the sections vanilla built are queued, not every loaded section: the
      * loaded area is about three times the frustum-driven built set, and capturing
@@ -1864,17 +1858,27 @@ public class RtxRemixMod implements ClientModInitializer {
     static void recaptureTerrainForRemix(Minecraft client, LongSet built) {
         if (!isWorldActive() || client.levelRenderer == null) return;
         if (client.getCameraEntity() == null) {
-            // Without a camera entity, WorldRenderer.reload() skips
-            // BuiltChunkStorage.updateCameraPosition, so section origins are
-            // still index-based and queueing would capture nothing useful.
+            // Recapture needs the active camera's residency window.
             LOGGER.warn("Skipping Remix terrain recapture: no camera entity (world still loading?)");
             return;
         }
         if (client.levelRenderer instanceof WorldRendererTerrainAccess access) {
-            LongSet queued = access.rtxremix$queueSectionsForRemix(built);
-            pendingRecapture = queued;
-            pendingRecaptureWorld = client.level;
-            LOGGER.info("Queued {} of {} previously built sections for Remix recapture", queued.size(), built.size());
+            LongSet eligible = access.rtxremix$recapturableSectionPositions(built);
+            terrainRecapture.request(client.level, eligible);
+            LOGGER.info("Retained {} of {} previously built sections for recapture after geometry invalidation",
+                    eligible.size(), built.size());
+        }
+    }
+
+    /** Vanilla 26.3 cancels old compiles during the next extraction, not in allChanged(). */
+    public static void completeTerrainRecapture() {
+        Minecraft client = Minecraft.getInstance();
+        LongSet requested = terrainRecapture.afterInvalidation(client.level, isWorldActive());
+        if (requested.isEmpty()) return;
+        if (client.levelRenderer instanceof WorldRendererTerrainAccess access) {
+            LongSet queued = access.rtxremix$queueSectionsForRemix(requested);
+            terrainRecapture.queued(client.level, queued);
+            LOGGER.info("Queued {} of {} retained sections after geometry invalidation", queued.size(), requested.size());
         }
     }
 

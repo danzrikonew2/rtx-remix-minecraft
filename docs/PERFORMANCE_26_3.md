@@ -133,8 +133,35 @@ performance improvement is claimed for the current changes.
 - `tools\rtx.bat check --tests` passed formatting, lint and type checks, plus
   1,140 tests and 178 subtests. One commit-message scan was skipped because no
   commit range was supplied on that invocation.
-- Clear-noon visual acceptance, the new command in game and the larger-heap
-  comparison remain untested. Public alpha 2 release assets are unchanged.
+- At that milestone, clear-noon visual acceptance, the new command in game and
+  the larger-heap comparison were untested. Public alpha 2 release assets are
+  unchanged. The daylight follow-up is recorded below.
+
+## Manual RTX toggle follow-up
+
+The later manual session ended normally at 22:43:20 Asia/Jakarta. The user
+confirmed clear weather restored bright daylight. They still noticed some
+stutter and uneven movement with RTX off, and reported large missing terrain
+areas after enabling RTX again and after reloads. Screenshots show intact
+vanilla terrain and fragmented RTX terrain at the same location. These are
+qualitative observations, not controlled frame-time measurements. RTX off
+still runs this mod and Fabric; it is not an unmodified vanilla comparison.
+
+The log queued 9,072 sections when RTX was re-enabled at 22:40:36, and further
+recapture requests followed reloads. Inspection of the installed 26.3 classes
+found that `LevelExtractor.allChanged()` defers geometry invalidation until
+extraction. `LevelRenderer.invalidateCompiledGeometry()` then releases section
+buffers and clears the compile queue. The port was submitting recapture before
+this cancellation. The fix retains eligible positions and submits them after
+invalidation, with world and capture-mode guards. This addresses a concrete
+ordering error; it does not establish that every missing item or terrain hole
+has the same cause.
+
+The updated Java build and 771 JVM tests passed, including four recapture
+lifecycle regressions. Manual acceptance is pending: repeat off/on and reloads
+while stationary and moving, wait for builds to settle, then check the same
+terrain and held blocks. Keep heap and graphics settings unchanged for this
+test. A 6 GiB heap experiment remains separate and has not been run.
 
 The first session's recordings, samples and local logs are under ignored
 `build/captures/stability-20261031-112641/`. Raw JFR files may contain environment

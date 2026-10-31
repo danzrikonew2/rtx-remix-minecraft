@@ -298,11 +298,20 @@ public abstract class LevelRendererMixin
     }
 
     @Override
-    public LongSet rtxremix$queueSectionsForRemix(LongSet sections) {
+    public LongSet rtxremix$recapturableSectionPositions(LongSet sections) {
+        LongOpenHashSet eligible = new LongOpenHashSet();
+        for (SectionRenderDispatcher.RenderSection section : rtxremix$recaptureSections(sections)) {
+            eligible.add(section.getSectionNode());
+        }
+        return eligible;
+    }
+
+    private ArrayList<SectionRenderDispatcher.RenderSection> rtxremix$recaptureSections(LongSet sections) {
         Minecraft client = Minecraft.getInstance();
         ClientLevel level = client.level;
+        ArrayList<SectionRenderDispatcher.RenderSection> loadedSections = new ArrayList<>();
         if (viewArea == null || sectionRenderDispatcher == null || level == null || sections.isEmpty()) {
-            return LongSets.emptySet();
+            return loadedSections;
         }
 
         // Same gate as vanilla extraction: a section built before its light
@@ -310,7 +319,6 @@ public abstract class LevelRendererMixin
         // nothing re-flags it afterwards.
         LevelLightEngine lightingProvider = level.getLightEngine();
 
-        ArrayList<SectionRenderDispatcher.RenderSection> loadedSections = new ArrayList<>();
         ((ViewAreaAccessor) viewArea).rtxremix$sections().forEach(section -> {
             long node = section.getSectionNode();
             if (!sections.contains(node)) {
@@ -326,6 +334,20 @@ public abstract class LevelRendererMixin
                 loadedSections.add(section);
             }
         });
+        return loadedSections;
+    }
+
+    @Inject(method = "invalidateCompiledGeometry", at = @At("RETURN"))
+    private void rtxremix$recaptureAfterGeometryInvalidation(CallbackInfo ci) {
+        RtxRemixMod.completeTerrainRecapture();
+    }
+
+    @Override
+    public LongSet rtxremix$queueSectionsForRemix(LongSet sections) {
+        Minecraft client = Minecraft.getInstance();
+        ClientLevel level = client.level;
+        ArrayList<SectionRenderDispatcher.RenderSection> loadedSections = rtxremix$recaptureSections(sections);
+        if (loadedSections.isEmpty()) return LongSets.emptySet();
 
         // The compile queue is FIFO. Queue nearby sections first so visible
         // holes close promptly while the Remix scene repopulates.
