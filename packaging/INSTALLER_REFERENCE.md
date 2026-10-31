@@ -250,6 +250,6 @@ triggers a fresh extraction.
 `-EnableMfgUnlocker` opts a Prism installation into the pinned experimental
 addon and a private Java copy. Interactive Prism installs offer a default-no
 prompt. The payload is downloaded and hash-verified automatically; no proxy
-DLL is copied to shared Java. See [MFG integration](docs/MFG_UNLOCKER.md).
+DLL is copied to shared Java. See [MFG integration](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/docs/MFG_UNLOCKER.md).
 Microsoft launcher and ARM64 addon paths are not implemented. Existing Alpha 2
 downloads do not contain this feature. Native FG/DLSS 5 output remains unverified.

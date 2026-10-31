@@ -304,6 +304,6 @@ Corporation in the U.S. and other countries.
 ## Optional experimental MFG addon
 
 Installer builds containing `mfg-unlocker.ps1` offer an opt-in Prism integration.
-See [the MFG integration guide](docs/MFG_UNLOCKER.md) for automatic installation,
+See [the MFG integration guide](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/docs/MFG_UNLOCKER.md) for automatic installation,
 limitations and disable instructions. This does not establish DLSS 5 or MFG
 compatibility on a particular GPU.
