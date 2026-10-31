@@ -329,6 +329,41 @@ orphan audits and cleanup messages only after exit. Raw recordings remain privat
 Logs can expose stalls and workload trends; they cannot prove visual correctness
 or establish a long-term native-resource leak from a short run.
 
+### Consolidated test result
+
+The 9fafa0b run exited normally on 2026-11-01 at approximately 00:28:28
+Asia/Jakarta. The user reported the hand was fully stable without visible
+jitter in this run. This is one positive observation after earlier failures,
+not proof of a deterministic fix or a reason to declare upstream issue #83
+resolved. Graphics settings were not independently controlled or recorded as
+a matched comparison, and no comparative GPU-headroom telemetry was captured.
+
+The JFR spans 269 seconds and contains 14,220 in-world frame ledgers, including
+streaming and transitions. Median frame time was 15.46 ms, p95 18.54 ms and
+p99 36.98 ms. There were 110 frames above 50 ms, 27 above 100 ms and a maximum
+of 941 ms; 19 of the frames above 50 ms overlapped a GC pause. These mixed
+diagnostic frames are not an FPS benchmark or a controlled before/after test.
+
+The GC log records zero full collections and a maximum completed pause of
+73.102 ms. JFR GC phase timing reports approximately 73.057 ms for its maximum;
+these are separate measurements of the pause. Normal performance reports show:
+
+- 44,710 empty-light reconciliations skipped.
+- 2,874 captures rejected by the existing unchanged-geometry guard.
+- Maximum local deferred-capture backlog of six; pacing was rarely engaged.
+- Zero capture evictions, but 1,097 capture-capacity wait events remained.
+- No orphan-column audit removals and no ERROR-level Minecraft log lines.
+
+Zero orphan removals in this short run does not prove resource lifetimes are
+leak-free. Capacity waits and long frame tails remain optimization targets.
+The latest changes primarily reduce CPU allocation/ingestion work; these data
+do not establish that extra GPU capacity caused the stable hand. Shader/cache
+warmup, workload differences and temporal behavior remain possible confounders.
+
+Private captures and summaries are preserved under ignored
+`build/captures/chunk-pass-9fafa0b/`. The three temporary recording flags were
+removed after both Minecraft and Prism stopped. The local 6 GiB heap remains.
+
 The first session's recordings, samples and local logs are under ignored
 `build/captures/stability-20261031-112641/`. Raw JFR files may contain environment
 variables, process metadata and account information. They are not published.
