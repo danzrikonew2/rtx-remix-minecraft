@@ -11,6 +11,13 @@ also part of every mod file name.
 
 ## Unreleased
 
+## 0.2.0-alpha.1 - 2026-10-31
+
+Unofficial community Minecraft 26.3 port, published as an experimental
+Windows x64 prerelease in the community fork. This is not an NVIDIA release.
+The renderer migration incorporates Alex Melan's upstream PR #79 and its
+prerequisites #77 and #78, with attribution and sign-offs preserved.
+
 ### Changed
 
 - Targets Minecraft Java Edition 26.3 on Fabric Loader 0.20.1, Fabric API
@@ -20,17 +27,43 @@ also part of every mod file name.
   forwarded from the GPU-side animation tick.
 - The Copper Beacon lens textures are 48 pixels square, the same six texels
   drawn 8 by 8, so they no longer cap the block atlas at one mip level.
+- Installer and development tooling use Java 25 and version-specific profiles
+  and game directories, preserving existing 1.21.1 installations.
 
 ### Added
 
 - Block lights for the copper torch and copper wall torch, and glowing flames
   for the copper lantern in every oxidation stage.
+- Community [development and test report](docs/MINECRAFT_26_3_PORT.md), isolated
+  installation instructions, and an unsubmitted draft PR description.
+- Regression coverage that installation and instance removal preserve a
+  neighboring 1.21.1 installation.
 
 ### Fixed
 
 - Distant blocks no longer pick up dark outlines and colour from their atlas
   neighbours: every atlas the mod copies fills the padding vanilla 26.x leaves
   around each sprite.
+- Runtime fetching from Windows checkout paths containing spaces.
+- Restored the access-widener license header and aligned build/launcher checks
+  with the unobfuscated game and exact Minecraft 26.3 dependency.
+
+### Validation
+
+- Java/native Windows x64 build, 767 JVM tests, native compatibility probe,
+  and packaged runtime/license inventory checks passed.
+- Locked tooling checks passed: 1,135 tests, 178 subtests, and one skip.
+- Local startup logs confirm RTX Remix initialization. The user confirmed
+  basic scene rendering including hands, reopening the world, and RTX toggles;
+  their status screenshot reports the renderer initialized and SDK available.
+
+### Known limitations
+
+- Stained glass appears weakly tinted; deferred with the user's agreement.
+- Burning-entity flames, leashes, moving-piston block submits, text backgrounds,
+  and arbitrary Fabric custom submit phases remain incomplete.
+- Extended stability, detailed transparency/weather parity, DLSS, window/input
+  transitions, ARM64, and full installer execution are not fully validated.
 
 ## 0.1.0 - 2026-10-23
 

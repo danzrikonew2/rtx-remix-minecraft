@@ -1,6 +1,7 @@
 # Minecraft 26.3 community port
 
 This is an **unofficial, experimental community port**, not an NVIDIA release.
+The first Windows x64 prerelease is `v0.2.0-alpha.1` in the community fork.
 The objective is to preserve RTX Remix terrain, entities, materials, lighting,
 and controls on Minecraft Java Edition 26.3 without changing a working 1.21.1
 installation. Compilation is not proof of correct rendering.
