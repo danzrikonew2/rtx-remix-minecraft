@@ -1,6 +1,10 @@
 # RTX Remix for Minecraft
 
-Play Minecraft Java Edition 1.21.1 with real-time path tracing on a GeForce RTX
+> **Unofficial community port under development.** This branch targets Minecraft 26.3.
+> See [port status and verified tests](docs/MINECRAFT_26_3_PORT.md) before installing.
+> Use a fresh game directory; keep working 1.21.1 installations and worlds separate.
+
+Play Minecraft Java Edition 26.3 with real-time path tracing on a GeForce RTX
 GPU, powered by NVIDIA RTX Remix.
 
 ## What To Expect
@@ -21,7 +25,7 @@ Three areas have had less attention than the rest:
   conflict with anything that changes rendering or the chunk pipeline.
 - **A full playthrough.** Blocks, mobs, dimensions, and situations the showcase
   never reaches have had less care, and some will look wrong or run slowly.
-- **Other versions.** It targets Minecraft 1.21.1 only, chosen because that is
+- **Other versions.** It targets Minecraft 26.3 only, chosen because that is
   where the modding community is today. Ports to newer versions are something
   we hope the community takes on.
 
@@ -46,13 +50,13 @@ The step-by-step version, with launcher advice and troubleshooting, is in
 ## Requirements
 
 - Windows 10 or 11, x64 or ARM64.
-- Minecraft Java Edition 1.21.1, on a Microsoft account that owns the game.
+- Minecraft Java Edition 26.3, on a Microsoft account that owns the game.
 - A GeForce RTX 30-series or newer GPU with NVIDIA driver 616.92 or newer.
 - About 5 GB of free disk space while installing; about 3 GB stays in use.
 - An internet connection while the installer runs.
 - 16 GB of system memory is recommended.
 
-Java 21, Fabric, and the RTX Remix runtime are installed for you.
+Java 25, Fabric, and the RTX Remix runtime are installed for you.
 
 Building and running from source has its own
 [prerequisites](docs/GETTING_STARTED.md#prerequisites), including Prism
