@@ -180,7 +180,9 @@ bridge compiles its inline helpers into
 
 The experimental Prism addon installer downloads MFG Unlocker v1.7.0 from
 https://github.com/dashdogy/MFG-Unlocker. Copyright (c) 2026 Michael Robles;
-MIT License. Its notice is preserved in
-[packaging/licenses/mfg-unlocker/LICENSE.txt](packaging/licenses/mfg-unlocker/LICENSE.txt) and copied with the optional DLL.
+MIT License. Its notice is preserved below and copied with the optional DLL.
+
+- [MFG Unlocker MIT license](packaging/licenses/mfg-unlocker/LICENSE.txt)
+
 The addon binary is not embedded in the mod JAR. Existing NVIDIA runtime
 libraries and their original licenses remain separate.
