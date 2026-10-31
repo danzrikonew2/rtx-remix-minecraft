@@ -76,6 +76,7 @@ per-frame budgets.
 | `rtxremix.chunk.maxPendingBuilds` | Merges outstanding at once | `ChunkManager` |
 | `rtxremix.chunk.maxPendingMeshBytes` | Bytes of merged but not yet installed geometry | `ChunkManager` |
 | `rtxremix.chunk.installBudgetNs` | Render-thread time per frame spent installing columns | `ChunkManager` |
+| `rtxremix.chunk.captureBudgetNs` | Capture-ingestion budget, default 1 ms; yields between captures, always processes at least one; one capture can exceed the budget | `ChunkManager` |
 | `rtxremix.chunk.maxInstalledColumnsPerFrame` | Columns published per frame | `ChunkManager` |
 | `rtxremix.chunk.columnStreamSettleFrames` | Frames a column waits for its neighbours before publishing | `ChunkManager` |
 | `rtxremix.chunk.columnStreamMaxWaitFrames` | Hard cap, in frames, on that wait | `ChunkManager` |

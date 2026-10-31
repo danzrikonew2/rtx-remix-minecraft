@@ -112,6 +112,11 @@ public class ChunkManager {
     private final List<BlockDataQueue.EvictedSection> evictedSectionScratch = new ArrayList<>();
     private static final int MAX_EVICTED_REFLAGS_PER_FRAME = 128;
     private int pendingCaptureIndex;
+    private static final long CAPTURE_TIME_BUDGET_NS = Math.max(100_000L,
+            Long.getLong("rtxremix.chunk.captureBudgetNs", 1_000_000L));
+    private int capturesUnchangedThisFrame;
+    private int emptyLightTasksSkippedThisFrame;
+    private int cntCaptureDeferred, cntCaptureUnchanged, cntEmptyLightTasksSkipped;
 
     // Light mutations are native API calls just like mesh uploads. Keep each
     // section's desired state in a resumable task and execute only atomic
@@ -623,6 +628,9 @@ public class ChunkManager {
 
             if (cntCap == -1) {
                 cntCap     = timer.registerCounter("Chunk.Captures");
+                cntCaptureDeferred = timer.registerCounter("Chunk.CaptureDeferred");
+                cntCaptureUnchanged = timer.registerCounter("Chunk.CaptureUnchanged");
+                cntEmptyLightTasksSkipped = timer.registerCounter("Chunk.EmptyLightTasksSkipped");
                 cntLightsCulled = timer.registerCounter("Chunk.LightsCulled");
                 cntLightsDrawn = timer.registerCounter("Chunk.LightsDrawn");
                 cntLightsBeyondReach = timer.registerCounter("Chunk.LightsBeyondReach");
@@ -687,8 +695,13 @@ public class ChunkManager {
                 drainColumnUnloads(maintenanceDeadline);
                 drainSectionRemovals(maintenanceDeadline);
                 drainLightWork(System.nanoTime() + LIGHT_TIME_BUDGET_NS);
+                capturesUnchangedThisFrame = 0;
+                emptyLightTasksSkippedThisFrame = 0;
                 int capturesProcessed = drainBlockData();
                 timer.count(cntCap, capturesProcessed);
+                timer.count(cntCaptureDeferred, pending.size() - pendingCaptureIndex);
+                timer.count(cntCaptureUnchanged, capturesUnchangedThisFrame);
+                timer.count(cntEmptyLightTasksSkipped, emptyLightTasksSkippedThisFrame);
                 genScope.captureCount(capturesProcessed);
                 timer.count(cntWorkerMem, DirectQuadWriter.getTotalAllocatedBytes() / 1024);
                 // Retained section meshes live in the pool; this is the off-heap footprint
@@ -873,6 +886,10 @@ public class ChunkManager {
     }
 
     private int drainBlockData() {
+        return drainBlockData(System.nanoTime() + CAPTURE_TIME_BUDGET_NS);
+    }
+
+    private int drainBlockData(long deadline) {
         if (pendingCaptureIndex >= pending.size()) {
             pending.clear();
             pendingCaptureIndex = 0;
@@ -883,12 +900,15 @@ public class ChunkManager {
             BlockDataQueue.drain(pending);
         }
 
-        BlockTextureManager tex = renderer.getTextureManager();
         int skipped = 0;
         int processed = 0;
 
         while (pendingCaptureIndex < pending.size()) {
-            BlockDataQueue.QueuedCapture queued = pending.get(pendingCaptureIndex++);
+            // Always make progress, then yield between captures. A single capture
+            // is not preemptible; unprocessed captures keep their queue identity
+            // and are revalidated next frame, including after an unload.
+            if (processed > 0 && System.nanoTime() >= deadline) break;
+            BlockDataQueue.QueuedCapture queued = pending.set(pendingCaptureIndex++, null);
             processed++;
             SectionBlockData cap = queued.data();
             if (!BlockDataQueue.isCurrent(queued)) {
@@ -909,6 +929,7 @@ public class ChunkManager {
                 releaseMeshData(cap);
                 continue;
             }
+            BlockTextureManager tex = renderer.getTextureManager();
             if (pendingColumnUnloads.remove(chunkKey)) {
                 // A live capture supersedes an unload event that was deferred
                 // while native mesh retirement was backpressured.
@@ -924,6 +945,7 @@ public class ChunkManager {
                     cap.opacityBitmap());
             TerrainState.SectionEntry oldEntry;
             if (newEntry == null) {
+                capturesUnchangedThisFrame++;
                 newEntry = terrain.findSection(cx, sy, cz);
                 if (newEntry == null) continue;
                 oldEntry = newEntry;
@@ -933,8 +955,18 @@ public class ChunkManager {
                         oldEntry != null ? oldEntry.data : null,
                         newEntry.data), oldEntry != null);
             }
+            boolean noLightWork = cap.lights().isEmpty() && (oldEntry == null || oldEntry.lightCount() == 0);
+            if (noLightWork && activeLightTasks.isEmpty()) {
+                emptyLightTasksSkippedThisFrame++;
+                continue;
+            }
             LightSectionKey section = new LightSectionKey(cx, sy, cz);
             cancelLightTask(section);
+            // Even an empty capture must cancel a previous pending CREATE.
+            if (noLightWork) {
+                emptyLightTasksSkippedThisFrame++;
+                continue;
+            }
             LightReconcileTask task = new LightReconcileTask(
                     section, oldEntry, newEntry, cap.lights(), tex);
             enqueueLightTask(task);
@@ -1025,6 +1057,7 @@ public class ChunkManager {
      * border-sized burst of them.
      */
     private void cancelLightTasksForColumn(int cx, int cz) {
+        if (activeLightTasks.isEmpty()) return;
         int topSection = currentWorld.getMaxSectionY();
         for (int sy = currentWorld.getMinSectionY(); sy <= topSection; sy++) {
             cancelLightTask(new LightSectionKey(cx, sy, cz));

@@ -280,6 +280,55 @@ single settling-update and idle sequence, and world-instance update suppression.
 Manual acceptance on the installed runtime remains required. No DLSS, denoiser,
 heap or graphics-quality setting is changed by this mitigation.
 
+### Result and upstream report: 2026-11-01
+
+The user tested 51fddfe and confirmed that the jitter persists. The settling-pose
+candidate is unsuccessful and must not be described as a working jitter fix.
+The user also reports the same symptom in NVIDIA's original Minecraft 1.21.1
+installation; that is a user observation, without original-version logs collected
+in this investigation. The root cause remains unresolved.
+
+At the user's explicit request, reported upstream as
+[NVIDIAGameWorks/rtx-remix-minecraft#83](https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/issues/83).
+The report distinguishes original-version observations from 26.3 diagnostics,
+documents the unsuccessful candidate, and leaves runtime/mod ownership open
+for maintainer triage. No private raw logs or account data were posted.
+
+## Consolidated chunk-performance pass: 2026-11-01
+
+Reviewed capture allocation, ingestion/upload bursts, duplicate geometry, and
+unload/resource ownership together. Changes in this pass:
+
+- Capture ingestion now yields between captures after a default 1 ms budget.
+  At least one capture is processed per frame. One expensive capture is not
+  preempted, so this is not a hard frame-time cap. Pending captures retain their
+  generation/chunk-token checks, including unloads between frames.
+- Consumed capture slots are cleared immediately rather than retaining their
+  wrapper references until the entire batch completes.
+- Empty old/new light sets skip reconciliation maps/lists/tasks. Pending CREATE
+  work for that section is still cancelled first. Column unloads skip the
+  per-section cancellation-key walk when no reconcile tasks exist.
+- `Chunk.CaptureDeferred`, `Chunk.CaptureUnchanged`, and
+  `Chunk.EmptyLightTasksSkipped` expose the affected work in normal performance
+  reports. Existing hash-based geometry rejection remains; lights are reconciled
+  independently because the geometry hash does not include light parameters.
+
+Existing mesh installation and resource retirement are already budgeted. No
+new duplicate filter or unload ownership rule was introduced without evidence
+of a missing mechanism. Orphan-column audits remain an unresolved investigation
+item; their recovery is not proof of a leak or proof that unload events are lost.
+No world-generation algorithm, view distance, graphics quality or release heap
+default was changed. Runtime improvement remains unmeasured until the combined
+test is analyzed.
+
+For one consolidated pass, keep the current settings, fly through new terrain
+and back through already visited terrain, edit/place/break blocks and lights,
+toggle RTX off/on, then leave/reopen the world twice. Finish by quitting Minecraft
+and Prism normally. Collect JFR, GC, normal performance reports, recapture counts,
+orphan audits and cleanup messages only after exit. Raw recordings remain private.
+Logs can expose stalls and workload trends; they cannot prove visual correctness
+or establish a long-term native-resource leak from a short run.
+
 The first session's recordings, samples and local logs are under ignored
 `build/captures/stability-20261031-112641/`. Raw JFR files may contain environment
 variables, process metadata and account information. They are not published.

@@ -33,6 +33,11 @@ also part of every mod file name.
 
 ### Developer tooling
 
+- Pace terrain capture ingestion between sections, release consumed batch references
+  promptly, and skip reconciliation allocations for sections with no old or new
+  lights after cancelling any pending task. Add deferred/unchanged capture and
+  empty-light-work counters for consolidated performance testing.
+
 - Add opt-in first-person transform fingerprint diagnostics to distinguish
   captured transform changes from visual shimmer. Reuse the hand model-view
   snapshot matrix; no measured frame-time improvement or jitter fix is claimed.
