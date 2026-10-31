@@ -14,6 +14,7 @@ import com.nvidia.rtxremix.minecraft.terrain.ClientLightSnapshots;
 import com.nvidia.rtxremix.minecraft.terrain.ClientLightSnapshotPolicy;
 import com.nvidia.rtxremix.minecraft.terrain.ChunkManager;
 import com.nvidia.rtxremix.minecraft.sky.SkyRenderer;
+import com.nvidia.rtxremix.minecraft.sky.SkyAttributes;
 import com.nvidia.rtxremix.minecraft.settings.RtxSettingsStore;
 import com.nvidia.rtxremix.minecraft.settings.RtxSettingsScreen;
 import com.nvidia.rtxremix.minecraft.settings.RtxSettingsFactory;
@@ -853,6 +854,31 @@ public class RtxRemixMod implements ClientModInitializer {
                         context.getSource().sendFeedback(Component.literal("Sky Rendering: " + (skyEnabled ? "ON" : "OFF")));
                         return 1;
                     })
+                    .then(ClientCommands.literal("status")
+                        .executes(context -> {
+                            var source = context.getSource();
+                            var world = Minecraft.getInstance().level;
+                            if (world == null) {
+                                source.sendFeedback(Component.literal("Sky diagnostics require a loaded world."));
+                                return 0;
+                            }
+                            source.sendFeedback(Component.literal("Sky: " + world.dimensionType().skybox()
+                                    + ", Overworld clock: " + world.getOverworldClockTime()
+                                    + ", Sun angle (degrees): " + SkyAttributes.timeOfDay(0.0f) * 360.0f));
+                            source.sendFeedback(Component.literal("Weather: rain=" + world.getRainLevel(0.0f)
+                                    + ", thunder=" + world.getThunderLevel(0.0f)
+                                    + ". /time changes the clock, not the weather."));
+                            source.sendFeedback(Component.literal("Sun intensity: " + LightManager.getSunIntensity()
+                                    + ", Sky dome multiplier: " + SkyRenderer.getSkyDomeMultiplier()));
+                            if (renderer != null && renderer.getLightManager() != null) {
+                                var state = renderer.getLightManager().getSkyLightState();
+                                float[] direct = state.sunDirectRadiance();
+                                source.sendFeedback(Component.literal("Last submitted sky lighting: sun height="
+                                        + state.sunPosition()[1] + ", direct sun RGB="
+                                        + direct[0] + ", " + direct[1] + ", " + direct[2]));
+                            }
+                            return 1;
+                        }))
                     .then(ClientCommands.literal("ambient")
                         .executes(context -> {
                             SkyRenderer.setSkyAmbientRectEnabled(!SkyRenderer.isSkyAmbientRectEnabled());

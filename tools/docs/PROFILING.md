@@ -9,7 +9,7 @@ or an AI assistant can drive the analysis from it; see
 
 - **Python 3.15 or newer**
 - **uv 0.13 or newer**, using the shared project's lockfile
-- **JDK 21** with the `jfr` CLI on `PATH` (or set `JAVA_HOME`)
+- **JDK 25** with the `jfr` CLI on `PATH` (or set `JAVA_HOME`) for the 26.3 port
 
 Profiler and benchmark tools share `tools/pyproject.toml`, `tools/uv.lock`,
 and the installed `rtx_tools` package in `tools/.venv/`. Dependencies are pinned
@@ -146,7 +146,7 @@ uv run --project tools python -m rtx_tools.profiler.jfr_summary profile.jfr
 # 3. Drill down based on what the summary shows
 uv run --project tools python -m rtx_tools.profiler.jfr_hotspots profile.jfr -t "^Render thread$"
 uv run --project tools python -m rtx_tools.profiler.jfr_alloc profile.jfr --by size --stacks
-uv run --project tools python -m rtx_tools.profiler.jfr_gc profile.jfr --heap --rss
+uv run --project tools python -m rtx_tools.profiler.jfr_gc profile.jfr --heap --system-memory
 ```
 
 For benchmark-integrated recordings, Java renderer phases are emitted as
@@ -350,12 +350,15 @@ correlate it with GL work rather than declaring the owner from one graph.
 reuse policy that prevents it. Growth that scales with draw calls/frame rate,
 especially with the debug chart open, warrants checking that path again.
 
-Java RSS growth is a separate question. Use `jfr_gc --heap --rss` and a
-controlled `jcmd <pid> GC.run` outside measured runs to compare the live set
-with committed memory. RSS falling with heap after collection is consistent
-with deferred collection, not proof that all native memory is healthy.
-`build.gradle` and [Tuning](../../docs/TUNING.md) own heap limits; do not infer
-a leak, or its absence, from RSS alone.
+Process memory growth is a separate question. `jdk.PhysicalMemory` and
+`jfr_gc --system-memory` report total OS memory across all processes, **not
+Minecraft RSS**. The summary JSON calls this `system_memory`. Collect the
+verified game PID's working set and private committed bytes separately, and
+compare them with `jfr_gc --heap` and natural GC activity. A controlled
+`jcmd <pid> GC.run` belongs outside measured runs. Heap or working-set decline
+after collection does not prove that every native resource was released.
+`build.gradle` and [Tuning](../../docs/TUNING.md) own heap limits; no single
+memory counter establishes a leak or rules one out.
 
 ## Tracy Capture Health And Compatibility
 
@@ -427,7 +430,7 @@ directly.
 | `jfr_stacks` | Call trees, collapsed stacks, bottom-up views | `--format tree\|collapsed\|bottom-up`, `--filter`, `--depth` |
 | `jfr_timeline` | Time-bucketed CPU sample distribution with GC overlay | `--interval`, `--gc` |
 | `jfr_window` | Drill into a specific clock-time range | `--after HH:MM`, `--before HH:MM` |
-| `jfr_gc` | Heap timeline, RSS, GC pauses, retained objects, thread alloc ranking | `--heap`, `--rss`, `--gc`, `--retained`, `--thread-alloc` |
+| `jfr_gc` | Heap timeline, system RAM, GC pauses, retained objects, thread alloc ranking | `--heap`, `--system-memory`, `--gc`, `--retained`, `--thread-alloc` |
 | `jfr_threads` | Thread inventory, CPU load, dark thread detection, park analysis | `--cpu-load`, `--detect-stuck`, `--parks` |
 | `jfr_locks` | Lock contention, RWL detection, per-monitor ranking | `--min-duration`, `--stacks` |
 | `jfr_io` | File and socket I/O by duration or bytes | `--type file\|socket`, `--by duration\|bytes`, `--slow` |
@@ -459,7 +462,7 @@ directly.
 | What's in this recording? | `jfr_summary` |
 | Why is my frame rate low? | `jfr_hotspots -t "^Render"`, then `jfr_stacks --format bottom-up` |
 | What's allocating all this memory? | `jfr_alloc --by size --stacks` |
-| Is there a memory leak? | `jfr_gc --heap --rss` |
+| Is there a memory leak? | `jfr_gc --heap --system-memory` |
 | Are threads stuck? | `jfr_threads --detect-stuck` |
 | What's contending on locks? | `jfr_locks --stacks` |
 | Did my optimization help? | `jfr_compare before.jfr after.jfr` |
@@ -581,7 +584,7 @@ then drill into any regressions.
 ```
 My application's memory keeps growing. Analyze <path/to/profile.jfr>:
 Run these modules with uv run --project tools python -m:
-1. rtx_tools.profiler.jfr_gc --heap --rss  (is RSS growing faster than heap?)
+1. rtx_tools.profiler.jfr_gc --heap --system-memory  (compare heap with OS-wide memory; sample process memory separately)
 2. rtx_tools.profiler.jfr_gc --retained    (what objects are retained?)
 3. rtx_tools.profiler.jfr_alloc --by size  (what allocates the most?)
 4. rtx_tools.profiler.jfr_threads --detect-stuck  (any threads stuck in native alloc?)

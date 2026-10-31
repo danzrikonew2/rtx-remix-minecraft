@@ -30,6 +30,9 @@ QUERY_FIELDS = (
     "power.limit",
     "temperature.gpu",
     "clocks_event_reasons.active",
+    "memory.used",
+    "memory.total",
+    "utilization.gpu",
 )
 
 # Bit values of clocks_event_reasons.active (nvmlClocksEventReason* in nvml.h).
@@ -102,7 +105,7 @@ def parse_sample(line: str) -> dict | None:
         reasons = int(parts[6], 16)
     except ValueError:
         return None
-    return {
+    sample = {
         "pstate": parts[0],
         "graphicsClockMhz": _number(parts[1], int),
         "maxGraphicsClockMhz": _number(parts[2], int),
@@ -111,6 +114,12 @@ def parse_sample(line: str) -> dict | None:
         "temperatureC": _number(parts[5], int),
         "eventReasons": reasons,
     }
+    sample.update(
+        boardMemoryUsedMiB=_number(parts[7], float),
+        boardMemoryTotalMiB=_number(parts[8], float),
+        gpuUtilizationPercent=_number(parts[9], float),
+    )
+    return sample
 
 
 class Sampler:
@@ -154,7 +163,7 @@ def _values(samples: list[Mapping[str, Any]], key: str) -> list[float]:
 
 
 def summarize(samples: Iterable[Mapping[str, Any]]) -> dict:
-    """Recording-phase P-state share, clocks, power, temperature, and throttle shares."""
+    """Recording-phase GPU state, including board-wide VRAM use and utilization."""
     all_samples = list(samples)
     recording = [sample for sample in all_samples if sample.get("phase") == RECORDING_STATE]
     summary: dict[str, Any] = {"samples": len(all_samples), "recordingSamples": len(recording)}
@@ -177,6 +186,19 @@ def summarize(samples: Iterable[Mapping[str, Any]]) -> dict:
         summary["powerLimitW"] = max(limits)
     if temps := _values(recording, "temperatureC"):
         summary["temperatureC"] = {"max": max(temps)}
+    for key in ("boardMemoryUsedMiB", "gpuUtilizationPercent"):
+        if values := _values(recording, key):
+            summary[key] = {"min": min(values), "avg": round(sum(values) / len(values), 2), "max": max(values)}
+    if totals := _values(recording, "boardMemoryTotalMiB"):
+        summary["boardMemoryTotalMiB"] = max(totals)
+    headroom = [
+        sample["boardMemoryTotalMiB"] - sample["boardMemoryUsedMiB"]
+        for sample in recording
+        if isinstance(sample.get("boardMemoryTotalMiB"), int | float)
+        and isinstance(sample.get("boardMemoryUsedMiB"), int | float)
+    ]
+    if headroom:
+        summary["boardMemoryHeadroomMiB"] = {"min": min(headroom)}
     reasons = [int(sample.get("eventReasons") or 0) for sample in recording]
     summary["eventReasonShare"] = {
         name: round(sum(1 for mask in reasons if mask & bit) / count, 4)

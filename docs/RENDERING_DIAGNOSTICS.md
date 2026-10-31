@@ -49,6 +49,28 @@ it is expensive, investigate page sizing, native work and runtime capacity,
 rather than silently omitting one of the steps. Queue waiting and the two
 retirement gates are documented in [Tuning](TUNING.md#terrain-capture).
 
+## Dark Daytime And Weather
+
+`/time set day` and `/time set noon` do not clear rain or thunder. The renderer
+attenuates direct sunlight during storms, so a bright-looking sky can coexist
+with weak sunlight on terrain. In a disposable creative test world, compare:
+
+```text
+/weather clear 600
+/time set noon
+/rtx sky status
+```
+
+Allow about five seconds for the vanilla weather gradients to settle. The new
+`/rtx sky status` command reports the raw rain/thunder gradients, camera-probed
+sun angle in degrees, intensity controls and last submitted direct sun RGB.
+The submitted values describe the last renderer update; with RTX disabled they
+can be stale. At clear noon in the Overworld, expect weather gradients near
+zero, positive sun height and nonzero direct sunlight with default settings.
+Compare the same view using `/rtx off` and `/rtx on`; include both screenshots
+and the diagnostic output if clear noon is still excessively dark. Do not
+increase sun intensity merely to compensate for an active thunderstorm.
+
 ## Block Lights And Resource Reload
 
 `BlockLightRuleManager` loads built-in rules from `BlockLightDefaults` and

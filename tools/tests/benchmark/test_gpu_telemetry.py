@@ -8,7 +8,7 @@ from pathlib import Path
 
 from rtx_tools.benchmark import gpu_telemetry
 
-CSV_LINE = "P0, 2505, 2505, 287.12, 300.00, 71, 0x0000000000000004"
+CSV_LINE = "P0, 2505, 2505, 287.12, 300.00, 71, 0x0000000000000004, 7800, 8192, 97"
 
 
 def sample(phase, pstate, clock, power, temp, reasons):
@@ -25,6 +25,43 @@ def sample(phase, pstate, clock, power, temp, reasons):
 
 
 class GpuTelemetryTests(unittest.TestCase):
+    def test_parse_sample_includes_board_memory_and_gpu_load(self):
+        parsed = gpu_telemetry.parse_sample(CSV_LINE)
+        assert parsed is not None
+        self.assertEqual(parsed["boardMemoryUsedMiB"], 7800.0)
+        self.assertEqual(parsed["boardMemoryTotalMiB"], 8192.0)
+        self.assertEqual(parsed["gpuUtilizationPercent"], 97.0)
+
+    def test_unsupported_memory_is_not_reported_as_zero(self):
+        parsed = gpu_telemetry.parse_sample(",".join(CSV_LINE.split(",")[:7]) + ", [N/A], [Not Supported], [N/A]")
+        assert parsed is not None
+        self.assertIsNone(parsed["boardMemoryUsedMiB"])
+        self.assertIsNone(parsed["boardMemoryTotalMiB"])
+        self.assertIsNone(parsed["gpuUtilizationPercent"])
+
+    def test_memory_summary_uses_recording_samples_and_paired_headroom(self):
+        summary = gpu_telemetry.summarize(
+            [
+                {"phase": "WARMUP", "boardMemoryUsedMiB": 8190, "boardMemoryTotalMiB": 8192},
+                {
+                    "phase": "RECORDING",
+                    "boardMemoryUsedMiB": 7000,
+                    "boardMemoryTotalMiB": 8192,
+                    "gpuUtilizationPercent": 70,
+                },
+                {
+                    "phase": "RECORDING",
+                    "boardMemoryUsedMiB": 7800,
+                    "boardMemoryTotalMiB": 8192,
+                    "gpuUtilizationPercent": 98,
+                },
+                {"phase": "RECORDING", "boardMemoryUsedMiB": None, "boardMemoryTotalMiB": None},
+            ]
+        )
+        self.assertEqual(summary["boardMemoryUsedMiB"], {"min": 7000, "avg": 7400, "max": 7800})
+        self.assertEqual(summary["boardMemoryHeadroomMiB"], {"min": 392})
+        self.assertEqual(summary["gpuUtilizationPercent"], {"min": 70, "avg": 84, "max": 98})
+
     def test_parse_sample_reads_one_nvidia_smi_csv_line(self):
         parsed = gpu_telemetry.parse_sample(CSV_LINE)
         assert parsed is not None
@@ -38,7 +75,7 @@ class GpuTelemetryTests(unittest.TestCase):
         self.assertEqual(parsed["eventReasons"], 0x4)
 
     def test_parse_sample_treats_not_available_fields_as_missing(self):
-        parsed = gpu_telemetry.parse_sample("P8, [N/A], 2505, [N/A], 300.00, 40, 0x0000000000000001")
+        parsed = gpu_telemetry.parse_sample("P8, [N/A], 2505, [N/A], 300.00, 40, 0x0000000000000001, 2000, 8192, 0")
         assert parsed is not None
 
         self.assertEqual(parsed["pstate"], "P8")
@@ -51,7 +88,7 @@ class GpuTelemetryTests(unittest.TestCase):
         self.assertIsNone(gpu_telemetry.parse_sample("NVIDIA-SMI has failed"))
 
     def test_sampler_tags_each_sample_with_the_benchmark_state(self):
-        lines = iter([CSV_LINE, CSV_LINE, "P2, 1800, 2505, 120.00, 300.00, 60, 0x0000000000000008"])
+        lines = iter([CSV_LINE, CSV_LINE, "P2, 1800, 2505, 120.00, 300.00, 60, 0x0000000000000008, 7000, 8192, 80"])
         sampler = gpu_telemetry.Sampler(query=lambda: next(lines))
 
         sampler.record(None)

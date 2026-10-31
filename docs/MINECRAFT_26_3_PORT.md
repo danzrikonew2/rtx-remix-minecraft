@@ -86,6 +86,17 @@ under `build/test-results/test/`, and the HTML report under
 The imported PR author reports in-game validation; those results are separate
 from this fork's local validation.
 
+A first manual stability/VRAM diagnostic is recorded in
+[the performance baseline](PERFORMANCE_26_3.md). It found Java heap compaction
+pressure and limited VRAM headroom at 32 chunks. Controlled comparisons and
+long-session leak validation remain incomplete.
+
+The user subsequently reported stutters, uneven flying and worsening perceived
+FPS. The stopped world's weather data also confirmed an active thunderstorm
+during the dark-daytime report. Clear-noon visual acceptance remains pending;
+use [daylight diagnostics](RENDERING_DIAGNOSTICS.md#dark-daytime-and-weather)
+and `/rtx sky status` in a build containing that command.
+
 The installer smoke test used temporary APPDATA, LOCALAPPDATA and TEMP roots
 inside ignored build outputs. It ran the archive's actual `install.bat` under
 Windows PowerShell 5.1 with `-Unattended -Launcher Prism`. No sign-in or game UI

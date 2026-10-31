@@ -243,6 +243,12 @@ frame-time spikes seen with generational ZGC. Reducing allocation volume stays
 necessary regardless of collector, since concurrent collector work competes with
 the render thread.
 
+Those 1.21.1 measurements do not establish a suitable heap for 26.3. The first
+26.3 manual session at 32 render chunks repeatedly compacted a 2 GiB heap;
+see [the baseline and its limitations](PERFORMANCE_26_3.md). A controlled
+larger-heap comparison is still pending. Heap changes alone do not resolve
+GPU memory pressure, terrain allocation volume or every slow frame.
+
 The Intel driver workaround must keep this exact spelling:
 
 ```

@@ -1006,6 +1006,21 @@ fault output. `src/dxvk/dxvk_options.cpp` and `dxvk_instance.cpp` in the selecte
 runtime source own availability and behavior. Instrumented fault capture can
 change performance and is not a normal A/B baseline.
 
+## GPU Memory Telemetry
+
+`run_N/gpu_samples.json` records GPU clocks, power, temperature, clock-event
+reasons, board memory used/total (MiB), and GPU utilization when `nvidia-smi`
+supports those fields. The manifest's GPU telemetry summary uses recording
+samples only and includes minimum VRAM headroom. Unsupported fields remain
+missing values, not zero. Existing JSON captures without memory fields still
+produce their original clock/power summaries.
+
+VRAM measurements cover the whole selected NVIDIA board, including the desktop
+and other applications. They are not Minecraft-only allocations. High usage
+alone does not prove eviction, a leak, or a performance cause. Compare samples
+with the same scene, settings and background workload, and correlate hitches
+with JFR or runtime evidence before changing defaults.
+
 ## Deep Profiling
 
 Benchmark runs enable Java phase profiling. Most `ProfileScope` events mirror

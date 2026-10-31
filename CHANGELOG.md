@@ -11,6 +11,21 @@ also part of every mod file name.
 
 ## Unreleased
 
+### Added
+
+- `/rtx sky status` reports weather, clock, sun angle and submitted direct sunlight
+  to help distinguish storm-darkened daytime from a sky rendering problem.
+
+### Developer tooling
+
+- Record board-wide VRAM used/total, GPU utilization and minimum recording-window
+  memory headroom in benchmark telemetry.
+- Correct JFR physical-memory reporting: OS-wide RAM is not Minecraft RSS.
+  Summary JSON now uses `system_memory`; the memory CLI documents its scope.
+- Document the first manual 26.3 stability and 8 GiB VRAM diagnostic, including
+  observed Java heap compactions, memory trends and limitations. No renderer
+  performance or quality defaults are changed by this diagnostic milestone.
+
 ## 0.2.0-alpha.2 - 2026-10-31
 
 ### Added

@@ -3,16 +3,16 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-JFR GC and Memory Analysis -- heap, RSS, GC pauses, retained objects.
+JFR GC and Memory Analysis -- heap, system RAM, GC pauses, retained objects.
 
-Consolidates heap, RSS, GC pause, retained object, and per-thread
+Consolidates heap, system RAM, GC pause, retained object, and per-thread
 allocation analysis into a single tool. VisualVM shows you a graph;
 this tells you the numbers behind it.
 
 Usage:
     python -m rtx_tools.profiler.jfr_gc profile.jfr                    # everything
     python -m rtx_tools.profiler.jfr_gc profile.jfr --heap              # heap timeline only
-    python -m rtx_tools.profiler.jfr_gc profile.jfr --rss               # RSS tracking
+    python -m rtx_tools.profiler.jfr_gc profile.jfr --system-memory               # system physical memory
     python -m rtx_tools.profiler.jfr_gc profile.jfr --gc                # GC pause breakdown
     python -m rtx_tools.profiler.jfr_gc profile.jfr --retained          # old object samples
     python -m rtx_tools.profiler.jfr_gc profile.jfr --thread-alloc      # per-thread allocation ranking
@@ -115,14 +115,14 @@ def show_heap(jfr, args):
         print(f"\n  Heap {direction} by {fmt_bytes(abs(delta))} over recording")
 
 
-def show_rss(jfr, args):
+def show_system_memory(jfr, args):
     events = jfr_events(jfr, ["jdk.PhysicalMemory"])
     events = _apply_time_window(events, args)
     if not events:
         print("  No PhysicalMemory events found.", file=sys.stderr)
         return
 
-    print_header("RSS / Physical Memory Timeline")
+    print_header("System Physical Memory Timeline (all processes)")
     print(f"\n  {'Time':>10}  {'Used':>12}  {'Total':>12}")
     print(f"  {'':->10}  {'':->12}  {'':->12}")
 
@@ -140,7 +140,7 @@ def show_rss(jfr, args):
 
     if first_used and last_used:
         print(
-            f"\n  RSS start: {fmt_bytes(first_used)}, end: {fmt_bytes(last_used)}, "
+            f"\n  System RAM used start: {fmt_bytes(first_used)}, end: {fmt_bytes(last_used)}, "
             f"delta: {fmt_bytes(last_used - first_used)}"
         )
 
@@ -293,7 +293,7 @@ def _render_json(gc_events, duration_sec):
 
 def run(args):
     jfr = args.jfr_file
-    show_all = not any([args.heap, args.rss, args.gc, args.retained, args.thread_alloc])
+    show_all = not any([args.heap, args.system_memory, args.gc, args.retained, args.thread_alloc])
 
     if args.json:
         summary = jfr_summary_text(jfr)
@@ -324,8 +324,8 @@ def run(args):
 
     if show_all or args.heap:
         show_heap(jfr, args)
-    if show_all or args.rss:
-        show_rss(jfr, args)
+    if show_all or args.system_memory:
+        show_system_memory(jfr, args)
     if show_all or args.gc:
         show_gc(jfr, args)
     if show_all or args.retained:
@@ -342,14 +342,20 @@ def main():
         epilog="""Examples:
   python -m rtx_tools.profiler.jfr_gc profile.jfr                # full report
   python -m rtx_tools.profiler.jfr_gc profile.jfr --heap         # heap timeline
-  python -m rtx_tools.profiler.jfr_gc profile.jfr --rss          # RSS / native memory
+  python -m rtx_tools.profiler.jfr_gc profile.jfr --system-memory          # system physical memory
   python -m rtx_tools.profiler.jfr_gc profile.jfr --gc           # GC pause breakdown
   python -m rtx_tools.profiler.jfr_gc profile.jfr --retained     # retained (leaked?) objects
   python -m rtx_tools.profiler.jfr_gc profile.jfr --thread-alloc # who allocates most""",
     )
     parser.add_argument("jfr_file", help="Path to the .jfr recording file")
     parser.add_argument("--heap", action="store_true", help="Heap timeline")
-    parser.add_argument("--rss", action="store_true", help="RSS / physical memory tracking")
+    parser.add_argument(
+        "--system-memory",
+        "--rss",
+        dest="system_memory",
+        action="store_true",
+        help="OS physical memory across all processes; not JVM RSS",
+    )
     parser.add_argument("--gc", action="store_true", help="GC pause analysis")
     parser.add_argument("--retained", action="store_true", help="Retained object analysis")
     parser.add_argument("--thread-alloc", action="store_true", help="Per-thread allocation ranking")

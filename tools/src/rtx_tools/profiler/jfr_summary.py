@@ -7,7 +7,7 @@ JFR Recording Summary -- the "start here" dashboard for any recording.
 
 Gives an LLM (or human) enough context in one call to decide where to
 drill down next: metadata, event counts, CPU thread breakdown, top
-allocation sites, heap/RSS snapshots, GC stats, and contended locks.
+allocation sites, heap/system-memory snapshots, GC stats, and contended locks.
 
 Usage:
     python -m rtx_tools.profiler.jfr_summary profile.jfr
@@ -140,7 +140,7 @@ def run(args):
                 for i, (site, b) in enumerate(top5, 1):
                     print(f"  {i}. {site:<{sw}}  {fmt_bytes(b):>10}  {fmt_pct(b, total_alloc)}")
 
-    # -- Heap / RSS snapshot --
+    # -- Heap and system physical memory --
     if "jdk.GCHeapSummary" in available:
         heap_evts = jfr_events(jfr, ["jdk.GCHeapSummary"])
         if heap_evts:
@@ -164,9 +164,9 @@ def run(args):
             first_total = rss_evts[0].get("values", {}).get("totalSize", 0)
             last_used = rss_evts[-1].get("values", {}).get("usedSize", 0)
             if args.json:
-                out["rss"] = {"total": first_total, "used_last": last_used}
+                out["system_memory"] = {"total": first_total, "used_last": last_used}
             elif last_used:
-                print(f"  RSS (last): {fmt_bytes(last_used)}")
+                print(f"  System RAM used (last): {fmt_bytes(last_used)} (all processes; not JVM RSS)")
 
     # -- GC stats --
     gc_types = _gc_pause_event_types(available)
