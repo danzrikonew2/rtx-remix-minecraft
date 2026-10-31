@@ -5,6 +5,7 @@
 package com.nvidia.rtxremix.minecraft.asset;
 
 import com.nvidia.rtxremix.InstanceInfoBlendEXT;
+import com.nvidia.rtxremix.InstanceCategoryBit;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
@@ -14,6 +15,33 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RemixInstanceStateTest {
+
+    @Test
+    void viewModelSendsOneStationaryPoseAfterMovementThenStopsUpdating() throws Exception {
+        RemixInstance hand = new RemixInstance(new RemixMesh(new RemixMeshSurface[0]));
+        hand.setCategoryFlags(InstanceCategoryBit.VIEW_MODEL);
+        hand.sceneDescriptionSubmitted();
+        assertTrue(hand.needsSceneUpdate());
+        hand.sceneDescriptionSubmitted();
+        assertFalse(hand.needsSceneUpdate());
+        hand.setTransform(new com.nvidia.rtxremix.Transform());
+        hand.sceneDescriptionSubmitted();
+        assertTrue(hand.needsSceneUpdate());
+        hand.sceneDescriptionSubmitted();
+        assertFalse(hand.needsSceneUpdate());
+        hand.setCategoryFlags(InstanceCategoryBit.TERRAIN);
+        setDirty(hand, false);
+        assertFalse(hand.needsSceneUpdate());
+    }
+
+    @Test
+    void unchangedWorldGeometryStillSkipsNativeUpdates() throws Exception {
+        RemixInstance world = new RemixInstance(new RemixMesh(new RemixMeshSurface[0]));
+        setDirty(world, false);
+        assertFalse(world.needsSceneUpdate());
+        world.setTransform(new com.nvidia.rtxremix.Transform());
+        assertTrue(world.needsSceneUpdate());
+    }
 
     @Test
     void meshChangesDirtyTheRetainedDescription() throws Exception {

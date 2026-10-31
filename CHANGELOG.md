@@ -13,6 +13,10 @@ also part of every mod file name.
 
 ### Fixed
 
+- Send one final unchanged retained view-model pose after a changed description,
+  providing an explicit stationary transition to the runtime. This is a targeted
+  hand-history mitigation pending in-game validation, not a confirmed jitter fix.
+
 - Copy fixed-size JNI camera, instance and dome matrices with array-region
   reads instead of critical heap pointers. This removes unnecessary critical
   array access; its effect on gameplay stutters remains unmeasured.

@@ -249,6 +249,37 @@ of 28.757, 22.217 and 22.682 ms respectively. Pinned-evacuation messages remain.
 Routes, durations and graphics differ, so these are observations, not matched
 before/after optimization results.
 
+### Stationary-hand capture result
+
+The 38379cb diagnostic session ended normally at 23:36:26 Asia/Jakarta.
+Before looking around, the probe reached 1,514 consecutive captures with
+unchanged camera/bone/layout fingerprints. Movement changed both camera and
+bone fingerprints. After movement stopped, the camera stabilized first and
+bone changes settled by the 23:35:57 report; subsequent reports reached 1,899
+consecutive unchanged captures. This does not support continuous stationary
+jitter in those sampled Java transforms. It does not validate mesh/material
+identity or native motion vectors, and cannot establish a denoiser defect.
+The remaining investigation belongs downstream of these capture inputs.
+The session log was preserved locally and the temporary probe argument removed
+with Minecraft and Prism stopped. The 6 GiB heap was retained.
+
+### Hand-history settling mitigation
+
+The retained-instance path previously submitted a changed hand pose and then
+sent nothing once the description stayed unchanged. The view-model path now
+sends one additional unchanged description before returning to idle. This gives
+the runtime an explicit stationary transition while preserving the same mesh
+and scene-instance handles. Ordinary world geometry keeps its existing update
+policy. There is no perpetual idle resubmission or global history reset.
+
+This is a targeted mitigation, not a verified diagnosis of the visible jitter.
+The public runtime source was inspected for context, but the package's pinned
+71a581da commit could not be resolved in the public repository, so exact native
+history behavior remains unverified. Regression tests cover the changed-pose,
+single settling-update and idle sequence, and world-instance update suppression.
+Manual acceptance on the installed runtime remains required. No DLSS, denoiser,
+heap or graphics-quality setting is changed by this mitigation.
+
 The first session's recordings, samples and local logs are under ignored
 `build/captures/stability-20261031-112641/`. Raw JFR files may contain environment
 variables, process metadata and account information. They are not published.

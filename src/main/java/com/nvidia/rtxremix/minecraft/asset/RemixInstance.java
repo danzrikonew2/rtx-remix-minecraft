@@ -5,6 +5,7 @@
 package com.nvidia.rtxremix.minecraft.asset;
 
 import com.nvidia.rtxremix.InstanceInfoBlendEXT;
+import com.nvidia.rtxremix.InstanceCategoryBit;
 import com.nvidia.rtxremix.RemixAPI;
 import com.nvidia.rtxremix.RemixBridge;
 import com.nvidia.rtxremix.Transform;
@@ -43,6 +44,7 @@ public class RemixInstance extends RemixAssetBase {
 
     /** Whether the retained native description needs a complete replacement. */
     private boolean sceneInfoDirty = true;
+    private boolean viewModelSettlePending;
 
     public RemixInstance(RemixMesh mesh) {
         this.mesh = mesh;
@@ -90,7 +92,8 @@ public class RemixInstance extends RemixAssetBase {
 
     /**
      * Retained-scene submission for render-thread-only hot paths. Unchanged visible
-     * instances require no native call.
+     * world instances require no native call. A view model sends one final
+     * unchanged pose after motion so its history input can settle to zero motion.
      */
     public void drawFast(RemixAPI api) {
         submitRetained(api);
@@ -116,11 +119,20 @@ public class RemixInstance extends RemixAssetBase {
 
         if (handle == INACTIVE_HANDLE) {
             replaceNativeHandle(addSceneInstance(api));
-            sceneInfoDirty = false;
-        } else if (sceneInfoDirty) {
+            sceneDescriptionSubmitted();
+        } else if (needsSceneUpdate()) {
             updateSceneInstance(api, handle);
-            sceneInfoDirty = false;
+            sceneDescriptionSubmitted();
         }
+    }
+
+    boolean needsSceneUpdate() {
+        return sceneInfoDirty || viewModelSettlePending;
+    }
+
+    void sceneDescriptionSubmitted() {
+        viewModelSettlePending = sceneInfoDirty && (categoryFlags & InstanceCategoryBit.VIEW_MODEL) != 0;
+        sceneInfoDirty = false;
     }
 
     private long addSceneInstance(RemixAPI api) {
