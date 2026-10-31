@@ -22,7 +22,7 @@ def test_use_switches_the_game_directory(fake_launcher: FakeLauncher, tmp_path: 
 
 def test_default_game_directory_is_the_prism_instance():
     assert util.PRISM_DATA_DIR == util.PROJECT_DIR / "run-prism"
-    assert util.RUN_DIR == util.PROJECT_DIR / "run-prism" / "instances" / "rtx-remix-dev" / ".minecraft"
+    assert util.RUN_DIR == util.PROJECT_DIR / "run-prism" / "instances" / "rtx-remix-26.3-dev" / ".minecraft"
 
 
 def test_benchmark_jvm_args_mirror_build_gradle():

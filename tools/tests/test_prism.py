@@ -163,14 +163,16 @@ def test_sign_in_steps_cover_prisms_first_run_login_page():
 
 
 def test_launch_command_never_goes_offline(tmp_path):
-    layout = prism.PrismLayout(Path("p.exe"), tmp_path, tmp_path / "instances", "rtx-remix-dev", "RTX Remix Dev", False)
+    layout = prism.PrismLayout(
+        Path("p.exe"), tmp_path, tmp_path / "instances", "rtx-remix-26.3-dev", "RTX Remix 26.3 Dev", False
+    )
     cmd = prism.launch_command(layout, profile="Alex", world="rtx-benchmark")
     assert cmd == [
         "p.exe",
         "--dir",
         str(tmp_path),
         "--launch",
-        "rtx-remix-dev",
+        "rtx-remix-26.3-dev",
         "--profile",
         "Alex",
         "--world",
@@ -191,8 +193,8 @@ def test_portable_prism_uses_the_checkouts_launcher_profile(tmp_path):
     layout = prism.launcher_layout(exe, data_dir, checkout)
 
     assert layout.data_dir == data_dir
-    assert layout.game_dir == data_dir / "instances" / "rtx-remix-dev" / ".minecraft"
-    assert layout.instance_id == "rtx-remix-dev"
+    assert layout.game_dir == data_dir / "instances" / "rtx-remix-26.3-dev" / ".minecraft"
+    assert layout.instance_id == "rtx-remix-26.3-dev"
     assert not layout.uses_default_data_dir
     assert prism.prism_command(layout) == [str(exe), "--dir", str(data_dir)]
 
@@ -216,7 +218,7 @@ def test_installed_prism_uses_its_account_store_and_a_checkout_specific_instance
     assert layout.data_dir == app_data / "PrismLauncher"
     assert layout.instances_dir == custom_instances
     assert layout.game_dir == custom_instances / layout.instance_id / ".minecraft"
-    assert layout.instance_id.startswith("rtx-remix-dev-source-")
+    assert layout.instance_id.startswith("rtx-remix-26.3-dev-source-")
     assert layout.instance_id != sibling.instance_id
     assert layout.uses_default_data_dir
     assert prism.prism_command(layout) == [str(exe)]
@@ -241,23 +243,23 @@ def test_installed_prism_honors_its_data_directory_environment(tmp_path, monkeyp
 
 def test_write_instance_pins_versions_and_quotes_spaced_args(tmp_path):
     game = prism.write_instance(tmp_path, java=Path("C:/jdk/bin/javaw.exe"), jvm_args=["-XX:+UseG1GC", "-Dx=C:/a b/c"])
-    cfg = (tmp_path / "instances" / "rtx-remix-dev" / "instance.cfg").read_text(encoding="utf-8")
+    cfg = (tmp_path / "instances" / "rtx-remix-26.3-dev" / "instance.cfg").read_text(encoding="utf-8")
     assert 'JvmArgs=-XX:+UseG1GC "-Dx=C:/a b/c"' in cfg and "OverrideJavaArgs=true" in cfg
-    pack = json.loads((tmp_path / "instances" / "rtx-remix-dev" / "mmc-pack.json").read_text(encoding="utf-8"))
+    pack = json.loads((tmp_path / "instances" / "rtx-remix-26.3-dev" / "mmc-pack.json").read_text(encoding="utf-8"))
     assert {c["uid"]: c["version"] for c in pack["components"]} == {
         "net.minecraft": prism.installer_constant("MC_VERSION"),
         "net.fabricmc.fabric-loader": prism.installer_constant("FABRIC_LOADER_VER"),
     }
-    assert game == tmp_path / "instances" / "rtx-remix-dev" / ".minecraft" and game.is_dir()
+    assert game == tmp_path / "instances" / "rtx-remix-26.3-dev" / ".minecraft" and game.is_dir()
 
 
 def test_write_instance_writes_the_instance_settings_and_component_shape(tmp_path):
     prism.write_instance(tmp_path, java=Path("C:/jdk/bin/javaw.exe"), jvm_args=["-Xmx12G", "-XX:+UseG1GC"])
-    instance = tmp_path / "instances" / "rtx-remix-dev"
+    instance = tmp_path / "instances" / "rtx-remix-26.3-dev"
     # CRLF like the installer's Prism files.
     assert (instance / "instance.cfg").read_bytes().decode("utf-8").split("\r\n") == [
         "InstanceType=OneSix",
-        "name=RTX Remix Dev",
+        "name=RTX Remix 26.3 Dev",
         "OverrideJavaLocation=true",
         "JavaPath=C:/jdk/bin/javaw.exe",
         "OverrideJavaArgs=true",
@@ -291,7 +293,7 @@ def test_write_instance_lets_prism_exit_after_a_failed_launch(tmp_path):
     """Prism exits once no launch runs and no window is open (Application::controllerFinished), and a failed launch
     opens the console window unless ShowConsoleOnError is off under OverrideConsole."""
     prism.write_instance(tmp_path, java=Path("C:/jdk/bin/javaw.exe"), jvm_args=["-Dx=1"])
-    cfg = (tmp_path / "instances" / "rtx-remix-dev" / "instance.cfg").read_text(encoding="utf-8")
+    cfg = (tmp_path / "instances" / "rtx-remix-26.3-dev" / "instance.cfg").read_text(encoding="utf-8")
     assert [prism_ini_value(cfg, key) for key in ("OverrideConsole", "ShowConsole", "ShowConsoleOnError")] == [
         "true",
         "false",
@@ -302,7 +304,7 @@ def test_write_instance_lets_prism_exit_after_a_failed_launch(tmp_path):
 def test_write_instance_always_rewrites_both_files(tmp_path):
     java = Path("C:/jdk/bin/javaw.exe")
     prism.write_instance(tmp_path, java=java, jvm_args=["-Xmx1G", "-Dv=1"])
-    instance = tmp_path / "instances" / "rtx-remix-dev"
+    instance = tmp_path / "instances" / "rtx-remix-26.3-dev"
     (instance / "mmc-pack.json").write_text('{"components": []}', encoding="utf-8")
     prism.write_instance(tmp_path, java=java, jvm_args=["-Xmx2G", "-Dv=2"])
     cfg = (instance / "instance.cfg").read_text(encoding="utf-8").splitlines()
@@ -409,7 +411,7 @@ def prism_split_args_9_4(args: str) -> list[str]:
 )
 def test_write_instance_jvm_args_survive_prisms_parsing(tmp_path, args, split):
     prism.write_instance(tmp_path, java=Path("C:/jdk/bin/javaw.exe"), jvm_args=args)
-    cfg = (tmp_path / "instances" / "rtx-remix-dev" / "instance.cfg").read_text(encoding="utf-8")
+    cfg = (tmp_path / "instances" / "rtx-remix-26.3-dev" / "instance.cfg").read_text(encoding="utf-8")
     assert split(prism_ini_value(cfg, "JvmArgs")) == args
 
 
@@ -428,7 +430,7 @@ def prism_heap_args(cfg: str) -> list[str]:
 def launched_jvm_args(tmp_path: Path, jvm_args: list[str]) -> list[str]:
     """The JVM arguments Prism builds from the instance write_instance writes for `jvm_args`."""
     prism.write_instance(tmp_path, java=Path("C:/jdk/bin/javaw.exe"), jvm_args=jvm_args)
-    cfg = (tmp_path / "instances" / "rtx-remix-dev" / "instance.cfg").read_text(encoding="utf-8")
+    cfg = (tmp_path / "instances" / "rtx-remix-26.3-dev" / "instance.cfg").read_text(encoding="utf-8")
     return prism_split_args(prism_ini_value(cfg, "JvmArgs")) + prism_heap_args(cfg)
 
 
@@ -487,7 +489,7 @@ def prism_refuses_jvm_args(jvm_args: str) -> bool:
 )
 def test_prism_accepts_the_instance_jvm_args_and_still_gets_their_heap(tmp_path, jvm_args):
     launched = launched_jvm_args(tmp_path, jvm_args)
-    cfg = (tmp_path / "instances" / "rtx-remix-dev" / "instance.cfg").read_text(encoding="utf-8")
+    cfg = (tmp_path / "instances" / "rtx-remix-26.3-dev" / "instance.cfg").read_text(encoding="utf-8")
     assert not prism_refuses_jvm_args(prism_ini_value(cfg, "JvmArgs"))
     assert last_with_prefix(launched, "-Xmx") == f"-Xmx{prism._heap_mib(jvm_args, prism.MAX_HEAP_OPTIONS)}m"
 
@@ -533,13 +535,13 @@ def test_the_launched_jvm_keeps_its_maximum_heap_whatever_the_initial_one(tmp_pa
 
 def test_write_instance_turns_off_prisms_low_memory_prompt_with_the_heap(tmp_path):
     prism.write_instance(tmp_path, java=Path("C:/jdk/bin/javaw.exe"), jvm_args=["-Xmx12G"])
-    cfg = (tmp_path / "instances" / "rtx-remix-dev" / "instance.cfg").read_text(encoding="utf-8")
+    cfg = (tmp_path / "instances" / "rtx-remix-26.3-dev" / "instance.cfg").read_text(encoding="utf-8")
     assert prism_ini_value(cfg, "LowMemWarning") == "false"
 
 
 def test_write_instance_leaves_prisms_memory_settings_alone_without_a_heap_limit(tmp_path):
     prism.write_instance(tmp_path, java=Path("C:/jdk/bin/javaw.exe"), jvm_args=["-Dx=1", "-Xss1M"])
-    cfg = (tmp_path / "instances" / "rtx-remix-dev" / "instance.cfg").read_text(encoding="utf-8")
+    cfg = (tmp_path / "instances" / "rtx-remix-26.3-dev" / "instance.cfg").read_text(encoding="utf-8")
     for key in ("OverrideMemory", "MinMemAlloc", "MaxMemAlloc", "LowMemWarning"):
         assert f"{key}=" not in cfg
 
@@ -606,7 +608,7 @@ def test_running_prism_pids_matches_only_this_data_folder(monkeypatch, tmp_path)
         prism,
         "_prism_command_lines",
         lambda: [
-            (11, f'prismlauncher.exe --dir "{tmp_path}" --launch rtx-remix-dev'),
+            (11, f'prismlauncher.exe --dir "{tmp_path}" --launch rtx-remix-26.3-dev'),
             (12, "prismlauncher.exe --dir D:\\other\\run-prism"),
         ],
     )
@@ -735,14 +737,14 @@ def jdk_places(tmp_path, monkeypatch) -> dict[str, Path]:
     monkeypatch.setenv("GRADLE_USER_HOME", str(gradle_home))
     monkeypatch.setenv("ProgramFiles", str(program_files))
     return {
-        "gradle": gradle_home / "jdks" / "eclipse_adoptium-21-amd64-windows.2",
-        "adoptium": program_files / "Eclipse Adoptium" / "jdk-21.0.5.11-hotspot",
-        "microsoft": program_files / "Microsoft" / "jdk-21.0.5.11-hotspot",
-        "oracle": program_files / "Java" / "jdk-21",
+        "gradle": gradle_home / "jdks" / "eclipse_adoptium-25-amd64-windows.2",
+        "adoptium": program_files / "Eclipse Adoptium" / "jdk-25.0.5.11-hotspot",
+        "microsoft": program_files / "Microsoft" / "jdk-25.0.5.11-hotspot",
+        "oracle": program_files / "Java" / "jdk-25",
     }
 
 
-def test_find_game_jdk_uses_java_home_when_it_is_a_jdk_21_for_the_arch(tmp_path, jdk_places):
+def test_find_game_jdk_uses_java_home_when_it_is_a_jdk_25_for_the_arch(tmp_path, jdk_places):
     java_home = write_jdk(tmp_path / "home")
     write_jdk(jdk_places["gradle"])
     assert prism.find_game_jdk("win64", java_home) == java_home
@@ -751,11 +753,11 @@ def test_find_game_jdk_uses_java_home_when_it_is_a_jdk_21_for_the_arch(tmp_path,
 @pytest.mark.parametrize(
     ("version", "machine"),
     [
-        # Prism refuses any major but 21 for Minecraft 1.21.1, newer ones included.
+        # Prism refuses any major but 25 for Minecraft 26.3, newer ones included.
         ("17.0.9", 0x8664),
-        ("25.0.1", 0x8664),
+        ("21.0.1", 0x8664),
         # The bridge and runtime load only into a JVM of their own architecture.
-        ("21.0.5", 0xAA64),
+        ("25.0.5", 0xAA64),
     ],
 )
 def test_find_game_jdk_looks_past_a_java_home_prism_cannot_use(tmp_path, jdk_places, version, machine):
@@ -783,28 +785,28 @@ def test_find_game_jdk_skips_another_architecture_and_version(jdk_places):
 
 def test_find_game_jdk_reads_gradles_nested_toolchain_folders(jdk_places):
     # Some Gradle versions unpack the JDK's own top folder inside the toolchain folder.
-    nested = write_jdk(jdk_places["gradle"] / "jdk-21.0.5+11")
+    nested = write_jdk(jdk_places["gradle"] / "jdk-25.0.5+11")
     assert prism.find_game_jdk("win64", None) == nested
 
 
 def test_find_game_jdk_takes_gradles_default_home(tmp_path, jdk_places, monkeypatch):
     monkeypatch.delenv("GRADLE_USER_HOME")
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path / "me"))
-    found = write_jdk(tmp_path / "me" / ".gradle" / "jdks" / "jdk-21.0.5+11")
+    found = write_jdk(tmp_path / "me" / ".gradle" / "jdks" / "jdk-25.0.5+11")
     write_jdk(jdk_places["adoptium"])
     assert prism.find_game_jdk("win64", None) == found
 
 
 def test_find_game_jdk_takes_the_newest_in_a_folder(jdk_places):
     folder = jdk_places["adoptium"].parent
-    write_jdk(folder / "jdk-21.0.9.10-hotspot", version="21.0.9")
-    newest = write_jdk(folder / "jdk-21.0.10.7-hotspot", version="21.0.10")
-    write_jdk(folder / "jdk-21.0.2.13-hotspot", version="21.0.2")
+    write_jdk(folder / "jdk-25.0.9.10-hotspot", version="25.0.9")
+    newest = write_jdk(folder / "jdk-25.0.10.7-hotspot", version="25.0.10")
+    write_jdk(folder / "jdk-25.0.2.13-hotspot", version="25.0.2")
     assert prism.find_game_jdk("win64", None) == newest
 
 
-def test_find_game_jdk_reads_only_jdk_21_folders_under_program_files(jdk_places):
-    # A vendor folder holds other products; only its jdk-21 folders are JDK candidates.
+def test_find_game_jdk_reads_only_jdk_25_folders_under_program_files(jdk_places):
+    # A vendor folder holds other products; only its jdk-25 folders are JDK candidates.
     write_jdk(jdk_places["microsoft"].parent / "Edge" / "Application")
     write_jdk(jdk_places["microsoft"].parent / "Edge")
     assert prism.find_game_jdk("win64", None) is None

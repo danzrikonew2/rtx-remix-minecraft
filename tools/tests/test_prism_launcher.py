@@ -221,7 +221,7 @@ def test_the_active_installed_prism_rebinds_the_shared_game_directory(tmp_path, 
     launcher = client.active()
 
     assert launcher.game_dir == util.RUN_DIR
-    assert launcher.game_dir.parent.name.startswith("rtx-remix-dev-")
+    assert launcher.game_dir.parent.name.startswith("rtx-remix-26.3-dev-")
 
 
 def test_a_launcher_without_a_config_reads_the_tools_config_at_each_use(monkeypatch):
@@ -261,7 +261,7 @@ def test_check_and_start_block_on_a_game_left_running_without_prism(launcher, mo
         lambda **kwargs: [(73, game_jvm(launcher.game_dir.parent))],
     )
     monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: pytest.fail("started Prism"))
-    message = re.escape("Minecraft is already running from this checkout's RTX Remix Dev instance (process 73)")
+    message = re.escape("Minecraft is already running from this checkout's RTX Remix 26.3 Dev instance (process 73)")
 
     with pytest.raises(client.LaunchBlocked, match=message):
         launcher.check()
@@ -331,7 +331,7 @@ def test_check_reports_blockers_in_order(launcher, monkeypatch):
     assert exe is not None
     os.utime(exe, ns=(time.time_ns(), exe.stat().st_mtime_ns + 10**9))
     monkeypatch.setattr(prism, "supports_launch_flags", lambda exe: True)
-    with pytest.raises(client.LaunchBlocked, match="RTX Remix Dev Prism window"):
+    with pytest.raises(client.LaunchBlocked, match="RTX Remix 26.3 Dev Prism window"):
         launcher.check()
     monkeypatch.setattr(prism, "running_prism_pids", lambda d, **kwargs: [])
     assert opened == []
@@ -341,10 +341,10 @@ def test_check_reports_blockers_in_order(launcher, monkeypatch):
 
 
 @pytest.mark.parametrize("java_home", [None, "17.0.9"])
-def test_check_and_start_need_a_jdk_21(launcher, fake_prism, monkeypatch, tmp_path, java_home):
+def test_check_and_start_need_a_jdk_25(launcher, fake_prism, monkeypatch, tmp_path, java_home):
     home = None if java_home is None else write_jdk(tmp_path / "jdk-17", version=java_home)
     monkeypatch.setattr(runner, "detect_java_home", lambda: home)
-    message = re.escape(f"Minecraft {prism.installer_constant('MC_VERSION')} in Prism needs a 64-bit JDK 21 for win64")
+    message = re.escape(f"Minecraft {prism.installer_constant('MC_VERSION')} in Prism needs a 64-bit JDK 25 for win64")
     with pytest.raises(client.LaunchBlocked, match=message) as at_check:
         launcher.check()
     assert "JAVA_HOME" in str(at_check.value)
@@ -353,8 +353,8 @@ def test_check_and_start_need_a_jdk_21(launcher, fake_prism, monkeypatch, tmp_pa
     assert fake_prism.process is None
 
 
-def test_start_runs_the_game_on_a_jdk_21_for_the_launch_architecture(launcher, fake_prism, monkeypatch, tmp_path):
-    arm64 = write_jdk(tmp_path / "Program Files" / "Microsoft" / "jdk-21.0.5.11-hotspot", machine=0xAA64)
+def test_start_runs_the_game_on_a_jdk_25_for_the_launch_architecture(launcher, fake_prism, monkeypatch, tmp_path):
+    arm64 = write_jdk(tmp_path / "Program Files" / "Microsoft" / "jdk-25.0.5.11-hotspot", machine=0xAA64)
     monkeypatch.setenv("ProgramFiles", str(tmp_path / "Program Files"))
     launcher.start(LaunchRequest(arch="arm64", env={}))
     assert f"JavaPath={(arm64 / 'bin' / 'javaw.exe').as_posix()}" in instance_cfg(launcher).splitlines()
@@ -365,7 +365,7 @@ def test_start_runs_the_game_on_a_jdk_21_for_the_launch_architecture(launcher, f
 
 def test_check_looks_for_a_jdk_for_the_host_architecture(launcher, fake_prism, monkeypatch):
     monkeypatch.setattr(runner, "host_arch", lambda override=None: "arm64")
-    with pytest.raises(client.LaunchBlocked, match="JDK 21 for arm64"):
+    with pytest.raises(client.LaunchBlocked, match="JDK 25 for arm64"):
         launcher.check()
 
 
@@ -393,7 +393,7 @@ def test_installed_prism_sign_in_uses_its_normal_account_store(launcher, fake_pr
 
     assert read_from == [app_data / "PrismLauncher"]
     assert launcher.data_dir == app_data / "PrismLauncher"
-    assert launcher.instance_id.startswith("rtx-remix-dev-")
+    assert launcher.instance_id.startswith("rtx-remix-26.3-dev-")
     assert fake_prism.argv == [str(exe)]
     assert not (launcher.data_dir / "prismlauncher.cfg").exists()
 
@@ -672,7 +672,7 @@ def test_start_follows_a_jvm_given_the_short_form_of_the_instance(launcher, fake
     instance = launcher.game_dir.parent
     short = Path("C:/RUN-PR~1/INSTAN~1/RTX-RE~1")
     monkeypatch.setattr(winproc, "short_path", lambda path: short if path == instance else None)
-    # The short form of rtx-remix-dev-old.
+    # The short form of rtx-remix-26.3-dev-old.
     sibling = short.with_name("RTX-RE~2")
     fake_prism.polls = [[(2, game_jvm(sibling))]]
     fake_prism.java_lines = [(2, game_jvm(sibling)), (9001, game_jvm(short))]

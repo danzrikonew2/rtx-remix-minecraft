@@ -789,7 +789,9 @@ def build_parser() -> argparse.ArgumentParser:
         ),
         formatter_class=HelpFormatter,
     )
-    p.add_argument("--game-dir", type=Path, metavar="DIR", help=r"game directory (default: %%APPDATA%%\.minecraft)")
+    p.add_argument(
+        "--game-dir", type=Path, metavar="DIR", help=r"game directory (default: %%APPDATA%%\.minecraft-rtx-remix-26.3)"
+    )
     p.add_argument("--arch", choices=["win64", "arm64"], help="target architecture (default: REMIX_ARCH, then host)")
     p.set_defaults(func=cmd_install)
 

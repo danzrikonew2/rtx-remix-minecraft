@@ -88,7 +88,7 @@ switch ($Action) {
 }
 """
 PROMPTED = "Confirm-YesNo:"
-INSTANCE_NAME = "NVIDIA RTX Remix for Minecraft"
+INSTANCE_NAME = "RTX Remix Community 26.3 (Experimental)"
 # instance.cfg as Initialize-PrismInstance creates it.
 NEW_INSTANCE = f"InstanceType=OneSix\r\nname={INSTANCE_NAME}\r\nJavaVersion=21"
 USER_MEMORY = "OverrideMemory=true\r\nMinMemAlloc=1024\r\nMaxMemAlloc=8192\r\n"
@@ -656,9 +656,14 @@ def test_removing_the_instance_removes_its_record(tmp_path: Path):
     for name in ("instance.cfg", RECORD):
         (instance / name).write_text(name, encoding="utf-8")
 
+    legacy = data_dir / "instances" / "NVIDIA RTX Remix for Minecraft" / ".minecraft" / "rtx.conf"
+    legacy.parent.mkdir(parents=True)
+    legacy.write_bytes(b"preserve 1.21.1")
+
     run_harness(tmp_path, "-Action", "RemoveInstance", "-Dest", str(data_dir))
 
     assert not instance.exists()
+    assert legacy.read_bytes() == b"preserve 1.21.1"
 
 
 def test_memory_set_in_prism_is_kept(sync: Sync):
@@ -774,8 +779,8 @@ def test_memory_keys_in_another_section_are_not_the_instances(sync: Sync):
 def test_upgrade_keeps_unicode_and_changes_only_the_memory_keys(sync: Sync, newline: str):
     original = saved_by_prism(
         RECOMMENDED_FOR_PRISM,
-        name="RTX Remix für Zoë – 光",
-        java="JavaPath=D:/Spiele/Zoë/RtxRemixMinecraft/jdk-21/bin/javaw.exe\r\nOverrideJavaLocation=true\r\n",
+        name="RTX Remix fÃƒÂ¼r ZoÃƒÂ« Ã¢â‚¬â€œ Ã¥â€¦â€°",
+        java="JavaPath=D:/Spiele/ZoÃƒÂ«/RtxRemixMinecraft/jdk-21/bin/javaw.exe\r\nOverrideJavaLocation=true\r\n",
     ).replace("\r\n", newline)
 
     text, _ = sync(original, unattended=True)
@@ -787,11 +792,11 @@ def test_upgrade_keeps_unicode_and_changes_only_the_memory_keys(sync: Sync, newl
 
 
 def test_arm64_java_pin_keeps_unicode(sync: Sync, tmp_path: Path):
-    managed_jdk = tmp_path / "Zoë" / "jdk-21"
+    managed_jdk = tmp_path / "ZoÃƒÂ«" / "jdk-21"
     javaw = managed_jdk / "bin" / "javaw.exe"
     javaw.parent.mkdir(parents=True)
     javaw.touch()
-    original = saved_by_prism(RECOMMENDED_FOR_PRISM, INSTALLER_MEMORY, name="RTX Remix für Zoë – 光")
+    original = saved_by_prism(RECOMMENDED_FOR_PRISM, INSTALLER_MEMORY, name="RTX Remix fÃƒÂ¼r ZoÃƒÂ« Ã¢â‚¬â€œ Ã¥â€¦â€°")
 
     text, _ = sync(original, action="JavaPin", managed_jdk=managed_jdk)
 
@@ -843,7 +848,7 @@ def test_microsoft_launcher_args_an_earlier_installer_wrote_are_replaced_without
 
 
 def test_unattended_microsoft_migration_preserves_utf8_profile_metadata(sync_microsoft: SyncMicrosoft):
-    name = "Minecraft プレイヤー"
+    name = "Minecraft Ã£Æ’â€”Ã£Æ’Â¬Ã£â€šÂ¤Ã£Æ’Â¤Ã£Æ’Â¼"
 
     profile, _ = sync_microsoft(
         next(iter(PREVIOUS_RECOMMENDED.values())),

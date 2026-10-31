@@ -62,7 +62,7 @@ def install_development_build(project_dir: Path, *, game_dir: Path | None = None
         if not appdata:
             print("ERROR: APPDATA is not set; pass --game-dir DIR.")
             return 1
-        game_dir = Path(appdata) / ".minecraft"
+        game_dir = Path(appdata) / ".minecraft-rtx-remix-26.3"
     game_dir = (project_dir / game_dir).absolute()
     source = runtime_source(project_dir, selected_arch)
     bridge = project_dir / "build" / "native" / selected_arch / "remixbridge.dll"
@@ -108,7 +108,7 @@ def install_development_build(project_dir: Path, *, game_dir: Path | None = None
     shutil.copy2(mod_jar, mods / "rtx-remix-renderer.jar")
     if not any(mods.glob("fabric-api-*.jar")):
         print(f"WARNING: no fabric-api jar in {mods}.")
-        print("         The mod requires fabric-api >=0.116.10+1.21.1 (https://modrinth.com/mod/fabric-api).")
+        print("         The mod requires fabric-api >=0.165.0+26.3 (https://modrinth.com/mod/fabric-api).")
 
     _stage_runtime(source, bridge, game_dir / "remix-sdk", selected_arch)
     packaging = project_dir / "packaging"

@@ -19,7 +19,7 @@ BENCHMARK_DIR = Path(__file__).resolve().parent
 RESULTS_DIR = TOOLS_DIR / "results"
 PRISM_DATA_DIR = PROJECT_DIR / "run-prism"
 # The active launcher's game directory; client.use replaces it.
-RUN_DIR = PRISM_DATA_DIR / "instances" / "rtx-remix-dev" / ".minecraft"
+RUN_DIR = PRISM_DATA_DIR / "instances" / "rtx-remix-26.3-dev" / ".minecraft"
 SHARED_CONFIG_PATH = TOOLS_DIR / "config.json"
 ASSETS_DIR = TOOLS_DIR / "assets"
 

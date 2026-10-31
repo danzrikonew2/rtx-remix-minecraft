@@ -20,10 +20,10 @@ from pathlib import Path
 from .benchmark import util
 from .client import LaunchBlocked
 
-INSTANCE_ID = "rtx-remix-dev"
-INSTANCE_NAME = "RTX Remix Dev"
+INSTANCE_ID = "rtx-remix-26.3-dev"
+INSTANCE_NAME = "RTX Remix 26.3 Dev"
 # Where packaging/installer.ps1 puts its managed portable Prism.
-MANAGED_PORTABLE_DIR = Path(os.environ.get("LOCALAPPDATA", "")) / "RtxRemixMinecraft" / "PrismLauncher"
+MANAGED_PORTABLE_DIR = Path(os.environ.get("LOCALAPPDATA", "")) / "RtxRemixMinecraft26.3" / "PrismLauncher"
 DATA_DIR_ENV = "PRISMLAUNCHER_DATA_DIR"
 ACCOUNTS_FORMAT_VERSION = 3
 # The JVM's two spellings of each heap limit, and the sizes it accepts for them.
@@ -37,10 +37,10 @@ HEAP_SIZE = re.compile(r"(\d+)([kKmMgGtT]?)")
 HEAP_UNIT_BYTES = {"": 1, "k": 1 << 10, "m": 1 << 20, "g": 1 << 30, "t": 1 << 40}
 # Prism's default MinMemAlloc (Application::Application in launcher/Application.cpp).
 PRISM_MIN_HEAP_MIB = 512
-# The only Java major Prism's metadata lists for Minecraft 1.21.1 (compatibleJavaMajors in
-# https://meta.prismlauncher.org/v1/net.minecraft/1.21.1.json). Prism refuses any other, newer ones included, unless
+# The only Java major Prism's metadata lists for Minecraft 26.3 (compatibleJavaMajors in
+# https://meta.prismlauncher.org/v1/net.minecraft/26.3.json). Prism refuses any other, newer ones included, unless
 # IgnoreJavaCompatibility is set (VerifyJavaInstall::executeTask in launcher/minecraft/launch/VerifyJavaInstall.cpp).
-GAME_JAVA_MAJOR = 21
+GAME_JAVA_MAJOR = 25
 PE_MACHINE_ARCH = {0x8664: "win64", 0xAA64: "arm64"}
 JAVA_VERSION_LINE = re.compile(r'^JAVA_VERSION="(\d+(?:\.\d+)*)', re.MULTILINE)
 

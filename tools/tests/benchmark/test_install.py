@@ -74,7 +74,7 @@ def test_install_stages_complete_development_payload(installation, capsys, arch)
     project, game = installation
     existing = {
         "mods/rtx-remix-renderer-old.jar": b"old mod",
-        "mods/fabric-api-0.116.10+1.21.1.jar": b"fabric api",
+        "mods/fabric-api-0.165.0+26.3.jar": b"fabric api",
         "mods/another-mod.jar": b"another mod",
         "remix-sdk/stale.dll": b"stale SDK",
         "rtx-remix/mods/minecraft-logic/weather/rain.conf": b"edited shipped rain",
@@ -91,7 +91,7 @@ def test_install_stages_complete_development_payload(installation, capsys, arch)
 
     expected = {
         "mods/rtx-remix-renderer.jar": b"newest mod",
-        "mods/fabric-api-0.116.10+1.21.1.jar": b"fabric api",
+        "mods/fabric-api-0.165.0+26.3.jar": b"fabric api",
         "mods/another-mod.jar": b"another mod",
         "remix-sdk/d3d9.dll": f"{arch} runtime".encode(),
         "remix-sdk/dxvk.conf": b"runtime config",
@@ -164,7 +164,7 @@ def test_install_warns_about_missing_fabric_api_without_installing_it(installati
 
     output = capsys.readouterr().out
     assert f"WARNING: no fabric-api jar in {game / 'mods'}." in output
-    assert "fabric-api >=0.116.10+1.21.1 (https://modrinth.com/mod/fabric-api)" in output
+    assert "fabric-api >=0.165.0+26.3 (https://modrinth.com/mod/fabric-api)" in output
     assert list((game / "mods").glob("fabric-api-*.jar")) == []
 
 
@@ -248,12 +248,19 @@ def test_install_rejects_invalid_environment_arch(installation, monkeypatch, cap
     assert not (game / "remix-sdk").exists()
 
 
-def test_install_defaults_to_appdata_minecraft(installation, monkeypatch, tmp_path):
+def test_install_defaults_to_isolated_appdata_minecraft(installation, monkeypatch, tmp_path):
     appdata = tmp_path / "Roaming"
     monkeypatch.setenv("APPDATA", str(appdata))
 
+    legacy = appdata / ".minecraft"
+    for name in ("mods/rtx-remix-renderer.jar", "rtx.conf", "saves/Working World/level.dat"):
+        target = legacy / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"preserve 1.21.1")
+
     assert cli.main(["install"]) == 0
-    assert (appdata / ".minecraft/mods/rtx-remix-renderer.jar").read_bytes() == b"newest mod"
+    assert (appdata / ".minecraft-rtx-remix-26.3/mods/rtx-remix-renderer.jar").read_bytes() == b"newest mod"
+    assert all(path.read_bytes() == b"preserve 1.21.1" for path in legacy.rglob("*") if path.is_file())
 
 
 def test_install_requires_game_dir_when_appdata_is_unset(installation, monkeypatch, capsys):
