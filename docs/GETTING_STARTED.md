@@ -189,7 +189,7 @@ The developer tools launch Minecraft only through Prism Launcher, signed in to
 a Microsoft account that owns Minecraft: Java Edition. They look for
 `prismlauncher.exe` in this order: `prism.executable` in ignored
 `tools/config.local.json`, the copy the release installer manages under
-`%LOCALAPPDATA%\RtxRemixMinecraft\PrismLauncher`, `prismlauncher` on `PATH`,
+`%LOCALAPPDATA%\RtxRemixMinecraft26.3\PrismLauncher`, `prismlauncher` on `PATH`,
 then `%LOCALAPPDATA%\Programs\PrismLauncher`. A configured path that does not
 exist stops the launch rather than falling back. The tools need Prism
 Launcher 9.0 or newer, the first release whose `--help` lists `--world` beside
@@ -255,7 +255,7 @@ interactive readiness from the settled image.
 .\gradlew.bat build                         # development JAR in build/libs/
 .\gradlew.bat test                          # JUnit suites
 .\gradlew.bat package -Parch=win64           # installable JAR in build/distributions/
-.\gradlew.bat releaseArchive -Parch=win64    # installable release ZIP in build/distributions/
+.\gradlew.bat verifyReleaseArchive -Parch=win64 # build and verify installer ZIP in build/distributions/
 ```
 
 `.\gradlew.bat compileJava` checks Java compilation without fetching or staging
@@ -342,9 +342,9 @@ prerequisite described in [Get A Runtime](#get-a-runtime).
 
 | Goal | Use | Minecraft directory |
 |---|---|---|
-| Iterate on this repository | `tools\rtx.bat launch`, or `tools\rtx.bat` for the developer dashboard, through this checkout's Prism instance | Installed Prism's profile, or `run-prism\instances\rtx-remix-dev\.minecraft` for portable Prism |
+| Iterate on this repository | `tools\rtx.bat launch`, or `tools\rtx.bat` for the developer dashboard, through this checkout's Prism instance | Installed Prism's profile, or `run-prism\instances\rtx-remix-26.3-dev\.minecraft` for portable Prism |
 | Produce an artifact | `gradlew build`, `gradlew package`, or `gradlew releaseArchive` | None |
-| Test inside an existing Microsoft Launcher install | `tools\rtx.bat install` after `gradlew build` | `%APPDATA%\.minecraft`, or `--game-dir DIR` |
+| Test inside an existing Microsoft Launcher install | `tools\rtx.bat install` after `gradlew build` | `%APPDATA%\.minecraft-rtx-remix-26.3`, or `--game-dir DIR` |
 
 `build.gradle` also keeps `runClient`, Fabric's standard Gradle task. It runs
 from the repository-local `run/` directory, not the Prism instance, so the two

@@ -130,7 +130,7 @@ param(
 $ErrorActionPreference = 'Continue'
 
 # --- Constants (kept in sync with build.gradle / rtxremix-java) ---
-$script:APP_VERSION          = '0.2.0-alpha.1'
+$script:APP_VERSION          = '0.2.0-alpha.2'
 $script:PRISM_INSTANCE_NAME  = 'RTX Remix Community 26.3 (Experimental)'
 # Legacy instance names kept for backward detection only; prior installs
 # used shorter / differently-worded names. Ordered newest-to-oldest.
@@ -1656,13 +1656,9 @@ function Initialize-PrismInstance {
 }
 
 function Set-PrismJavaPin {
-    # ARM64 only. Short-circuit on existing OverrideJavaLocation=true ONLY
-    # if the pinned JavaPath is already an ARM64 binary (Get-PeMachine ==
-    # 0xAA64). A pre-existing x64 pin is broken-by-definition on WoA: our
-    # JNI bridge (remixbridge.dll) fails to load under x64-on-ARM emulation,
-    # so clobber it rather than silently preserve a broken config.
+    # Pin the isolated instance so a launcher's global Java 21 setting cannot
+    # override Minecraft 26.3's Java 25 requirement.
     param([string]$InstanceCfg)
-    if (-not (Test-HostIsArm64)) { return }
     if (-not (Test-Path -LiteralPath $InstanceCfg)) { return }
     $javaw = Join-Path $script:MANAGED_JDK_DIR 'bin\javaw.exe'
     if (-not (Test-Path -LiteralPath $javaw)) { return }
@@ -1675,14 +1671,14 @@ function Set-PrismJavaPin {
         # Resolve forward-slash paths that Prism writes back to native form.
         $resolved = $pinnedJava -replace '/', '\'
         if (Test-Path -LiteralPath $resolved) {
-            $machine = Get-PeMachine -Path $resolved
-            if ($machine -eq 0xAA64) {
-                Write-Info 'Prism instance already pins an ARM64 Java path, leaving untouched.'
+            $versionExe = Join-Path (Split-Path -Parent $resolved) 'java.exe'
+            if ((Get-JavaMajor $versionExe) -eq 25 -and (Test-JavaArchMatchesHost $resolved)) {
+                Write-Info 'Prism instance already pins a compatible Java 25 path, leaving untouched.'
                 return
             }
-            Write-Warn "Existing Prism JavaPath points at a non-ARM64 JVM (PE Machine 0x$($machine.ToString('X4'))); WoA can't run our JNI bridge under x64 emulation. Replacing pin with the managed ARM64 JDK."
+            Write-Warn 'Existing Prism JavaPath is not Java 25 for this architecture. Replacing the instance pin with the managed JDK.'
         } else {
-            Write-Warn "Existing Prism JavaPath '$pinnedJava' does not exist on disk. Replacing pin with the managed ARM64 JDK."
+            Write-Warn "Existing Prism JavaPath '$pinnedJava' does not exist on disk. Replacing the instance pin with the managed JDK."
         }
     }
 
@@ -1690,7 +1686,7 @@ function Set-PrismJavaPin {
         OverrideJavaLocation = 'true'
         JavaPath             = $javaw -replace '\\', '/'
     })
-    Write-Info 'Pinned Prism instance to managed ARM64 JDK.'
+    Write-Info 'Pinned Prism instance to managed Java 25.'
 }
 
 # --- Atomic file writes (for MS launcher JSON) ---
@@ -2723,13 +2719,13 @@ function Invoke-InstallOrUpgrade {
     Write-Info "Using launcher: $($script:C_BOLD)$launcher$($script:C_RESET)"
     if ($launcher -eq 'Microsoft' -and -not $Unattended) { Wait-MinecraftLauncherClosed }
 
-    # Java handling matrix (same as install.bat original):
-    #   ARM64           -> always install managed JDK
-    #   x64 + Prism     -> no Java needed (Prism Wizard handles at runtime)
-    #   x64 + Microsoft -> probe + fallback for fabric-installer.jar
+    # Provision Java for the isolated game profile without changing the
+    # launcher's global Java selection or another instance's configuration.
     $installerJava = $null
     if (Test-HostIsArm64) {
         $installerJava = Resolve-Java25ForArm
+    } elseif ($launcher -eq 'Prism') {
+        Install-ManagedJdk25
     } elseif ($launcher -eq 'Microsoft') {
         $installerJava = Resolve-JavaForFabricInstaller
     }

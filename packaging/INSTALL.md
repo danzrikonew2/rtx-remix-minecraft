@@ -1,8 +1,13 @@
 # RTX Remix for Minecraft
 
 > **Unofficial community port under development.** This branch targets Minecraft 26.3.
-> See [port status and verified tests](../docs/MINECRAFT_26_3_PORT.md) before installing.
+> See [port status and verified tests](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/docs/MINECRAFT_26_3_PORT.md) before installing.
 > Use a fresh game directory; keep working 1.21.1 installations and worlds separate.
+
+Download the **installer ZIP** from the community fork's Releases page, then
+extract the whole ZIP. The standalone JAR download has no batch installer; see
+[manual installation](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/docs/PLAYING.md#installing-without-the-installer).
+GitHub's automatic source-code ZIP is not an installation bundle.
 
 This archive installs a Fabric mod that renders Minecraft Java Edition 26.3
 through NVIDIA RTX Remix. It sets up a launcher, Java,
@@ -10,7 +15,7 @@ Fabric, the mod, and the RTX Remix runtime for you.
 
 ## What You Need
 
-- Windows 10 or 11, x64 or ARM64.
+- Windows 10 or 11, x64. This prerelease does not include ARM64 binaries.
 - Minecraft Java Edition 26.3, on a Microsoft account that owns the game.
 - A GeForce RTX 30-series or newer GPU with NVIDIA driver 616.92 or newer.
 - About 5 GB of free disk space while installing; about 3 GB stays in use.
@@ -27,7 +32,7 @@ Fabric, the mod, and the RTX Remix runtime for you.
 3. **Sign in** to your Microsoft account in Prism Launcher
 
 4. Play
-    * In Prism Launcher, double-click the 'NVIDIA RTX Remix for Minecraft' instance
+    * In Prism Launcher, double-click the 'RTX Remix Community 26.3 (Experimental)' instance
     * *Note: if the instance is missing, press F5 to refresh*
     * *Note: on the very first launch, RTX Remix compiles its shaders before showing the world (one time only). See First Launch.*
 
@@ -43,7 +48,7 @@ Fabric, the mod, and the RTX Remix runtime for you.
     * Choose 'Install' -> 'Microsoft Launcher' (this will set up the mod automatically)
 
 5. Play
-    * In Minecraft Launcher, on the 'Minecraft: Java Edition' tab: **choose** 'NVIDIA RTX Remix for Minecraft' from the installation list, and hit 'Play'
+    * In Minecraft Launcher, on the 'Minecraft: Java Edition' tab: **choose** 'RTX Remix Community 26.3 (Experimental)' from the installation list, and hit 'Play'
     * *Note: on the very first launch, RTX Remix compiles its shaders before showing the world (one time only). See First Launch.*
 
 ---
@@ -54,7 +59,7 @@ This is a beta. The mod began as a technology showcase and was tuned against
 one showcase world, built for this project by BlockWorks
 (<https://www.blockworks.uk/>), so the places that world visits are where it
 looks and runs best. It ships with known issues, tracked at
-<https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/issues>, and there are
+<https://github.com/danzrikonew2/rtx-remix-minecraft/issues>, and there are
 bugs yet to be found. It has had limited testing alongside other
 mods, it targets Minecraft 26.3 only, and blocks, mobs, dimensions, and
 situations the showcase never reaches have had less care. When something
@@ -95,20 +100,21 @@ launch.
    downloads a portable copy if you have none, and creates a separate instance
    either way, so your existing game, worlds, and settings are untouched. The
    **Microsoft launcher** is the official one you already use, and the mod then
-   shares the same game folder and the same worlds as your normal play.
+   uses its own `%APPDATA%\.minecraft-rtx-remix-26.3` game directory,
+   keeping your normal game files and worlds separate.
 5. The installer opens the launcher when it finishes. If it cannot, open it
    yourself. A Prism the installer downloaded has no Start menu entry: run
-   `prismlauncher.exe` in `%LOCALAPPDATA%\RtxRemixMinecraft\PrismLauncher\`,
+   `prismlauncher.exe` in `%LOCALAPPDATA%\RtxRemixMinecraft26.3\PrismLauncher\`,
    the path the installer prints when it finishes. Sign in to your Microsoft
    account if you have not already. In Prism this is Accounts, then Manage
    Accounts, then Add Microsoft.
-6. Start the game. Select the **NVIDIA RTX Remix for Minecraft** instance in
+6. Start the game. Select the **RTX Remix Community 26.3 (Experimental)** instance in
    Prism, or the profile of the same name in the Microsoft launcher.
 
 `INSTALLER_REFERENCE.md` covers the rest: the modes, every flag, headless and
 CI use, and what the installer verifies before it downloads anything. To add
 the mod to a Fabric instance you already have instead, see
-<https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/blob/main/docs/PLAYING.md#installing-without-the-installer>.
+<https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/docs/PLAYING.md#installing-without-the-installer>.
 
 ## First Launch
 
@@ -127,7 +133,7 @@ and crash reports. Both boxes start checked, and closing the guide keeps them as
 they are. The mod itself collects no data. You can change both later in the
 Permissions tab of the RTX Remix Graphics Settings menu. What is sent is listed
 at
-<https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/blob/main/docs/PLAYING.md#crash-reports-and-privacy>.
+<https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/docs/PLAYING.md#crash-reports-and-privacy>.
 
 Once you are in a world, the renderer compiles shaders and draws nothing until
 it finishes. A dark, flat, or half-built scene right after is expected. Let it
@@ -152,7 +158,7 @@ enabled. For a direct comparison, type `/rtx off`, look around, then `/rtx on`.
 ## Updating
 
 Download the new archive from
-<https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/releases/latest>,
+<https://github.com/danzrikonew2/rtx-remix-minecraft/releases>,
 extract it, and run `install.bat` again. It
 preselects Upgrade and replaces the mod and its supporting files in the
 launcher that already has them. Launcher, Minecraft, Fabric, and other options
@@ -187,17 +193,17 @@ installed for you, listing only the ones that are actually on disk.
 Everything is under the game folder, which is:
 
 - Prism, when the installer downloaded a portable copy:
-  `%LOCALAPPDATA%\RtxRemixMinecraft\PrismLauncher\instances\NVIDIA RTX Remix for Minecraft\.minecraft\`
+  `%LOCALAPPDATA%\RtxRemixMinecraft26.3\PrismLauncher\instances\RTX Remix Community 26.3 (Experimental)\.minecraft\`
 - Prism, when you already had it: the same
-  `instances\NVIDIA RTX Remix for Minecraft\.minecraft\` path under your own
+  `instances\RTX Remix Community 26.3 (Experimental)\.minecraft\` path under your own
   Prism data folder, usually `%APPDATA%\PrismLauncher\`
-- Microsoft launcher: `%APPDATA%\.minecraft\`
+- Microsoft launcher: `%APPDATA%\.minecraft-rtx-remix-26.3\`
 
 The automated uninstall removes these:
 
 - `mods\rtx-remix-renderer-*.jar`
 - `mods\fabric-api-*.jar`, all of them in a Prism instance, and only the
-  version the mod pins in the Microsoft launcher's shared `mods\` folder
+  version the mod pins in the Microsoft launcher's isolated 26.3 `mods\` folder
 - `remix-sdk\`
 - `rtx.conf`
 - `.rtx-remix-version`
@@ -238,7 +244,7 @@ if you are wiping it anyway.
 
 Problems inside the game rather than inside the installer, such as a black
 screen or a flat-looking world, are covered by the player guide at
-<https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/blob/main/docs/PLAYING.md#troubleshooting>.
+<https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/docs/PLAYING.md#troubleshooting>.
 One case worth checking first: with other mods installed, a crash,
 a black screen, or wrong rendering is most often a conflict with a mod that
 changes rendering or chunk loading. Remove the other mods and try again, and
@@ -246,7 +252,7 @@ say which mod was involved in your report.
 
 ## Reporting A Bug
 
-Open an issue at <https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/issues>
+Open an issue at <https://github.com/danzrikonew2/rtx-remix-minecraft/issues>
 for anything about the mod: what
 is in the world and how it looks, the settings screen, `/rtx` commands and
 keys, lighting profiles, the installer, and crashes. Denoiser, DLSS, or

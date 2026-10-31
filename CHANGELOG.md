@@ -11,6 +11,26 @@ also part of every mod file name.
 
 ## Unreleased
 
+## 0.2.0-alpha.2 - 2026-10-31
+
+### Added
+
+- Windows x64 installer ZIP containing `install.bat`, PowerShell installer,
+  migration helper, verified packaged JAR, documentation and license notices.
+- `verifyReleaseArchive` checks required archive contents and verifies that its
+  mod JAR is identical to the package that passed runtime inventory checks.
+
+### Fixed
+
+- Player guides now distinguish the installer ZIP, standalone manual-install
+  JAR, and GitHub's source-code archives, and link to the community releases.
+- Corrected profile names, isolated game paths, platform support, Java versions
+  and outdated claims that the Microsoft launcher shares existing worlds.
+- Pin the isolated x64 Prism instance to Java 25 so global Java 21 settings
+  from a working 1.21.1 installation cannot prevent it from starting.
+
+Rendering implementation and known visual limitations are unchanged from alpha 1.
+
 ## 0.2.0-alpha.1 - 2026-10-31
 
 Unofficial community Minecraft 26.3 port, published as an experimental

@@ -69,6 +69,11 @@ switch ($Action) {
         $script:MANAGED_JDK_DIR = $ManagedJdk
         Set-PrismJavaPin -InstanceCfg $Cfg
     }
+    'JavaPinX64' {
+        function Test-HostIsArm64 { return $false }
+        $script:MANAGED_JDK_DIR = $ManagedJdk
+        Set-PrismJavaPin -InstanceCfg $Cfg
+    }
     'MemorySettings' {
         ConvertTo-Json -InputObject (Get-PrismMemorySettings -JvmArgs $env:PRISM_TEST_JVM_ARGS) -Compress
     }
@@ -791,14 +796,15 @@ def test_upgrade_keeps_unicode_and_changes_only_the_memory_keys(sync: Sync, newl
     assert launch_heap_mib(text) == RECOMMENDED_HEAP_MIB
 
 
-def test_arm64_java_pin_keeps_unicode(sync: Sync, tmp_path: Path):
+@pytest.mark.parametrize("action", ["JavaPin", "JavaPinX64"], ids=["arm64", "x64"])
+def test_java_pin_keeps_unicode(sync: Sync, tmp_path: Path, action: str):
     managed_jdk = tmp_path / "ZoÃƒÂ«" / "jdk-21"
     javaw = managed_jdk / "bin" / "javaw.exe"
     javaw.parent.mkdir(parents=True)
     javaw.touch()
     original = saved_by_prism(RECOMMENDED_FOR_PRISM, INSTALLER_MEMORY, name="RTX Remix fÃƒÂ¼r ZoÃƒÂ« Ã¢â‚¬â€œ Ã¥â€¦â€°")
 
-    text, _ = sync(original, action="JavaPin", managed_jdk=managed_jdk)
+    text, _ = sync(original, action=action, managed_jdk=managed_jdk)
 
     cfg = cfg_values(text)
     assert cfg["OverrideJavaLocation"] == "true"

@@ -1,7 +1,8 @@
 # Minecraft 26.3 community port
 
 This is an **unofficial, experimental community port**, not an NVIDIA release.
-The first Windows x64 prerelease is `v0.2.0-alpha.1` in the community fork.
+The current installer release is `v0.2.0-alpha.2` in the community fork;
+alpha 1 provided only a standalone JAR.
 The objective is to preserve RTX Remix terrain, entities, materials, lighting,
 and controls on Minecraft Java Edition 26.3 without changing a working 1.21.1
 installation. Compilation is not proof of correct rendering.
@@ -118,7 +119,7 @@ From the repository root on the development branch:
 ```powershell
 git switch feat/minecraft-26.3
 .\gradlew.bat build test -Parch=win64 --console=plain
-.\gradlew.bat package -Parch=win64 --console=plain
+.\gradlew.bat verifyReleaseArchive -Parch=win64 --console=plain
 .\tools\rtx.bat check --tests
 ```
 
@@ -134,6 +135,16 @@ is a separate dependency. Do not upload game binaries, launcher accounts, saves,
 or proprietary runtime files to Git. This fork publishes source only.
 
 ## Separate installation
+
+**Recommended installer:** download the Windows x64 installer ZIP from the
+[community releases](https://github.com/danzrikonew2/rtx-remix-minecraft/releases),
+extract it completely, and run `install.bat`. Select Install and Prism Launcher.
+The ZIP includes the scripts, verified mod under `mods/`, player/developer docs,
+changelog and license notices. The standalone JAR and GitHub source-code archives
+do not contain this installer. The installer pins Java 25 in its isolated
+instance rather than inheriting an existing launcher's Java 21 setting.
+
+**Manual JAR alternative:**
 
 1. In Prism, create a **new** instance named `RTX Remix Community 26.3 Test`.
    Select Minecraft 26.3 and Fabric Loader 0.20.1; select a 64-bit Java 25 runtime.
@@ -153,7 +164,7 @@ For a custom Prism executable set `prism.executable` in ignored
 `--game-dir` must name a disposable 26.3 directory. The public installer uses
 `RTX Remix Community 26.3 (Experimental)` in Prism, and a separate
 `.minecraft-rtx-remix-26.3` game directory in the Microsoft launcher. Its
-end-to-end install flow remains unverified; manual Prism setup is preferred.
+installer validation scope is recorded in the checklist above.
 
 ## Runtime acceptance and bug reports
 

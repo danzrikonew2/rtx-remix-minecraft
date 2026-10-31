@@ -67,7 +67,7 @@ under `%APPDATA%\.minecraft`. `rtx.bat` fetches the selected assets, compiles
 the current mod and JNI bridge through Gradle, installs them with the assets
 into this checkout's Prism instance and launches that instance through Prism.
 For portable Prism its game directory is
-`run-prism\instances\rtx-remix-dev\.minecraft`; installed Prism keeps a
+`run-prism\instances\rtx-remix-26.3-dev\.minecraft`; installed Prism keeps a
 checkout-specific instance in its normal profile.
 
 [Launcher](docs/LAUNCHER.md) covers the rest of it: the flags for driving it
@@ -135,7 +135,7 @@ the second benchmarks a save you imported and recorded a camera for.
   process.
 - `rtx.bat install [--game-dir DIR] [--arch win64|arm64]` installs an already-built
   development mod into an existing Fabric installation. It defaults to
-  `%APPDATA%\.minecraft` and installs the runtime, JNI bridge, gameplay confs,
+  `%APPDATA%\.minecraft-rtx-remix-26.3` and installs the runtime, JNI bridge, gameplay confs,
   and textures. The baseline materials are built into the mod JAR, not copied
   as a separate pack. It runs `packaging/migrate_resource_packs.ps1` with
   `-LegacyPackName rtx-remix-labpbr` to retire the recognized old baseline,
@@ -190,8 +190,8 @@ section owns the cross-layer change order and publication requirements.
 
 | Goal | Use | Instance affected |
 |---|---|---|
-| Normal development, demo world, or local dxvk testing | `tools\rtx.bat`, through this checkout's Prism instance | Installed Prism's profile, or `run-prism\instances\rtx-remix-dev\.minecraft` for portable Prism |
-| Manually test in the regular Microsoft Launcher | `tools\rtx.bat install` after `gradlew.bat build` | `%APPDATA%\.minecraft`, or `--game-dir DIR` |
+| Normal development, demo world, or local dxvk testing | `tools\rtx.bat`, through this checkout's Prism instance | Installed Prism's profile, or `run-prism\instances\rtx-remix-26.3-dev\.minecraft` for portable Prism |
+| Manually test in the regular Microsoft Launcher | `tools\rtx.bat install` after `gradlew.bat build` | `%APPDATA%\.minecraft-rtx-remix-26.3`, or `--game-dir DIR` |
 | Install a produced release | The release archive's `install.bat` | Installer-selected launcher instance |
 
 These are alternatives. Mixing them can leave you inspecting one Minecraft
@@ -242,9 +242,9 @@ directory while a different instance is actually running.
   one line is not an event count. The shipped
   [`rtx.conf`](../packaging/rtx.conf) disables opacity micromaps, so confirm the
   effective setting and runtime revision when investigating it.
-- Development launches run `javaw.exe` from a JDK 21 through Prism, which
-  refuses other Java versions for Minecraft 1.21.1: `JAVA_HOME` when it is a
-  JDK 21 for the launch's architecture, else the newest such JDK in Gradle's
+- Development launches run `javaw.exe` from a JDK 25 through Prism, which
+  refuses other Java versions for Minecraft 26.3: `JAVA_HOME` when it is a
+  JDK 25 for the launch's architecture, else the newest such JDK in Gradle's
   toolchains, then the Eclipse Adoptium, Microsoft, and Java folders under
   Program Files. A per-executable driver profile must target that executable,
   not only another Java a player launcher may use. Record the process path

@@ -10,7 +10,7 @@ install Java, Fabric, or the RTX Remix runtime yourself.
 
 ## What You Need
 
-- Windows 10 or 11, x64 or ARM64.
+- Windows 10 or 11, x64. This prerelease does not include ARM64 binaries.
 - Minecraft Java Edition 26.3, on a Microsoft account that owns the game.
 - A GeForce RTX 30-series or newer GPU with NVIDIA driver 616.92 or newer.
 - About 5 GB of free disk space while installing, for the downloaded archive,
@@ -26,7 +26,7 @@ This is a beta. The mod began as a technology showcase and was tuned against
 one showcase world, built for this project by
 [BlockWorks](https://www.blockworks.uk/), so the places that world visits are
 where it looks and runs best. It ships with
-[known issues](https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/issues),
+[known issues](https://github.com/danzrikonew2/rtx-remix-minecraft/issues),
 and there are bugs yet to be found. Two things to know before a long session:
 
 - **Other mods.** It has had limited testing alongside other mods, and mods
@@ -40,9 +40,10 @@ fixed.
 
 ## Download
 
-Download the release archive from the
-[Releases page](https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/releases/latest)
-and extract it.
+Download the **Windows x64 installer ZIP** from the
+[Releases page](https://github.com/danzrikonew2/rtx-remix-minecraft/releases)
+and extract it. GitHub's automatic source-code archives are not installers.
+The standalone JAR is a separate manual-install option described below.
 
 ## Which Launcher
 
@@ -57,8 +58,8 @@ settings are untouched. Worlds you create in that instance are separate from
 the worlds in your normal launcher.
 
 **The Microsoft launcher** is the official launcher you already use. The
-installer adds a profile to it, and the mod shares the same game folder and the
-same worlds as your normal play.
+installer adds a 26.3 profile with a separate game directory at
+`%APPDATA%\.minecraft-rtx-remix-26.3`. It does not reuse normal worlds or mod files.
 
 Prism is the recommended choice. Either way, you sign in with the same
 Microsoft account.
@@ -76,24 +77,28 @@ Microsoft account.
    launcher, choose Install instead.
 4. Open the launcher. A Prism the installer downloaded has no Start menu
    entry: run `prismlauncher.exe` in
-   `%LOCALAPPDATA%\RtxRemixMinecraft\PrismLauncher\`, the path the installer
+   `%LOCALAPPDATA%\RtxRemixMinecraft26.3\PrismLauncher\`, the path the installer
    prints when it finishes. Sign in to your Microsoft account if you have not
    already. In Prism this is Accounts, then Manage Accounts, then Add
    Microsoft.
-5. Start the game. In Prism, select the **NVIDIA RTX Remix for Minecraft**
-   instance and press Launch. In the Microsoft launcher, select the **NVIDIA
-   RTX Remix for Minecraft** profile and press Play.
+5. Start the game. In Prism, select the **RTX Remix Community 26.3 (Experimental)**
+   instance and press Launch. In the Microsoft launcher, select the **RTX Remix Community 26.3 (Experimental)** profile and press Play.
 
 ### Installing Without The Installer
 
 If you already run a Fabric instance for Minecraft 26.3 in a launcher of
 your choice, you can install the mod by hand. The instance needs Java 25,
-Fabric Loader 0.20.1 or newer, and Fabric API 0.165.0+26.3 or newer.
+Fabric Loader 0.20.1 and Fabric API 0.165.0+26.3. Use a new game directory;
+never add this release to an existing 1.21.1 instance.
+The JAR bundles the Remix runtime and bridge; it does not install Fabric.
 
-1. Copy the JAR from the archive's `mods\` folder into the instance's `mods\`
+1. Download Fabric API **0.165.0+26.3** from Fabric and add it to this
+   instance's `mods\` folder; it is required separately from the mod.
+2. Copy the standalone packaged `-win64.jar`, or the JAR from the installer
+   archive's `mods\` folder into the instance's `mods\`
    folder. It carries the runtime and its textures and unpacks them into the
    game folder on first launch.
-2. Optionally give the instance the JVM arguments the installer would set:
+3. Optionally give the instance the JVM arguments the installer would set:
    a 2 GB heap with G1GC, listed as `RECOMMENDED_JVM_ARGS` in
    [`packaging/installer.ps1`](../packaging/installer.ps1).
 
@@ -198,24 +203,24 @@ has the details.
 | On a laptop: the game runs but looks like ordinary Minecraft, or is extremely slow | The display is being driven by the built-in graphics chip. In Windows Settings, Display, Graphics, add `javaw.exe` and set it to High performance, then relaunch. |
 | Windows SmartScreen warns about the Prism Launcher download | Prism Launcher is open-source and is not signed by Microsoft. Choose More info, then Run anyway. You can also install it yourself from <https://prismlauncher.org>, start Prism once, then re-run `install.bat`, which detects it. |
 | Very choppy at a high render distance | Lower Minecraft's render distance, or pick a lower tier in Options, RTX Remix Settings, RTX Remix Graphics Settings. |
-| The game will not start at all | Launch the **NVIDIA RTX Remix for Minecraft** profile rather than a plain Minecraft one, and confirm the launcher is set to Java 25. |
+| The game will not start at all | Launch the **RTX Remix Community 26.3 (Experimental)** profile rather than a plain Minecraft one, and confirm the launcher is set to Java 25. |
 | A crash, a black screen, or wrong rendering with other mods installed | Remove the other mods and try again. Mods that change rendering or chunk loading are the likely conflict. If one mod turns out to be the cause, say which in your report. |
 
 If none of that helps, the log is the next thing to look at. It is at
 `logs\latest.log` inside the game folder:
 
 - Prism, when the installer downloaded a portable copy:
-  `%LOCALAPPDATA%\RtxRemixMinecraft\PrismLauncher\instances\NVIDIA RTX Remix for Minecraft\.minecraft\logs\latest.log`
+  `%LOCALAPPDATA%\RtxRemixMinecraft26.3\PrismLauncher\instances\RTX Remix Community 26.3 (Experimental)\.minecraft\logs\latest.log`
 - Prism, when you already had it: under your own Prism data folder, usually
-  `%APPDATA%\PrismLauncher\instances\NVIDIA RTX Remix for Minecraft\.minecraft\logs\latest.log`
-- Microsoft launcher: `%APPDATA%\.minecraft\logs\latest.log`
+  `%APPDATA%\PrismLauncher\instances\RTX Remix Community 26.3 (Experimental)\.minecraft\logs\latest.log`
+- Microsoft launcher: `%APPDATA%\.minecraft-rtx-remix-26.3\logs\latest.log`
 
 Paste either path into the File Explorer address bar to open the folder.
 
 ## Reporting a Bug
 
 Open an issue on the project's
-[issue tracker](https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/issues)
+[issue tracker](https://github.com/danzrikonew2/rtx-remix-minecraft/issues)
 for anything about the mod: what
 is in the world and how it looks, the settings screen, `/rtx` commands and
 keys, lighting profiles, the installer, and crashes. Denoiser, DLSS, or

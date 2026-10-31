@@ -15,7 +15,7 @@ and Minecraft post-processing shaders are unsupported.
 
 Use a 64-bit JDK 8 and the Visual Studio C++ tools described in the root
 [getting-started guide](../docs/GETTING_STARTED.md). The root Fabric build still
-uses Java 21. Run these commands from this directory with `JAVA_HOME` set to
+uses Java 25. Run these commands from this directory with `JAVA_HOME` set to
 the JDK 8 directory:
 
 ```powershell

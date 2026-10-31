@@ -636,6 +636,10 @@ def stageReleaseArchiveTask = tasks.register('stageReleaseArchive', Sync) {
     from('packaging/INSTALL.md') {
         rename { 'README.md' }
     }
+    from('docs') {
+        into 'docs'
+    }
+    from 'CHANGELOG.md'
     // The notices link their license texts by repository path, so the texts
     // keep that path here as they do inside the JAR.
     from 'LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.md'
@@ -654,4 +658,48 @@ tasks.register('releaseArchive', Zip) {
     duplicatesStrategy = DuplicatesStrategy.FAIL
     preserveFileTimestamps = false
     reproducibleFileOrder = true
+}
+
+tasks.register('verifyReleaseArchive') {
+    description = 'Verifies the installer ZIP contains the verified mod, scripts, documentation and licenses'
+    group = 'verification'
+    dependsOn 'releaseArchive'
+    def releaseZip = tasks.named('releaseArchive', Zip).flatMap { it.archiveFile }
+    inputs.file(releaseZip)
+    inputs.file(packageJarArchive)
+    doLast {
+        def archive = new java.util.zip.ZipFile(releaseZip.get().asFile)
+        try {
+            def names = archive.entries().collect { it.name }.toSet()
+            def required = ['install.bat', 'installer.ps1', 'migrate_resource_packs.ps1',
+                    'README.md', 'INSTALLER_REFERENCE.md', 'LICENSE', 'NOTICE',
+                    'THIRD_PARTY_NOTICES.md', 'CHANGELOG.md', 'docs/MINECRAFT_26_3_PORT.md']
+            def modPath = "mods/${packageJarArchive.get().asFile.name}".toString()
+            required.add(modPath)
+            fileTree('packaging/licenses').files.each { license ->
+                required.add(projectDir.toPath().relativize(license.toPath()).toString().replace('\\', '/'))
+            }
+            def missing = required.findAll { !names.contains(it) }
+            if (!missing.isEmpty()) throw new GradleException("Installer ZIP missing: ${missing}")
+            def mods = names.findAll { it.startsWith('mods/') && it.endsWith('.jar') }
+            if (mods != [modPath].toSet()) throw new GradleException("Unexpected installer mod inventory: ${mods}")
+            def digest = { stream ->
+                stream.withCloseable {
+                    def hash = java.security.MessageDigest.getInstance('SHA-256')
+                    byte[] buffer = new byte[1024 * 1024]
+                    int count
+                    while ((count = it.read(buffer)) != -1) hash.update(buffer, 0, count)
+                    hash.digest()
+                }
+            }
+            if (!java.security.MessageDigest.isEqual(
+                    digest(archive.getInputStream(archive.getEntry(modPath))),
+                    digest(new FileInputStream(packageJarArchive.get().asFile)))) {
+                throw new GradleException('Installer ZIP mod differs from the verified package JAR')
+            }
+            logger.lifecycle('Installer ZIP verified: scripts, docs, licenses and identical packaged mod')
+        } finally {
+            archive.close()
+        }
+    }
 }

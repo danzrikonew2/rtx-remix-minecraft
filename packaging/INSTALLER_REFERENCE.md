@@ -172,24 +172,30 @@ Get-Help .\installer.ps1 -Full
 Get-Help .\installer.ps1 -Examples
 ```
 
-## Java Resolution Order
+## Minecraft 26.3 Profiles And Java
 
-The installer needs a Java only to run the Fabric installer, and the game needs
-one to run. Which it uses depends on the architecture and the launcher.
+This experimental release targets Windows x64. It uses Minecraft 26.3,
+Fabric Loader 0.20.1, Fabric API 0.165.0+26.3, and Java 25. The installer
+bundle contains the packaged mod and runtime; it downloads Java and Fabric API.
 
-- **x64 with Prism.** No Java step at all. Prism downloads Mojang's own Java on
-  the first launch of the instance.
-- **x64 with the Microsoft launcher.** `java` on the PATH, then the managed JDK
-  at `%LOCALAPPDATA%\RtxRemixMinecraft\jdk-21`, then a Java bundled with the
-  Microsoft launcher, then a downloaded Adoptium Temurin 21. Any version 8 or
-  newer runs the Fabric installer, so no architecture match is required. The
-  game itself then runs on the launcher's own Java.
-- **ARM64.** `java` on the PATH only when it is version 21 and natively ARM64,
-  then the managed JDK under the same test, then a downloaded Adoptium Temurin
-  21 for ARM64. Mojang publishes no ARM64 Windows Java, and an emulated x64
-  Java breaks the native bridge, so the managed install is normally used. A new
-  Prism instance on ARM64 is pinned to that JDK so Prism cannot substitute an
-  x64 one.
+The installer creates **RTX Remix Community 26.3 (Experimental)**. Prism uses
+a separate instance. Its portable launcher, if needed, is installed under
+`%LOCALAPPDATA%\RtxRemixMinecraft26.3\PrismLauncher`. The Microsoft launcher
+profile uses `%APPDATA%\.minecraft-rtx-remix-26.3`, separate from the launcher's
+shared `.minecraft` library/profile metadata. Original 1.21.1 instances,
+saves, mod files and runtime configurations are not migrated or overwritten.
+
+The installer obtains a host-architecture Java 25 under
+`%LOCALAPPDATA%\RtxRemixMinecraft\jdk-25` and pins that Java in the new
+Prism instance or Microsoft profile. A compatible existing instance-level
+Java 25 pin is preserved. Global Java settings and 1.21.1's Java 21 are left
+alone. The Fabric installer may run under an existing system Java; the new
+game profile is always configured for Java 25.
+
+ARM64 remains a source-build target but is not included or validated in this
+Windows x64 release. Manual JAR installation requires the player to set up
+Java 25, Fabric Loader and Fabric API first; no batch installer accompanies
+the standalone JAR.
 
 ## Supply-Chain Safety
 

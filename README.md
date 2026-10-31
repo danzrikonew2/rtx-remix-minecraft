@@ -15,7 +15,7 @@ world, built for this project by [BlockWorks](https://www.blockworks.uk/) (see
 [Showcase World And Art Pack](#showcase-world-and-art-pack)), and the places
 that world visits are where it looks and runs best. We have worked hard to fix
 as many issues as we could, but it ships with
-[known issues](https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/issues),
+[known issues](https://github.com/danzrikonew2/rtx-remix-minecraft/issues),
 and there are certainly bugs yet to be discovered.
 
 Three areas have had less attention than the rest:
@@ -26,8 +26,8 @@ Three areas have had less attention than the rest:
 - **A full playthrough.** Blocks, mobs, dimensions, and situations the showcase
   never reaches have had less care, and some will look wrong or run slowly.
 - **Other versions.** It targets Minecraft 26.3 only, chosen because that is
-  where the modding community is today. Ports to newer versions are something
-  we hope the community takes on.
+  the target of this experimental community branch. Other Minecraft versions
+  require their own builds.
 
 We hope the community helps fill it out. If something breaks,
 [report it](docs/PLAYING.md#reporting-a-bug); if you can fix it, see
@@ -35,21 +35,26 @@ We hope the community helps fill it out. If something breaks,
 
 ## Download
 
-Download the release archive from the
-[Releases page](https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/releases/latest).
+Download the **Windows x64 installer ZIP** (not GitHub's automatic source-code ZIP) from the
+[Releases page](https://github.com/danzrikonew2/rtx-remix-minecraft/releases).
 
 ## Install in three steps
 
 1. Extract the release archive.
-2. Double-click `install.bat` and follow the menu.
-3. Launch the **NVIDIA RTX Remix for Minecraft** profile from your launcher.
+2. Double-click `install.bat`, choose Install, then Prism Launcher (recommended).
+3. Launch the **RTX Remix Community 26.3 (Experimental)** profile from your launcher.
+
+The standalone `-win64.jar` is an alternative for an existing **separate** 26.3
+Fabric instance; it has no `install.bat`. Install Java 25, Fabric Loader 0.20.1
+and Fabric API 0.165.0+26.3 first, then add the packaged JAR to `mods/`.
+Do not install both download formats into the same instance.
 
 The step-by-step version, with launcher advice and troubleshooting, is in
 [Playing](docs/PLAYING.md).
 
 ## Requirements
 
-- Windows 10 or 11, x64 or ARM64.
+- Windows 10 or 11, x64. This prerelease does not include ARM64 binaries.
 - Minecraft Java Edition 26.3, on a Microsoft account that owns the game.
 - A GeForce RTX 30-series or newer GPU with NVIDIA driver 616.92 or newer.
 - About 5 GB of free disk space while installing; about 3 GB stays in use.
@@ -117,7 +122,7 @@ into the world with the pack on.
 | You want to | Read |
 |---|---|
 | Play with path tracing | [Playing](docs/PLAYING.md) |
-| Check the known issues | [Issue tracker](https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/issues) |
+| Check the known issues | [Issue tracker](https://github.com/danzrikonew2/rtx-remix-minecraft/issues) |
 | Play on a server | [Multiplayer](docs/PLAYING.md#multiplayer) |
 | Configure the renderer | [Settings](docs/SETTINGS.md) |
 | Look up a command, a key, or a mod-added block | [In-Game Guide](docs/IN_GAME_GUIDE.md) |
