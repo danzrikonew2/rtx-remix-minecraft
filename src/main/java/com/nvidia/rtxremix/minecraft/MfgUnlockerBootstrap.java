@@ -88,19 +88,41 @@ final class MfgUnlockerBootstrap {
             var symbol = SymbolLookup.loaderLookup().find("MfgUnlockSingleModuleQuery").orElseThrow();
             var query = Linker.nativeLinker().downcallHandle(symbol,
                     FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+            var ready = Linker.nativeLinker().downcallHandle(
+                    SymbolLookup.loaderLookup().find("MfgUnlockPrivateVulkanStartupReady").orElseThrow(),
+                    FunctionDescriptor.of(ValueLayout.JAVA_INT));
             var status = arena.allocate(64, 8);
-            for (int attempt = 0; attempt < 100; attempt++) {
+            long deadline = System.nanoTime() + 5_000_000_000L;
+            while (System.nanoTime() < deadline) {
                 status.set(ValueLayout.JAVA_INT, 0, 64);
                 int accepted = (int) query.invokeExact(status);
-                if (accepted != 0 && status.get(ValueLayout.JAVA_INT, 8) != 0) return;
+                int startupReady = (int) ready.invokeExact();
+                if (accepted != 0 && status.get(ValueLayout.JAVA_INT, 8) != 0 && startupReady != 0) return;
                 Thread.sleep(10);
             }
-            throw new IOException("MFG adapter did not acquire backend ownership before Remix initialization");
+            throw new IOException("MFG adapter did not arm early Vulkan startup before Remix initialization");
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             throw new IOException("Interrupted waiting for MFG adapter ownership", interrupted);
         } catch (Throwable failure) {
             throw new IOException("MFG adapter readiness check failed", failure);
+        }
+    }
+
+    static void requireAdapterDeviceReady() {
+        if (!optiScalerAdapter) return;
+        try {
+            var ready = Linker.nativeLinker().downcallHandle(
+                    SymbolLookup.loaderLookup().find("MfgUnlockPrivateVulkanDeviceReady").orElseThrow(),
+                    FunctionDescriptor.of(ValueLayout.JAVA_INT));
+            if ((int) ready.invokeExact() == 0) {
+                throw new IllegalStateException("MFG rejected private Vulkan device startup; "
+                        + "renderer stopped before repeated FG creation attempts");
+            }
+        } catch (RuntimeException failure) {
+            throw failure;
+        } catch (Throwable failure) {
+            throw new IllegalStateException("MFG adapter device readiness check failed", failure);
         }
     }
 

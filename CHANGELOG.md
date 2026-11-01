@@ -11,6 +11,16 @@ also part of every mod file name.
 
 ## Unreleased
 
+- Wait for MFG's actual early Vulkan startup prerequisites before loading Remix,
+  and stop renderer initialization if private-device admission fails. The first
+  Minecraft adapter run generated no frames and ended in device loss; a revised
+  private-JVM renderer probe passes admission and 60 hidden presents. Game
+  stability remains unverified.
+- Pulse SHaRC/NRC surface-lighting history reset after abrupt Overworld time
+  commands, then clear it on the next frame or world exit. The pinned-runtime
+  probe accepts both options and verifies cleared values; visual confirmation
+  is pending. Sapling material behavior is deferred and unchanged.
+
 - Verify 785 successful FG provider evaluations and 785 submitted batches on
   RTX 3070 Ti in the focused native Remix probe, with zero failed batches.
   Add an opt-in, manifest-pinned OptiScaler/MFG development loader and local

@@ -165,6 +165,23 @@ text = text.replace(
 text = text.replace(
     "gOptiScalerSlSetVulkanInfoAtLoad", "gOptiScalerSlSetVulkanInfoBeforeInit"
 )
+text += """
+
+// Backend ownership is published before the patch worker arms its declaration.
+// Hosts must observe the actual early-load prerequisites before mapping Streamline.
+extern "C" __declspec(dllexport) BOOL WINAPI MfgUnlockPrivateVulkanStartupReady()
+{
+    return gDllNotificationRegistered.load(std::memory_order_acquire)
+        && ampere_provider_arch::Armed() && ampere_backend::BeforeFirstFeatureCreate();
+}
+
+extern "C" __declspec(dllexport) BOOL WINAPI MfgUnlockPrivateVulkanDeviceReady()
+{
+    return gOptiScalerPrivateAmpereAdmitted.load(std::memory_order_acquire)
+        && gVulkanAdapterVerified.load(std::memory_order_acquire)
+        && ampere_backend::Ready();
+}
+"""
 if path.read_text(encoding="utf-8") not in (original, text):
     raise SystemExit("Preserving edited patcher source; use a fresh MFG copy")
 backup.parent.mkdir(exist_ok=True)

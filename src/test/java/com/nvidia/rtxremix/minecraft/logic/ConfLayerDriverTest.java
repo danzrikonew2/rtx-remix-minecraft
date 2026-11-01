@@ -34,6 +34,53 @@ import static org.junit.jupiter.api.Assertions.fail;
 class ConfLayerDriverTest {
 
     @Test
+    void clockCommandsResetSurfaceLightingOnceButTicksAndNewWorldsDoNot(@TempDir Path gameDir) {
+        FakeConfigLayerApi api = new FakeConfigLayerApi();
+        ConfLayerDriver driver = new ConfLayerDriver();
+        assertTrue(driver.acquireAll(api, gameDir));
+        Object world = new Object();
+        assertFalse(driver.updateClockHistory(world, true, 1000));
+        assertFalse(driver.updateClockHistory(world, true, 1001));
+        assertEquals(0, api.lightingResets);
+        assertTrue(driver.updateClockHistory(world, true, 18000));
+        assertEquals(1, api.lightingResets);
+        assertFalse(driver.updateClockHistory(world, true, 18000));
+        assertEquals(List.of(true, false), api.lightingResetStates,
+                "the reset must clear even when the clock remains frozen");
+        assertFalse(driver.updateClockHistory(world, true, 18001));
+        assertEquals(1, api.lightingResets);
+        assertFalse(driver.updateClockHistory(new Object(), true, 6000));
+        assertEquals(1, api.lightingResets);
+    }
+
+    @Test
+    void midnightWrapAndOtherDimensionsKeepSurfaceHistory(@TempDir Path gameDir) {
+        FakeConfigLayerApi api = new FakeConfigLayerApi();
+        ConfLayerDriver driver = new ConfLayerDriver();
+        assertTrue(driver.acquireAll(api, gameDir));
+        Object world = new Object();
+        assertFalse(driver.updateClockHistory(world, true, 23999));
+        assertFalse(driver.updateClockHistory(world, true, 24000));
+        assertFalse(driver.updateClockHistory(world, false, 6000));
+        assertEquals(0, api.lightingResets);
+    }
+
+    @Test
+    void leavingTheWorldEndsAPendingLightingReset(@TempDir Path gameDir) {
+        FakeConfigLayerApi api = new FakeConfigLayerApi();
+        ConfLayerDriver driver = new ConfLayerDriver();
+        assertTrue(driver.acquireAll(api, gameDir));
+        Object world = new Object();
+        driver.updateClockHistory(world, true, 1000);
+        driver.updateClockHistory(world, true, 18000);
+        driver.onWorldLeave();
+        assertEquals(List.of(true, false), api.lightingResetStates);
+        driver.releaseAll();
+        assertEquals(List.of(true, false), api.lightingResetStates,
+                "cleanup must not repeatedly reset stable lighting");
+    }
+
+    @Test
     void weatherStrengthsBeginAtZero() {
         ConfLayerDriver.WeatherStrengths weather = new ConfLayerDriver().weatherStrengths();
         assertEquals(0.0f, weather.rain());
@@ -640,6 +687,14 @@ class ConfLayerDriverTest {
         private long nextHandle = 1L;
         boolean failDusk;
         boolean failWater;
+        int lightingResets;
+        final List<Boolean> lightingResetStates = new ArrayList<>();
+
+        @Override
+        public void setLightingHistoryReset(boolean reset) {
+            if (reset) lightingResets++;
+            lightingResetStates.add(reset);
+        }
 
         @Override
         public long acquireConfigLayer(String path, float priority, float blendThreshold) {

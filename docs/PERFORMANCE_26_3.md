@@ -1,5 +1,38 @@
 # Minecraft 26.3 stability and performance baseline
 
+## Experimental adapter failure: 2026-11-01, build b603d0a
+
+The 22:45–22:50 Jakarta session loaded OptiScaler and MFG, but generated no
+frames: zero created FG features/evaluations, Ampere failure 120 and a private
+Vulkan `late-boundary` rejection. Backend ownership alone did not establish
+that the patch worker had armed its early-load declaration. The final runtime
+error was `DxvkSubmissionQueue: Command submission failed: VK_ERROR_DEVICE_LOST`.
+OptiScaler repeatedly reported `eWarnOutOfVRAM` and failed FG creation before
+that error. These messages do not establish VRAM exhaustion as the sole cause.
+There is no Java crash report; native Sentry initialization also failed.
+
+The revised loader waits for an explicit native readiness export covering DLL
+notifications, the armed architecture declaration and the early feature boundary.
+After Vulkan startup it verifies device admission; failure tears down renderer
+initialization before the ordinary render loop can retry FG creation continuously.
+A private-JVM C API probe passes device admission and 60 hidden presents. This
+does not repeat the Minecraft workload or prove the device-loss problem fixed.
+
+Day/night commands were detected in this session. The previous envelope only
+shortened volumetric history; surface caches could retain old lighting. The new
+candidate pulses the SHaRC and NRC `resetHistory` options for one rendered frame
+on a discontinuous Overworld clock change, then explicitly clears both. Both
+options are accepted by the pinned runtime, and its 60-frame probe verifies
+that both return to false. Tests cover a frozen clock, ordinary ticks,
+midnight wraparound, world identity changes and world-exit cleanup. Visual
+settling time still needs a game check; no global accumulation limits changed.
+
+The user clarified that missing terrain loaded after a few seconds, so this
+capture records a loading delay rather than a persistent terrain loss. The
+sapling pack contains its base/normal/specular/SSS textures. Its reported
+glass-like appearance is unresolved and deferred at the user's request; no
+pack assets or plant-material settings were changed.
+
 ## User acceptance session: 2026-11-01, build 4b70d9b
 
 The user reported no major problems, leaves rendering correctly without the

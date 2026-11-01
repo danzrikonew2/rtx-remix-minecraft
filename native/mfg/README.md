@@ -239,10 +239,21 @@ Missing, modified, unlisted and out-of-tree native files are rejected before
 loading. The ordinary installer and its original MFG loading route are unchanged.
 The private-Java smoke test validates all 32 libraries, loads OptiScaler and its
 MFG plugin and queries the native status export without starting Minecraft.
-The loader waits up to one second for backend ownership before Remix loads,
-matching the native probe. An initialization failure after native loading
+The first Minecraft run loaded the adapter but recorded zero FG features and
+evaluations, a private Vulkan `late-boundary` rejection and eventual device loss.
+The revised loader waits up to five seconds for explicit native startup
+prerequisites: registered DLL notifications, an armed architecture declaration
+and an early feature boundary. Backend ownership alone is insufficient.
+It also checks private-device admission immediately after Remix startup and
+stops renderer initialization if it failed. An initialization failure after native loading
 stops renderer initialization and requires a restart, since hooks cannot be
 treated as safely unloaded by a Java exception.
+
+`MfgJavaHostProbe.dll` reuses the native probe inside the private JVM through an
+FFM call to `MfgRunJavaHostProbe(wchar_t* adapter, wchar_t* runtime)`. It passes
+device admission and 60 hidden presents. The probe also verifies that the pinned
+runtime accepts both SHaRC/NRC history-reset options and that a one-frame API
+pulse explicitly returns both to false. This is still not a Minecraft game test.
 
 Keep the adapter fork's `LICENSE` and `SOURCE.txt` beside the extracted test
 package. Stage it into an existing experimental addon installation:

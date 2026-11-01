@@ -13,6 +13,9 @@ The private OptiScaler Vulkan path also passes startup and creates a real FG
 feature on the 3070 Ti. A focused native probe completes 785 successful FG
 evaluations with zero failed batches. An opt-in development loader passes its
 private-Java smoke test; Minecraft presentation and visual validation are pending.
+The first game run then failed early FG admission and ended in Vulkan device
+loss. A revised native readiness gate passes a 60-frame private-JVM renderer
+probe; game stability remains unverified. See [session evidence](PERFORMANCE_26_3.md).
 A standalone direct-Remix FG adapter and Minecraft interpolation validation
 remain incomplete; see the
 [native adapter development guide](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/native/mfg/README.md).

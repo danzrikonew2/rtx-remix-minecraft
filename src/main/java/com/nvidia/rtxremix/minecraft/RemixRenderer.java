@@ -301,6 +301,7 @@ public class RemixRenderer {
                     .interopImage(true)
                     .build();
                 remixApi.startup(startupInfo);
+                MfgUnlockerBootstrap.requireAdapterDeviceReady();
                 LOGGER.info("RTX Remix API started");
 
             }

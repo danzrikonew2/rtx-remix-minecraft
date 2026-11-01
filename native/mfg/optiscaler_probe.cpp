@@ -31,9 +31,13 @@ int wmain(int argc, wchar_t** argv) {
     const auto mfg = GetModuleHandleW(L"MFGUnlocker.asi");
     const auto query = mfg ? reinterpret_cast<MfgSingleModuleQueryFn>(GetProcAddress(mfg, "MfgUnlockSingleModuleQuery")) : nullptr;
     if (!query) { puts("FAIL: candidate load"); return 1; }
+    using ReadyFn = BOOL (WINAPI*)();
+    const auto startupReady = reinterpret_cast<ReadyFn>(GetProcAddress(mfg, "MfgUnlockPrivateVulkanStartupReady"));
+    const auto deviceReady = reinterpret_cast<ReadyFn>(GetProcAddress(mfg, "MfgUnlockPrivateVulkanDeviceReady"));
+    if (!startupReady || !deviceReady) { puts("FAIL: missing startup readiness exports"); return 1; }
     MfgSingleModuleStatus status{};
-    for (int i=0; i<100; ++i) { status.size=sizeof(status); if (query(&status) && status.backendOwner) break; Sleep(10); }
-    if (!status.backendOwner) { puts("FAIL: addon did not acquire backend ownership"); return 1; }
+    for (int i=0; i<500; ++i) { status.size=sizeof(status); if (query(&status) && status.backendOwner && startupReady()) break; Sleep(10); }
+    if (!status.backendOwner || !startupReady()) { puts("FAIL: early startup prerequisites not ready"); return 1; }
     const auto remix = LoadLibraryExW(runtime.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
     if (!remix) { puts("FAIL: renderer registration"); return 1; }
     auto initialize = reinterpret_cast<PFN_remixapi_InitializeLibrary>(GetProcAddress(remix, "remixapi_InitializeLibrary"));
@@ -54,6 +58,16 @@ int wmain(int argc, wchar_t** argv) {
     startup.hwnd=reinterpret_cast<remixapi_HWND>(window);
     startup.combineGuiInFinalColor=1;
     Check(api.Startup(&startup), "Startup");
+    if (!deviceReady()) { puts("FAIL: private Vulkan startup rejected"); api.Shutdown(); return 1; }
+    const char* resetKeys[] = {"rtx.spatiallyHashedRadianceCache.resetHistory", "rtx.neuralRadianceCache.resetHistory"};
+    for (const char* key : resetKeys) {
+        char value[32]{};
+        auto query = remixapi_ConfigVariableResolvedInfo_init();
+        query.key = key; query.value = value; query.valueSize = sizeof(value);
+        Check(api.GetConfigVariableResolved(&query), "Read lighting history reset option");
+        Check(api.SetConfigVariable(key, "true"), "Request lighting history reset");
+        printf("Lighting reset accepted: %s\n", key);
+    }
     if (visible) { ShowWindow(window,SW_SHOW); UpdateWindow(window); }
     printf("Probe owns foreground: %u\n", GetForegroundWindow()==window);
     remixapi_MaterialInfoOpaqueEXT opaque{};
@@ -107,11 +121,22 @@ int wmain(int argc, wchar_t** argv) {
         Check(api.Submit(&submit), "Submit");
         auto present=remixapi_PresentInfo_init();
         Check(api.Present(&present), "Present");
+        if (frame == 0) {
+            for (const char* key : resetKeys) Check(api.SetConfigVariable(key, "false"), "End lighting history reset pulse");
+        }
         ++presents;
         if (GetForegroundWindow() == window) ++foregroundPresents;
         Sleep(16);
     }
     printf("Probe presents=%u foreground presents=%u\n", presents, foregroundPresents);
+    for (const char* key : resetKeys) {
+        char value[32]{};
+        auto query = remixapi_ConfigVariableResolvedInfo_init();
+        query.key = key; query.value = value; query.valueSize = sizeof(value);
+        Check(api.GetConfigVariableResolved(&query), "Read post-frame lighting reset state");
+        printf("Lighting reset after frames: %s=%s\n", key, value);
+        if (_stricmp(value, "false") != 0) { puts("FAIL: lighting reset remained asserted"); return 1; }
+    }
     Check(api.DestroyMesh(mesh),"DestroyMesh");
     Check(api.DestroyMaterial(material),"DestroyMaterial");
     status.size=sizeof(status);
@@ -127,3 +152,13 @@ int wmain(int argc, wchar_t** argv) {
     puts("Probe completed. Validate fresh MFG status: created features, evaluations, failures and presentation count. Menu counters alone do not establish FG.");
     return 0;
 }
+
+#ifdef MFG_PROBE_JAVA_HOST
+extern "C" __declspec(dllexport) int MfgRunJavaHostProbe(wchar_t* addon, wchar_t* runtime) {
+    wchar_t name[] = L"JavaHostProbe";
+    wchar_t mode[] = L"hidden";
+    wchar_t frames[] = L"60";
+    wchar_t* args[] = {name, addon, runtime, mode, frames};
+    return wmain(5, args);
+}
+#endif

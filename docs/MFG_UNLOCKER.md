@@ -114,6 +114,14 @@ loading route and local staging helper are available for the isolated test
 profile; its private-Java loading/status smoke test passes. This is not a
 verified Minecraft release.
 
+The first Minecraft adapter session (`b603d0a`) recorded zero FG features and
+evaluations, late startup admission and eventual `VK_ERROR_DEVICE_LOST`.
+The revised candidate waits for actual early-hook readiness rather than just
+backend ownership and checks Vulkan device admission before the render loop.
+A private-JVM C API test passes admission and 60 hidden presents. Minecraft
+stability and generated display output still require validation; see the
+[session evidence](PERFORMANCE_26_3.md#experimental-adapter-failure-2026-11-01-build-b603d0a).
+
 Primary references:
 
 - [MFG RTX 30 backend](https://github.com/dashdogy/MFG-Unlocker/blob/main/source/native/ampere_backend.cpp)

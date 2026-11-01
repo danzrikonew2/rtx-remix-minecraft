@@ -358,6 +358,8 @@ public final class ConfLayerDriver {
         void setConfigLayerBlending(long handle, float strength, float blendThreshold);
 
         void releaseConfigLayer(long handle);
+
+        void setLightingHistoryReset(boolean reset);
     }
 
     private record RemixConfigLayerApi(RemixAPI delegate) implements ConfigLayerApi {
@@ -374,6 +376,13 @@ public final class ConfLayerDriver {
         @Override
         public void releaseConfigLayer(long handle) {
             delegate.releaseConfigLayer(handle);
+        }
+
+        @Override
+        public void setLightingHistoryReset(boolean reset) {
+            String value = Boolean.toString(reset);
+            delegate.setConfigVariable("rtx.spatiallyHashedRadianceCache.resetHistory", value);
+            delegate.setConfigVariable("rtx.neuralRadianceCache.resetHistory", value);
         }
     }
 
@@ -394,14 +403,36 @@ public final class ConfLayerDriver {
     private final SettlingEnvelope settling = new SettlingEnvelope();
     private float lastRainGradient;
     private float lastThunderGradient;
-    private ClientLevel lastClockWorld;
+    private Object lastClockWorld;
     private long lastClockTime;
+    private boolean lightingResetActive;
 
     /** Ignore ordinary ticks/wraparound; a jump over ten simulated seconds is discontinuous. */
     static boolean isAbruptClockChange(long previous, long current) {
         long distance = Math.abs(Math.floorMod(current, DAY_LENGTH_TICKS)
                 - Math.floorMod(previous, DAY_LENGTH_TICKS));
         return Math.min(distance, DAY_LENGTH_TICKS - distance) > 200L;
+    }
+
+    /** A discontinuous clock invalidates surface radiance; ordinary ticks keep accumulated history. */
+    boolean updateClockHistory(Object world, boolean overworld, long clockTime) {
+        clearLightingHistoryReset();
+        boolean jumped = overworld && world == lastClockWorld
+                && isAbruptClockChange(lastClockTime, clockTime);
+        lastClockWorld = world;
+        lastClockTime = clockTime;
+        if (jumped) {
+            configLayerApi.setLightingHistoryReset(true);
+            lightingResetActive = true;
+        }
+        return jumped;
+    }
+
+    private void clearLightingHistoryReset() {
+        if (lightingResetActive) {
+            configLayerApi.setLightingHistoryReset(false);
+            lightingResetActive = false;
+        }
     }
 
     public ConfLayerDriver() {
@@ -550,6 +581,7 @@ public final class ConfLayerDriver {
 
     /** Drops the joined world's profiles; the mod catalog keeps driving. */
     public void onWorldLeave() {
+        clearLightingHistoryReset();
         lastClockWorld = null;
         if (worldConfRoot == null) {
             return;
@@ -735,11 +767,8 @@ public final class ConfLayerDriver {
         // contribute no time-of-day strength.
         long clockTime = world.getOverworldClockTime();
         boolean overworld = Level.OVERWORLD.equals(world.dimension());
-        boolean timeJump = overworld && world == lastClockWorld
-                && isAbruptClockChange(lastClockTime, clockTime);
-        if (timeJump) LOGGER.info("Abrupt Overworld clock change; applying short volumetric settling history");
-        lastClockWorld = world;
-        lastClockTime = clockTime;
+        boolean timeJump = updateClockHistory(world, overworld, clockTime);
+        if (timeJump) LOGGER.info("Abrupt Overworld clock change; resetting surface lighting history and settling volumetrics");
         TimeLayerStrengths time = overworld
                 ? timeLayerStrengths(clockTime)
                 : TimeLayerStrengths.ZERO;
@@ -842,6 +871,7 @@ public final class ConfLayerDriver {
 
     /** Releases every acquired layer; affected options revert in the runtime. */
     public void releaseAll() {
+        clearLightingHistoryReset();
         active = false;
         for (LayerState layer : layersById.values()) {
             releaseLayer(layer);
