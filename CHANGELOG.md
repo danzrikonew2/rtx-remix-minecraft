@@ -11,6 +11,11 @@ also part of every mod file name.
 
 ## Unreleased
 
+- Include abrupt Overworld clock changes in the short volumetric-history
+  settling window. Ordinary ticks and midnight wraparound keep normal history.
+  This is a volumetric mitigation; surface sparkle and delayed ground-lighting
+  convergence after time commands remain pending native/visual validation.
+
 - Track shipped lighting-profile hashes so unchanged recorded defaults receive
   updates without replacing edited or unrecognized legacy files (#20).
 - Remove an unused intermediate full-atlas GPU upload and avoid creating

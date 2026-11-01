@@ -1,5 +1,41 @@
 # Minecraft 26.3 stability and performance baseline
 
+## User acceptance session: 2026-11-01, build 4b70d9b
+
+The user reported no major problems, leaves rendering correctly without the
+experimental leaf overlay, and beacon colour following stained glass. The
+selected pack was `RTX-Remix-Materials-0.58.0 (2).zip`; its SHA-256 exactly
+matches the earlier `RTX-Remix-Materials-0.58.0.zip`. The overlay was not selected.
+These are user observations, not proof that every material or scene is fixed.
+
+Remaining reported symptoms: Backspace cannot open MFG's menu, enabling FG
+then greys the control without an apparent frame-rate increase, and abrupt
+day/night commands leave residual ground illumination/sparkles that settle
+after standing still. Static screenshots cannot measure the settling duration.
+
+Saved log evidence (17:31–17:46 local session):
+
+- Native FG creation failed with `NVSDK_NGX_Result_FAIL_FeatureNotSupported`.
+  Addon status reports `activeFrameGeneration=none`, game/applied FG false,
+  `no active wrapper call`, zero DLSS 5 evaluations and Ampere failure 120.
+  No generated-frame success is claimed; do not infer success from a checkbox.
+- A 160 MB water-normal flipbook exceeded the 96 MB streaming staging budget,
+  forcing synchronous upload. This is recorded as a startup allocation/upload
+  limitation, not a confirmed explanation for continuous gameplay stutters.
+- Orphan-column audits removed 60 columns in total. They recovered stale
+  entries, but zero orphaning cannot be claimed for this session.
+- Shutdown logged 42 undisposed common device objects. The responsible layer
+  is not established; this is not a Java leak diagnosis.
+
+The code already drives time-profile strengths without Java-side smoothing.
+However, its existing short volumetric-history envelope covered weather,
+biome and zone changes but omitted clock jumps. The candidate now includes
+abrupt clock changes (over 200 ticks by shortest circular day distance),
+excluding normal ticks, paused clocks and ordinary midnight wraparound.
+It does not reset native surface-denoising or radiance-cache history. Surface
+sparkles and exposure/lighting convergence remain unconfirmed causes requiring
+further evidence. No speculative global denoiser settings were changed.
+
 ## Headless allocation review: 2026-11-01
 
 Removed an unused initial block-atlas GPU upload from `captureAtlas`.

@@ -66,7 +66,8 @@ import net.minecraft.world.phys.Vec3;
  * seconds, and a second smoothing pass would only lengthen the transition
  * the settling layer exists to cover. The volumetric settling strength is
  * unsmoothed because it is already an envelope: full while a weather, biome,
- * or zone transition is in progress and for a short hold afterwards, zero
+ * or zone transition is in progress, or after an abrupt clock jump, with a
+ * short hold afterwards; zero
  * once the scene is still.
  * Strengths persist runtime-side, so a layer costs a JNI call only when the
  * value to send actually changes.
@@ -393,6 +394,15 @@ public final class ConfLayerDriver {
     private final SettlingEnvelope settling = new SettlingEnvelope();
     private float lastRainGradient;
     private float lastThunderGradient;
+    private ClientLevel lastClockWorld;
+    private long lastClockTime;
+
+    /** Ignore ordinary ticks/wraparound; a jump over ten simulated seconds is discontinuous. */
+    static boolean isAbruptClockChange(long previous, long current) {
+        long distance = Math.abs(Math.floorMod(current, DAY_LENGTH_TICKS)
+                - Math.floorMod(previous, DAY_LENGTH_TICKS));
+        return Math.min(distance, DAY_LENGTH_TICKS - distance) > 200L;
+    }
 
     public ConfLayerDriver() {
         for (LayerSpec spec : STATIC_LAYER_TABLE) {
@@ -540,6 +550,7 @@ public final class ConfLayerDriver {
 
     /** Drops the joined world's profiles; the mod catalog keeps driving. */
     public void onWorldLeave() {
+        lastClockWorld = null;
         if (worldConfRoot == null) {
             return;
         }
@@ -722,8 +733,15 @@ public final class ConfLayerDriver {
         setTarget(LogicChannels.VIEW_DISTANCE, Math.clamp(viewDistanceStrength, 0.0f, 1.0f));
         // Time layers follow the shared Overworld clock only; other dimensions
         // contribute no time-of-day strength.
-        TimeLayerStrengths time = Level.OVERWORLD.equals(world.dimension())
-                ? timeLayerStrengths(world.getOverworldClockTime())
+        long clockTime = world.getOverworldClockTime();
+        boolean overworld = Level.OVERWORLD.equals(world.dimension());
+        boolean timeJump = overworld && world == lastClockWorld
+                && isAbruptClockChange(lastClockTime, clockTime);
+        if (timeJump) LOGGER.info("Abrupt Overworld clock change; applying short volumetric settling history");
+        lastClockWorld = world;
+        lastClockTime = clockTime;
+        TimeLayerStrengths time = overworld
+                ? timeLayerStrengths(clockTime)
                 : TimeLayerStrengths.ZERO;
         setTarget(LogicChannels.TIME_DAWN, time.dawn());
         setTarget(LogicChannels.TIME_DAY, time.day());
@@ -756,7 +774,7 @@ public final class ConfLayerDriver {
         // Every other target is a medium the froxel cache integrates; this one
         // tells the cache how much history to trust, so it follows them.
         setTarget(LogicChannels.VOLUMETRICS_SETTLING,
-                settling.advance(weatherMoving || anySmoothedLayerEasing(), dtSeconds));
+                settling.advance(timeJump || weatherMoving || anySmoothedLayerEasing(), dtSeconds));
 
         for (LayerState layer : layersById.values()) {
             if (layer.handle == 0) {
