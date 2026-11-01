@@ -194,3 +194,10 @@ retain the MIT license. Its complete notice is also preserved in
 [`native/mfg/LICENSE-MFG`](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/native/mfg/LICENSE-MFG). Recovered native/shader
 build inputs are local generated data, excluded from this repository and the
 release package.
+
+The development-only OptiScaler adapter uses the GPL-3.0 source at
+[`dashdogy/OptiScaler`, commit `aeb1f29783106b96c89ba71ce9b6db80eacdae46`](https://github.com/dashdogy/OptiScaler/tree/aeb1f29783106b96c89ba71ce9b6db80eacdae46).
+It is not embedded in the mod or public installer. Local staging preserves its
+complete license and corresponding-source notice, the MFG MIT notice and the
+selected input package's third-party notices. Native dependencies keep their
+own license terms.

@@ -148,20 +148,23 @@ the RTX 3070 Ti native probe now records:
 | Allocated presentation buffers | 6, validated by the wrapper |
 | Real NVIDIA provider FG creation | Accepted; one tracked feature |
 | Active/applied mode | DLSS, fixed 2x requested |
-| FG evaluation attempts | 0 |
-| Reported last presentation batch | 1 frame |
+| FG evaluation attempts / successful evaluations | 785 / 785 |
+| Submitted / failed FG batches | 785 / 0 |
+| Rejections / first and last failure | 0 / 0 |
+| Reported last presentation batch | 1 frame after focus was lost |
 
-Feature creation is established, **generated frames are not yet established**.
-Visible and moving-camera probes also recorded zero evaluations. The attempt
-to focus the window returned false, and Streamline explicitly logged
-`DLSS-G disabled: window not focused`. A manual foreground click is required
-for the next interpolation test. These probes are separate from Minecraft;
-Prism integration and visual/performance acceptance remain pending.
+The foreground probe completed 1,200 C API presents, including 824 while its
+window was foreground. The provider executed successfully for all 785 FG
+evaluations, and Streamline logged interpolation enabled. The temporal trace
+records one midpoint request per source frame with valid output descriptors.
+This establishes successful FG provider execution through the actual Remix
+runtime on the 3070 Ti. It does not establish unique interpolated display
+images, a measured 2x frame rate or Minecraft visual/performance acceptance.
 
-A fresh 60-frame hidden run using the tracked probe and final candidate exited
-normally, reproduced feature creation and recorded zero foreground presents
-and zero evaluations. The requested 2x value is configuration, not a measured
-frame-rate multiplier.
+Earlier hidden and unfocused runs recorded no evaluations; Streamline logged
+`DLSS-G disabled: window not focused`. A 60-frame hidden control exited normally
+with feature creation but zero foreground presents and zero evaluations. The
+requested 2x value is configuration, not a measured frame-rate multiplier.
 
 ### Reproduce the adapter probe
 
@@ -226,3 +229,34 @@ This uses the adapter's upscaler input and FG control. An additional native
 Remix FG request after adapter initialization was also tested and rejected
 outside the recognized wrapper's creation stack; it did not generate frames.
 The public beta installer has not been changed to include this adapter.
+
+### Opt-in Minecraft loader
+
+`MfgOptiScalerPayload` adds a development-only loading route. It requires the
+existing isolated Java installation, the exact OptiScaler DLL pin, the explicit
+MFG candidate pin and a JVM-pinned manifest covering every adapter DLL/ASI.
+Missing, modified, unlisted and out-of-tree native files are rejected before
+loading. The ordinary installer and its original MFG loading route are unchanged.
+The private-Java smoke test validates all 32 libraries, loads OptiScaler and its
+MFG plugin and queries the native status export without starting Minecraft.
+The loader waits up to one second for backend ownership before Remix loads,
+matching the native probe. An initialization failure after native loading
+stops renderer initialization and requires a restart, since hooks cannot be
+treated as safely unloaded by a Java exception.
+
+Keep the adapter fork's `LICENSE` and `SOURCE.txt` beside the extracted test
+package. Stage it into an existing experimental addon installation:
+
+```powershell
+python native/mfg/stage_optiscaler.py --package ABSOLUTE_TEST_PACKAGE `
+    --candidate ABSOLUTE_CANDIDATE_DLL --candidate-sha256 FULL_CANDIDATE_SHA256 `
+    --addon ABSOLUTE_EXPERIMENTAL_GAME_DIRECTORY/rtx-remix-addons/mfg-unlocker
+```
+
+The script refuses an existing `optiscaler-development` directory, preserves
+license/source notices and prints two JVM properties. Add those properties only
+to that experimental instance. Removing `-Drtxremix.mfgOptiScalerManifestSha256`
+returns to its original MFG loading route. No shared Java installation is modified.
+An enabled OptiScaler FG route supplies its own inputs; leave Remix's separate
+native FG toggle off. Minecraft's GL/Vulkan synchronization, GUI, world reload,
+image quality and real presentation pacing still require a game test.

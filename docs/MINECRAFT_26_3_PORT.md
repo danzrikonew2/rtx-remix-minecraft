@@ -10,7 +10,9 @@ compatibility blocker, not a verified feature; see [MFG details](MFG_UNLOCKER.md
 An unreleased native candidate now builds from recovered, validated inputs and
 passes isolated tests for actual-runtime menu drawing, Backspace and shutdown.
 The private OptiScaler Vulkan path also passes startup and creates a real FG
-feature on the 3070 Ti; interpolation validation is pending a foreground probe.
+feature on the 3070 Ti. A focused native probe completes 785 successful FG
+evaluations with zero failed batches. An opt-in development loader passes its
+private-Java smoke test; Minecraft presentation and visual validation are pending.
 A standalone direct-Remix FG adapter and Minecraft interpolation validation
 remain incomplete; see the
 [native adapter development guide](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/native/mfg/README.md).

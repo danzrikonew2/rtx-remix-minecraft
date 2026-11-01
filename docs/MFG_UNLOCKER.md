@@ -98,16 +98,21 @@ does not complete the FG startup/presenter adapter.
 A subsequent private-Streamline Vulkan startup patch now passes startup and
 creates one real NVIDIA DLSS FG feature on the RTX 3070 Ti through the documented
 OptiScaler adapter. Its native cache/program and six presentation buffers pass
-the existing checks. Evaluation remains at zero: Streamline logs that the probe
-window is unfocused, and Windows refused automatic focus. Generated frames and
-Minecraft integration are still unverified. Source, exact dependencies, test
+the existing checks. A focused native run now completes 785 successful FG
+evaluations and 785 submitted batches with no batch failures or rejections.
+The provider executes and Streamline enables interpolation; unique displayed
+images, a measured frame-rate multiplier and Minecraft compatibility remain
+unverified. Source, exact dependencies, test
 results and reproduction are in the
 [native adapter guide](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/native/mfg/README.md#private-streamline-vulkan-startup).
 
 The isolated adapter probe above uses DLSS FG output. OptiScaler also documents
 a Vulkan XeFG output route, which has not been tested here. These are separate
 backends; XeFG results would not establish DLSS FG compatibility. Neither
-adapter has been added to the public beta installer or installed into Minecraft.
+adapter has been added to the public beta installer. A JVM-pinned development
+loading route and local staging helper are available for the isolated test
+profile; its private-Java loading/status smoke test passes. This is not a
+verified Minecraft release.
 
 Primary references:
 

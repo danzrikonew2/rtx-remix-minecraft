@@ -26,6 +26,7 @@ final class MfgUnlockerBootstrap {
     static final String DLL_SHA256 = "e6b6e6b70a6ed3af839c9647a32fc22660ae6b2d655062c5c072246c91fc10c7";
     private static boolean attempted;
     private static boolean loaded;
+    private static boolean optiScalerAdapter;
 
     private MfgUnlockerBootstrap() {}
 
@@ -34,6 +35,7 @@ final class MfgUnlockerBootstrap {
         Path enabled = addon.resolve("enabled.txt");
         if (attempted || !Files.isRegularFile(enabled)) return;
         attempted = true;
+        boolean adapterLoadAttempted = false;
         try {
             if (!Path.of(System.getProperty("java.home")).toRealPath().equals(addon.resolve("java").toRealPath())) {
                 throw new IOException("Addon requires its isolated Java runtime; shared Java was left untouched");
@@ -41,8 +43,21 @@ final class MfgUnlockerBootstrap {
             if (!VERSION.equals(Files.readString(enabled).trim())) {
                 throw new IOException("Unsupported addon marker version; rerun the matching addon installer");
             }
-            Path dll = addon.resolve("MFGUnlocker.dll");
             String developmentHash = System.getProperty("rtxremix.mfgDevelopmentDllSha256", "");
+            String adapterManifestHash = System.getProperty(MfgOptiScalerPayload.MANIFEST_PROPERTY, "");
+            if (!adapterManifestHash.isEmpty()) {
+                Path adapter = addon.resolve(MfgOptiScalerPayload.DIRECTORY);
+                MfgOptiScalerPayload.validate(adapter, adapterManifestHash, developmentHash);
+                adapterLoadAttempted = true;
+                MfgOptiScalerPayload.load(adapter);
+                awaitBackendOwnership();
+                loaded = true;
+                optiScalerAdapter = true;
+                LOGGER.warn("Loaded explicitly pinned OptiScaler/MFG development adapter; "
+                        + "native probe evaluation passed, Minecraft compatibility remains unverified");
+                return;
+            }
+            Path dll = addon.resolve("MFGUnlocker.dll");
             String actualHash = sha256(dll);
             if (!acceptedHash(actualHash, developmentHash)) throw new IOException("MFG Unlocker DLL checksum mismatch");
             if (!DLL_SHA256.equals(actualHash)) {
@@ -60,7 +75,32 @@ final class MfgUnlockerBootstrap {
             LOGGER.info("Experimental MFG Unlocker {} loaded. FG/DLSS 5 availability is unverified; "
                     + "check the addon and Remix runtime logs and menus.", VERSION);
         } catch (IOException | NoSuchAlgorithmException | UnsatisfiedLinkError failure) {
+            if (adapterLoadAttempted) {
+                throw new IllegalStateException("Experimental adapter initialization failed after native loading; "
+                        + "restart with the adapter JVM properties removed", failure);
+            }
             LOGGER.warn("MFG Unlocker was not loaded; continuing normal Remix startup: {}", failure.toString());
+        }
+    }
+
+    private static void awaitBackendOwnership() throws IOException {
+        try (Arena arena = Arena.ofConfined()) {
+            var symbol = SymbolLookup.loaderLookup().find("MfgUnlockSingleModuleQuery").orElseThrow();
+            var query = Linker.nativeLinker().downcallHandle(symbol,
+                    FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+            var status = arena.allocate(64, 8);
+            for (int attempt = 0; attempt < 100; attempt++) {
+                status.set(ValueLayout.JAVA_INT, 0, 64);
+                int accepted = (int) query.invokeExact(status);
+                if (accepted != 0 && status.get(ValueLayout.JAVA_INT, 8) != 0) return;
+                Thread.sleep(10);
+            }
+            throw new IOException("MFG adapter did not acquire backend ownership before Remix initialization");
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted waiting for MFG adapter ownership", interrupted);
+        } catch (Throwable failure) {
+            throw new IOException("MFG adapter readiness check failed", failure);
         }
     }
 
@@ -80,6 +120,12 @@ final class MfgUnlockerBootstrap {
             status.set(ValueLayout.JAVA_INT, 0, 64);
             int accepted = (int) query.invokeExact(status);
             if (accepted == 0) return "MFG addon rejected its status query.";
+            if (optiScalerAdapter) {
+                return "MFG loaded; backend owner=" + (status.get(ValueLayout.JAVA_INT, 8) != 0)
+                        + "; OptiScaler owns presentation and the shared menu. "
+                        + "Standalone menu counters do not measure this route. "
+                        + "Check the current process's MFG/OptiScaler logs for evaluations and presentation.";
+            }
             boolean hooked = status.get(ValueLayout.JAVA_INT, 16) != 0
                     || status.get(ValueLayout.JAVA_INT, 20) != 0;
             return "MFG loaded; graphics hook=" + hooked

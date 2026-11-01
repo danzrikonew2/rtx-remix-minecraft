@@ -11,10 +11,16 @@ also part of every mod file name.
 
 ## Unreleased
 
+- Verify 785 successful FG provider evaluations and 785 submitted batches on
+  RTX 3070 Ti in the focused native Remix probe, with zero failed batches.
+  Add an opt-in, manifest-pinned OptiScaler/MFG development loader and local
+  staging helper. Private-Java loading/status checks pass; Minecraft display
+  behavior and any frame-rate multiplier remain unverified.
+
 - Add guarded private Streamline Vulkan startup for the experimental MFG adapter.
   An isolated 3070 Ti probe passes startup/program/buffer checks and creates a
-  real NVIDIA FG feature. Evaluation remains unverified because Streamline
-  suppresses interpolation while the probe is unfocused; the public installer
+  real NVIDIA FG feature. Streamline suppresses interpolation while the probe
+  is unfocused; the public installer
   and working game profiles are unchanged.
 
 - Add source-only native MFG build-input recovery and a runtime-bound Vulkan

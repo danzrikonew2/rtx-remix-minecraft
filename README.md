@@ -56,7 +56,9 @@ before enabling it; a beta label does not certify MFG or DLSS 5 support.
 
 Native development progress and reproducible build instructions are in
 [`native/mfg/`](native/mfg/README.md). Its unreleased menu adapter passes isolated
-runtime tests; the FG startup/presenter adapter remains incomplete.
+runtime tests. Its private Vulkan route also completes FG provider evaluations
+on a 3070 Ti in a focused native probe. The opt-in Minecraft adapter remains
+experimental; game presentation, image quality and performance are unverified.
 
 The step-by-step version, with launcher advice and troubleshooting, is in
 [Playing](docs/PLAYING.md).
