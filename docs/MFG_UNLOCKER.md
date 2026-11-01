@@ -37,6 +37,63 @@ Minecraft installation on those launchers/platforms keeps its existing behavior.
 
 ## What is and is not verified
 
+### Native port investigation: 2026-11-01
+
+The RTX 30 implementation is more than a hardware-capability override.
+`ampere_cuda_program.cpp` validates translated programs against the selected
+CUDA adapter/LUID and SM target; `ampere_native_cache.cpp` selects and verifies
+embedded kernel programs. `ampere_backend.cpp` admits startup only after
+runtime/provider entry coverage, adapter/device identity, capacity and program
+readiness checks pass. Its Vulkan path validates NGX resources and the output
+image identity before evaluating a feature.
+
+In the recorded Remix session, `ampereCreateAttempts=1`,
+`ampereCreateBlockedBeforeProvider=1`, `amperePreparationStage=0` and
+`ampereFirstFailure=120`. Source shows that 120 includes refusal before a
+completed startup admission. A zero startup-failure mask does not indicate
+success when startup admission has never completed. The log's resulting
+`FeatureNotSupported` therefore does not independently prove that the NVIDIA
+provider executed and rejected this GPU. Do not bypass this guard and claim FG.
+
+Menu admission is separate. Read-only PE import inspection found no graphics
+imports in `javaw.exe`; the installed `d3d9.dll` imports Vulkan entry points,
+including `vkGetInstanceProcAddr`. MFG's `overlay_application_imports.cpp`
+restricts renderer DLLs to the executable subtree and qualifies graphics
+hosts via DXGI factory/D3D12 imports. The isolated Java executable and Remix
+DLL also reside in different directory subtrees. Renaming the addon or
+changing Backspace does not supply the missing host adapter.
+
+A direct native port needs compatible startup admission, translated program
+resources, live Vulkan device/queue and NGX frame inputs, feature lifetime
+handling, generated-image ownership/synchronization and paced presentation.
+The current Remix C API exposes shared color/depth memory and synchronization
+handles for GL interop; it does not expose a complete external FG device,
+motion-vector and presentation integration. Adding header declarations alone
+cannot provide that implementation. The package pin's `71a581da` source lookup
+did not resolve in the public dxvk-remix repository during this investigation.
+
+The public MFG build additionally requires separately prepared kernel caches
+and XeSS program inputs which its source checkout does not include. Reusing
+its MIT source requires retaining its attribution; installing its existing DLL
+does not expose an API that replaces the missing native integration.
+
+MFG documents an OptiScaler adapter route, including a dedicated fork for
+Vulkan XeFG output. Source inspection confirms that adapter has Vulkan
+interception code. This is a separate possible experiment, not evidence of a
+working DLSS FG port for Remix or permission to label XeFG as DLSS. It has not
+been installed or validated in this project.
+
+Primary references:
+
+- [MFG RTX 30 backend](https://github.com/dashdogy/MFG-Unlocker/blob/main/source/native/ampere_backend.cpp)
+- [CUDA program validation](https://github.com/dashdogy/MFG-Unlocker/blob/main/source/native/ampere_cuda_program.cpp)
+- [Kernel-cache selection](https://github.com/dashdogy/MFG-Unlocker/blob/main/source/native/ampere_native_cache.cpp)
+- [Renderer admission](https://github.com/dashdogy/MFG-Unlocker/blob/main/source/native/overlay_application_imports.cpp)
+- [Build inputs](https://github.com/dashdogy/MFG-Unlocker/blob/main/BUILD.md)
+- [Documented adapter route](https://github.com/dashdogy/MFG-Unlocker#optiscaler-support)
+
+### Existing installation checks
+
 Local validation: automatic installation into a separate experimental Prism
 instance passed archive/DLL hash checks. A private-Java smoke process loaded
 the addon and its native exported status query confirmed backend ownership.
