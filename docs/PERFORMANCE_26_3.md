@@ -1,5 +1,21 @@
 # Minecraft 26.3 stability and performance baseline
 
+## Headless allocation review: 2026-11-01
+
+Removed an unused initial block-atlas GPU upload from `captureAtlas`.
+`buildAtlasMaterials` uploads the final AO/padding-adjusted atlas later, and
+no intervening initialization step consumes the intermediate GPU texture.
+Previously both allocations stayed in `managedTextures` until cleanup.
+At 16384x16384 this removes one upload of 1,073,741,824 RGBA8 base-level bytes;
+that is an allocation-path observation, not a measured VRAM or FPS result.
+The native runtime's mipmaps, staging and residency determine actual memory use.
+
+Per-sprite specular conversion now allocates an RGBA SSS buffer only when
+the specular map contains SSS data; non-SSS maps previously populated and
+discarded that buffer. Texture quality and atlas resolution are unchanged.
+The resource pack in upstream #82 has not been reproduced in a GPU session,
+so its reported exhaustion is not marked fixed.
+
 ## Diagnostic session: 2026-10-31
 
 Baseline source: `5369f65`, community alpha 2. The user manually played the

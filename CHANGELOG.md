@@ -11,6 +11,14 @@ also part of every mod file name.
 
 ## Unreleased
 
+- Track shipped lighting-profile hashes so unchanged recorded defaults receive
+  updates without replacing edited or unrecognized legacy files (#20).
+- Remove an unused intermediate full-atlas GPU upload and avoid creating
+  per-sprite SSS buffers for specular maps with no SSS data (#82 investigation).
+  Actual GPU-memory impact still needs measurement with the reported pack.
+- Classify both vanilla beacon beam surface pipelines as emissive (#29, partial).
+  Dynamic beam lights and radiance tuning remain unimplemented.
+
 - Fix upstream #69: skylight snapshots capture each publication's current
   minimum section height, including removed columns and immutable older views.
 - Mitigate upstream #54: failed renderer initialization disables RTX capture,

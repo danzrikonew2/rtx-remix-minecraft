@@ -254,7 +254,7 @@ public class BlockTextureManager {
             AbstractTexture tex = client.getTextureManager().getTexture(BLOCK_ATLAS_ID);
             if (!(tex instanceof TextureAtlas spriteAtlas)) return;
 
-            captureAtlas(api, spriteAtlas);
+            captureAtlas(spriteAtlas);
             LabPBRConverter.VariantCache labPBRVariants;
             try (ProfileScope ignored = ProfileScope.begin("LabPBR.variantScan")) {
                 labPBRVariants = LabPBRConverter.buildVariantCache(client.getResourceManager());
@@ -277,7 +277,7 @@ public class BlockTextureManager {
         }
     }
 
-    private void captureAtlas(RemixAPI api, TextureAtlas atlas) {
+    private void captureAtlas(TextureAtlas atlas) {
         atlasW = atlasWidth(atlas);
         atlasH = atlasHeight(atlas);
         if (atlasW == 0 || atlasH == 0) {
@@ -285,8 +285,9 @@ public class BlockTextureManager {
             return;
         }
         albedoRGBA = stitchAtlasRGBA(atlas);
-        atlasAlbedo = upload(api, "block_atlas", albedoRGBA, atlasW, atlasH,
-                TextureFormat.RGBA8_UNORM, TexturePurpose.COLOR);
+        // buildAtlasMaterials uploads the final AO/padding-adjusted pixels.
+        // Uploading this intermediate image allocated a second full GPU atlas
+        // that remained in managedTextures until cleanup, with no live user.
         LOGGER.info("Atlas {}x{} (stitched from {} sprites)",
                 atlasW, atlasH, ((SpriteAtlasAccessor) atlas).getSprites().size());
     }
@@ -998,13 +999,14 @@ public class BlockTextureManager {
             se.height = upload(api, p + "h", hd, w, h, TextureFormat.R8_UNORM, TexturePurpose.HEIGHTMAP);
         }
         if (sI != null) {
-            byte[] rd = new byte[w * h], md = new byte[w * h], sd = new byte[w * h * 4];
+            byte[] rd = new byte[w * h], md = new byte[w * h];
             LabPBRConverter.blitRoughness(rd, w, sI, 0, 0, w, h);
             LabPBRConverter.blitMetallic(md, w, sI, 0, 0, w, h);
-            LabPBRConverter.blitSSS(sd, w, sI, 0, 0, w, h);
             se.roughness = upload(api, p + "r", rd, w, h, TextureFormat.R8_UNORM, TexturePurpose.DATA);
             se.metallic  = upload(api, p + "m", md, w, h, TextureFormat.R8_UNORM, TexturePurpose.DATA);
             if (LabPBRConverter.hasSSSData(sI)) {
+                byte[] sd = new byte[w * h * 4];
+                LabPBRConverter.blitSSS(sd, w, sI, 0, 0, w, h);
                 se.sss = upload(api, p + "s", sd, w, h, TextureFormat.RGBA8_UNORM, TexturePurpose.DATA);
                 se.hasSSS = true;
             }

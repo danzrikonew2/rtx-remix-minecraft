@@ -22,6 +22,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class RenderLayerUtilsTest {
 
     @org.junit.jupiter.api.Test
+    void bothVanillaBeaconBeamProgramsUseEmissiveSurfaces() {
+        org.junit.jupiter.api.Assertions.assertTrue(RenderLayerUtils.usesEmissiveSurfaceProgram(
+                net.minecraft.client.renderer.RenderPipelines.BEACON_BEAM_OPAQUE));
+        org.junit.jupiter.api.Assertions.assertTrue(RenderLayerUtils.usesEmissiveSurfaceProgram(
+                net.minecraft.client.renderer.RenderPipelines.BEACON_BEAM_TRANSLUCENT));
+        org.junit.jupiter.api.Assertions.assertFalse(RenderLayerUtils.usesEmissiveSurfaceProgram(
+                net.minecraft.client.renderer.RenderPipelines.ENTITY_SOLID));
+    }
+
+    @org.junit.jupiter.api.Test
     void standaloneGlintIsExcludedButIntegratedBaseItemPipelinesRemain() {
         org.junit.jupiter.api.Assertions.assertTrue(RenderLayerUtils.isStandaloneGlintPipeline(
                 net.minecraft.client.renderer.RenderPipelines.GLINT));

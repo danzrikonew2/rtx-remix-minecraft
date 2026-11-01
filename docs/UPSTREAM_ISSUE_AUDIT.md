@@ -15,7 +15,29 @@ were closed, no comments posted and no upstream pull request opened.
 | [#54](https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/issues/54) startup failure hides terrain | Initialization exceptions now disable the capture master flag. SDK presence is no longer falsely reported as missing. Re-enabling an uninitialized renderer is rejected. | Java-side fallback mitigation; does not repair Vulkan initialization or driver failures. |
 | [#65](https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/issues/65), [#80](https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/issues/80) item artifacts | Standalone GLINT blend passes were captured as ordinary surfaces despite unsupported scrolling decal semantics. Exclude those passes while retaining base item geometry. | Conservative mitigation: standalone glint is omitted. This does not establish that every purple item report has the same cause. Visual confirmation pending. |
 
+## Further headless work after the initial batch
+
+- **#20:** added `ShippedProfileUpdater`. Recorded unchanged defaults can
+  update; edited files, unknown legacy copies, custom files and retired profiles
+  remain intact. Matching legacy defaults can be adopted. Tests cover deleted
+  files, malformed metadata and JAR filesystems. Unknown old defaults cannot
+  be identified retroactively without a trustworthy prior hash.
+- **#82:** removed an unused intermediate GPU block-atlas upload. The final
+  AO/padding-adjusted atlas is still uploaded once. At 16384 square the avoided
+  upload contains 1 GiB of base-level RGBA8 input. Actual VRAM reduction and
+  Yitality compatibility remain unmeasured. Non-SSS specular maps also no longer
+  allocate an unused per-sprite RGBA SSS buffer.
+- **#29 (partial):** both vanilla beacon beam programs now select emissive
+  surface mode. Tests use real game pipelines. This adds no analytic beam
+  lights and does not certify brightness or volumetrics.
+- **#14/#15:** tests bootstrap Minecraft's real block registry and exercise the
+  exact face predicate used by capture. Matching glass faces are culled; leaf
+  faces beside top/bottom half-slabs remain visible. Later mesh/native shading
+  artifacts are not ruled out by those checks.
+
 ## Other open reports reviewed
+
+The progress above supersedes initial assessments below where applicable.
 
 | Report | Finding / remaining limitation |
 | --- | --- |

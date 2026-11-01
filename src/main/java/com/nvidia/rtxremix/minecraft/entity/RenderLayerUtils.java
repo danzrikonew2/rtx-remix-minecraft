@@ -186,8 +186,7 @@ final class RenderLayerUtils {
         RenderPipeline pipeline = layer.pipeline();
         BlendFunction blend = blendFunction(pipeline);
         return classifySurfaceMode(
-                pipeline == RenderPipelines.EYES
-                        || pipeline == RenderPipelines.ENTITY_TRANSLUCENT_EMISSIVE,
+                usesEmissiveSurfaceProgram(pipeline),
                 BlendFunction.ADDITIVE.equals(blend),
                 BlendFunction.TRANSLUCENT.equals(blend)
                         || pipeline == RenderPipelines.CRUMBLING,
@@ -200,6 +199,13 @@ final class RenderLayerUtils {
 
     static boolean isStandaloneGlintPipeline(RenderPipeline pipeline) {
         return BlendFunction.GLINT.equals(blendFunction(pipeline));
+    }
+
+    static boolean usesEmissiveSurfaceProgram(RenderPipeline pipeline) {
+        return pipeline == RenderPipelines.EYES
+                || pipeline == RenderPipelines.ENTITY_TRANSLUCENT_EMISSIVE
+                || pipeline == RenderPipelines.BEACON_BEAM_OPAQUE
+                || pipeline == RenderPipelines.BEACON_BEAM_TRANSLUCENT;
     }
 
     private static BlendFunction blendFunction(RenderPipeline pipeline) {
