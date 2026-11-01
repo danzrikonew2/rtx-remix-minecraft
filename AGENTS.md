@@ -76,8 +76,10 @@ the mod-owned `remix-sdk/`, `rtx.conf`, and the shipped runtime textures in
 without the release installer is complete. With a matching marker and runtime
 present, launch restores a missing `rtx.conf`, a missing runtime texture, and
 any missing shipped files under `rtx-remix/` without replacing existing files. The `rtx-remix/` payload
-is author-owned: existing files, including edited confs, are never overwritten,
-even during full extraction. Deleting a shipped conf restores its default on
+is author-owned: edited and unrecognized existing files are preserved even
+during full extraction. `ShippedProfileUpdater` may update a gameplay conf
+only when its bytes match its recorded shipped hash; it may adopt a legacy
+file only if it exactly matches the currently bundled default. Deleting a shipped conf restores its default on
 the next launch. A present conf that fails to acquire still prevents renderer
 initialization; the error identifies the file.
 

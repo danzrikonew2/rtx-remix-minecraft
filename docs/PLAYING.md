@@ -259,10 +259,14 @@ placed beside them.
 To restore a shipped profile's default, delete that profile file and relaunch.
 Missing shipped files under `rtx-remix\` and a missing `rtx.conf` return on
 the next launch even when `.rtx-remix-version` matches. Existing profiles,
-including edited files, are never overwritten. Deleting `remix-sdk\` or its
+that match a recorded shipped default receive updated defaults. Edited files
+and unrecognized legacy copies are preserved. The game-directory file
+`.rtx-remix-profile-hashes.properties` records default identities, not player
+data. Missing metadata never authorizes replacing an unknown existing profile.
+Deleting `remix-sdk\` or its
 `d3d9.dll` also triggers recovery on the next launch. Deleting
 `.rtx-remix-version` forces full re-extraction of the runtime and `rtx.conf`,
-but still preserves existing profiles.
+but still preserves edited and unrecognized profiles.
 
 ## Uninstalling
 

@@ -181,12 +181,14 @@ re-extraction on the next launch, even with a matching version marker.
 A missing `rtx.conf` is also restored on the next launch.
 
 The lighting profiles under `rtx-remix\mods\minecraft-logic\` belong to you.
-An upgrade adds profiles you do not have and never writes over one you do, so
-tuning survives. That also means a new shipped default cannot reach a file you
-already have: delete that file and relaunch to take the shipped version.
+An upgrade adds missing profiles and updates defaults whose bytes still match
+their recorded shipped SHA-256. Edited files and unrecognized legacy copies
+stay untouched. `.rtx-remix-profile-hashes.properties` in the game directory
+tracks defaults; missing metadata does not authorize overwriting unknown files.
+Delete an individual profile and relaunch to restore its current shipped default.
 Missing shipped files are restored even when `.rtx-remix-version` matches.
 Deleting the marker forces full re-extraction of the runtime and `rtx.conf`,
-but still never overwrites existing profiles.
+but still preserves edited and unrecognized profiles.
 
 ## Uninstall
 

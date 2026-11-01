@@ -90,14 +90,11 @@ public final class NativeExtractor {
      *
      * <p>Non-SDK directories other than {@code textures/}, such as the
      * {@code rtx-remix/} gameplay conf payload, are copied into the game
-     * directory but never over a file that already exists. The mod version
-     * string embeds a build timestamp and git hash, so every new build makes
-     * the marker stale;
-     * overwriting would mean each new build silently reverted an
-     * author's tuned profiles. New files still land, so profiles added by a
-     * release reach existing installs. The cost is that an edit to a shipped
-     * profile is not pushed to a player who already has that file; deleting
-     * the file restores its shipped default on the next launch.
+     * directory without replacing unknown or edited files. Shipped gameplay
+     * confs additionally track their last installed SHA-256: an unchanged
+     * recorded default may update, while edits and unrecognized legacy copies
+     * remain untouched. Identical current defaults can be adopted safely.
+     * Deleting a profile restores its shipped default on the next launch.
      *
      * <p>The SDK and {@code rtx.conf} are first built in
      * {@code remix-sdk.staging/} and {@code rtx.conf.staging}, then moved over
@@ -270,6 +267,9 @@ public final class NativeExtractor {
                 }
             }
         }
+        Path profiles = Path.of("rtx-remix", "mods", "minecraft-logic", "confs");
+        ShippedProfileUpdater.sync(nativeRoot.resolve("rtx-remix/mods/minecraft-logic/confs"), gameDir.resolve(profiles),
+                gameDir.resolve(".rtx-remix-profile-hashes.properties"));
     }
 
     /**

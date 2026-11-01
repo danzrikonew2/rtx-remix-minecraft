@@ -232,6 +232,21 @@ class NativeExtractorTest {
         assertEquals("existing runtime", Files.readString(gameDir.resolve("remix-sdk/d3d9.dll")));
     }
 
+    @Test
+    void recordedProfileDefaultsUpdateWithoutReplacingAuthoredEdits(@TempDir Path tmp) throws IOException {
+        Path nativeRoot = createNativePayload(tmp);
+        Path gameDir = Files.createDirectories(tmp.resolve("game"));
+        String profile = "rtx-remix/mods/minecraft-logic/confs/water.conf";
+        NativeExtractor.extractIfNeeded(nativeRoot, gameDir, "1.0", "remix-sdk-win64", INLINE_CLEANUP);
+        Files.writeString(nativeRoot.resolve(profile), "updated default");
+        NativeExtractor.extractIfNeeded(nativeRoot, gameDir, "1.0", "remix-sdk-win64", INLINE_CLEANUP);
+        assertEquals("updated default", Files.readString(gameDir.resolve(profile)));
+        Files.writeString(gameDir.resolve(profile), "my tuned water");
+        Files.writeString(nativeRoot.resolve(profile), "third default");
+        NativeExtractor.extractIfNeeded(nativeRoot, gameDir, "2.0", "remix-sdk-win64", INLINE_CLEANUP);
+        assertEquals("my tuned water", Files.readString(gameDir.resolve(profile)));
+    }
+
     private static Path createNativePayload(Path tmp) throws IOException {
         Path nativeRoot = Files.createDirectories(tmp.resolve("native"));
         Path sdk = Files.createDirectories(nativeRoot.resolve("remix-sdk-win64"));
