@@ -6,7 +6,12 @@ It is not an NVIDIA feature or a confirmed compatibility release.
 
 ## Automatic installation
 
-Use an installer ZIP containing this integration. Select **Prism** and answer
+Beta 1 includes `install-mfg.bat`: double-click it for Prism setup with the addon
+selected automatically. It creates **RTX Remix Community 26.3 Beta (Experimental)**,
+separate from earlier installer profiles. The standalone JAR does not install
+the addon or its private Java runtime.
+
+Alternatively select **Prism** in `install.bat` and answer
 yes to the experimental addon prompt, or use:
 
 ```powershell
@@ -39,8 +44,21 @@ This test did not start a graphics swapchain or generate frames.
 
 Source inspection found Vulkan NGX hooks and experimental RTX 30 paths in the
 upstream addon. That does not prove compatibility with this pinned Remix build.
-The bundled runtime previously reported Frame Generation and DLSS-NR unavailable
-on the test RTX 3070 Ti. A loaded DLL, visible menu or enabled checkbox does not
+The recorded RTX 3070 Ti session loaded the DLL and installed NGX Vulkan
+detours, but its status reported `activeFrameGeneration=none`,
+`gameFrameGenerationOn=false`, `appliedFrameGenerationOn=false`, and
+`universalRouteFailureReason=no active wrapper call`. Its log reported
+`mainGraphicsImports=0`. No generated frames or DLSS 5 evaluations were recorded.
+Backspace did not display the native menu. These observations do not establish
+that resetting user data caused the failure. The menu/presentation integration
+is an unresolved compatibility blocker; reinstalling or changing the key cannot
+be claimed to repair it.
+
+Use `/rtx mfg` in a world to query the native menu hook flags, Windows virtual-key
+code and DXGI/Vulkan/menu frame counters. The command also records the result in
+`logs/latest.log`; it does not enable FG. Key code 8 means Backspace.
+
+A loaded DLL, visible menu or enabled checkbox does not
 prove generated frames are being produced. No FG multiplier or DLSS 5 success
 is claimed until confirmed in an actual game session and runtime/addon logs.
 
@@ -49,6 +67,18 @@ DLSS/quality settings. Select the feature through its menus when supported.
 DLSS 5 neural rendering and multi-frame generation are separate capabilities.
 
 ## Disable and rollback
+
+To restore the default menu shortcut after changing it, close Minecraft and
+Prism, then run:
+
+```powershell
+.\mfg-unlocker.ps1 -GameDir 'PATH-TO-EXPERIMENTAL-GAME-DIRECTORY' -Mode ResetMenu
+```
+
+This backs up `RTX40MFG-UI.ini` beside the private Java executable and restores
+`[Overlay] ToggleKey=8` (Backspace). It preserves the addon's rendering JSON,
+worlds and launcher accounts. If the native overlay is unattached, the shortcut
+still cannot display it. Do not repeatedly reset graphics settings to fix that.
 
 Close Minecraft and Prism, then run from the installer directory:
 

@@ -178,7 +178,7 @@ This experimental release targets Windows x64. It uses Minecraft 26.3,
 Fabric Loader 0.20.1, Fabric API 0.165.0+26.3, and Java 25. The installer
 bundle contains the packaged mod and runtime; it downloads Java and Fabric API.
 
-The installer creates **RTX Remix Community 26.3 (Experimental)**. Prism uses
+The installer creates **RTX Remix Community 26.3 Beta (Experimental)**. Prism uses
 a separate instance. Its portable launcher, if needed, is installed under
 `%LOCALAPPDATA%\RtxRemixMinecraft26.3\PrismLauncher`. The Microsoft launcher
 profile uses `%APPDATA%\.minecraft-rtx-remix-26.3`, separate from the launcher's

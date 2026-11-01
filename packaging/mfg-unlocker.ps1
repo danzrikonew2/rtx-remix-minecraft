@@ -4,7 +4,7 @@
 param(
     [Parameter(Mandatory=$true)][string]$GameDir,
     [string]$JavaHome,
-    [ValidateSet('Install','Disable')][string]$Mode = 'Install'
+    [ValidateSet('Install','Disable','ResetMenu')][string]$Mode = 'Install'
 )
 $ErrorActionPreference = 'Stop'
 if (Get-Process -Name prismlauncher -ErrorAction SilentlyContinue) {
@@ -12,6 +12,17 @@ if (Get-Process -Name prismlauncher -ErrorAction SilentlyContinue) {
 }
 $addon = Join-Path ([IO.Path]::GetFullPath($GameDir)) 'rtx-remix-addons\mfg-unlocker'
 $marker = Join-Path $addon 'enabled.txt'
+if ($Mode -eq 'ResetMenu') {
+    $bin = Join-Path $addon 'java\bin'
+    if (-not (Test-Path -LiteralPath (Join-Path $bin 'javaw.exe'))) { throw 'Private Java runtime not found; install the addon first.' }
+    $ui = Join-Path $bin 'RTX40MFG-UI.ini'
+    if (Test-Path -LiteralPath $ui) {
+        Copy-Item -LiteralPath $ui -Destination ($ui + '.' + [guid]::NewGuid().ToString('N') + '.bak')
+    }
+    [IO.File]::WriteAllText($ui, "[Overlay]`r`nToggleKey=8`r`n", [Text.Encoding]::ASCII)
+    Write-Output 'Addon menu shortcut restored to Backspace. This does not repair an unattached native overlay.'
+    exit 0
+}
 if ($Mode -eq 'Disable') {
     if (Test-Path -LiteralPath $marker) { Remove-Item -LiteralPath $marker }
     Write-Output 'MFG Unlocker disabled for the next game launch.'

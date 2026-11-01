@@ -136,8 +136,8 @@ param(
 $ErrorActionPreference = 'Continue'
 
 # --- Constants (kept in sync with build.gradle / rtxremix-java) ---
-$script:APP_VERSION          = '0.2.0-alpha.2'
-$script:PRISM_INSTANCE_NAME  = 'RTX Remix Community 26.3 (Experimental)'
+$script:APP_VERSION          = '0.2.0-beta.1'
+$script:PRISM_INSTANCE_NAME  = 'RTX Remix Community 26.3 Beta (Experimental)'
 # Legacy instance names kept for backward detection only; prior installs
 # used shorter / differently-worded names. Ordered newest-to-oldest.
 $script:PRISM_INSTANCE_LEGACY_NAMES = @()
@@ -155,7 +155,7 @@ $script:FABRIC_INSTALLER_VER = '1.0.1'
 $script:FABRIC_PROFILE_KEY   = "fabric-loader-$($script:MC_VERSION)"
 $script:FABRIC_VERSION_ID    = "fabric-loader-$($script:FABRIC_LOADER_VER)-$($script:MC_VERSION)"
 # User-facing display label for the MS launcher profile.
-$script:FABRIC_PROFILE_NAME  = 'RTX Remix Community 26.3 (Experimental)'
+$script:FABRIC_PROFILE_NAME  = 'RTX Remix Community 26.3 Beta (Experimental)'
 
 # Fallback Prism version used when all "latest" lookups fail (GitHub API
 # rate-limited AND Atom feed unreachable). Bump periodically as part of a

@@ -56,3 +56,23 @@ def test_unknown_dll_is_rejected_before_java_copy_or_download(tmp_path):
     assert (addon / "MFGUnlocker.dll").read_bytes() == b"unrecognized payload"
     assert not (addon / "java").exists()
     assert not (addon / "enabled.txt").exists()
+
+
+def test_menu_reset_backs_up_ui_and_preserves_rendering_settings(tmp_path):
+    addon = tmp_path / "rtx-remix-addons" / "mfg-unlocker"
+    runtime_bin = addon / "java" / "bin"
+    runtime_bin.mkdir(parents=True)
+    (runtime_bin / "javaw.exe").write_bytes(b"runtime sentinel")
+    ui = runtime_bin / "RTX40MFG-UI.ini"
+    old_ui = "[Overlay]\nToggleKey=123\n"
+    ui.write_text(old_ui)
+    config = runtime_bin / "RTXMFG-Universal.json"
+    config.write_text('{"mode":"follow"}')
+    result = run_helper(tmp_path, "ResetMenu")
+    assert result.returncode == 0, result.stderr
+    assert "ToggleKey=8" in ui.read_text()
+    backups = list(runtime_bin.glob("RTX40MFG-UI.ini.*.bak"))
+    assert len(backups) == 1
+    assert backups[0].read_text() == old_ui
+    assert config.read_text() == '{"mode":"follow"}'
+    assert (runtime_bin / "javaw.exe").read_bytes() == b"runtime sentinel"

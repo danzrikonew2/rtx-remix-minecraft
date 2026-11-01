@@ -81,8 +81,8 @@ Microsoft account.
    prints when it finishes. Sign in to your Microsoft account if you have not
    already. In Prism this is Accounts, then Manage Accounts, then Add
    Microsoft.
-5. Start the game. In Prism, select the **RTX Remix Community 26.3 (Experimental)**
-   instance and press Launch. In the Microsoft launcher, select the **RTX Remix Community 26.3 (Experimental)** profile and press Play.
+5. Start the game. In Prism, select the **RTX Remix Community 26.3 Beta (Experimental)**
+   instance and press Launch. In the Microsoft launcher, select the **RTX Remix Community 26.3 Beta (Experimental)** profile and press Play.
 
 ### Installing Without The Installer
 
@@ -203,16 +203,16 @@ has the details.
 | On a laptop: the game runs but looks like ordinary Minecraft, or is extremely slow | The display is being driven by the built-in graphics chip. In Windows Settings, Display, Graphics, add `javaw.exe` and set it to High performance, then relaunch. |
 | Windows SmartScreen warns about the Prism Launcher download | Prism Launcher is open-source and is not signed by Microsoft. Choose More info, then Run anyway. You can also install it yourself from <https://prismlauncher.org>, start Prism once, then re-run `install.bat`, which detects it. |
 | Very choppy at a high render distance | Lower Minecraft's render distance, or pick a lower tier in Options, RTX Remix Settings, RTX Remix Graphics Settings. |
-| The game will not start at all | Launch the **RTX Remix Community 26.3 (Experimental)** profile rather than a plain Minecraft one, and confirm the launcher is set to Java 25. |
+| The game will not start at all | Launch the **RTX Remix Community 26.3 Beta (Experimental)** profile rather than a plain Minecraft one, and confirm the launcher is set to Java 25. |
 | A crash, a black screen, or wrong rendering with other mods installed | Remove the other mods and try again. Mods that change rendering or chunk loading are the likely conflict. If one mod turns out to be the cause, say which in your report. |
 
 If none of that helps, the log is the next thing to look at. It is at
 `logs\latest.log` inside the game folder:
 
 - Prism, when the installer downloaded a portable copy:
-  `%LOCALAPPDATA%\RtxRemixMinecraft26.3\PrismLauncher\instances\RTX Remix Community 26.3 (Experimental)\.minecraft\logs\latest.log`
+  `%LOCALAPPDATA%\RtxRemixMinecraft26.3\PrismLauncher\instances\RTX Remix Community 26.3 Beta (Experimental)\.minecraft\logs\latest.log`
 - Prism, when you already had it: under your own Prism data folder, usually
-  `%APPDATA%\PrismLauncher\instances\RTX Remix Community 26.3 (Experimental)\.minecraft\logs\latest.log`
+  `%APPDATA%\PrismLauncher\instances\RTX Remix Community 26.3 Beta (Experimental)\.minecraft\logs\latest.log`
 - Microsoft launcher: `%APPDATA%\.minecraft-rtx-remix-26.3\logs\latest.log`
 
 Paste either path into the File Explorer address bar to open the folder.

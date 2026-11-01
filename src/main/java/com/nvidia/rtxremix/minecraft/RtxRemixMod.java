@@ -751,6 +751,13 @@ public class RtxRemixMod implements ClientModInitializer {
                         context.getSource().sendFeedback(Component.literal("RTX Rendering: OFF"));
                         return 1;
                     }))
+                .then(ClientCommands.literal("mfg")
+                    .executes(context -> {
+                        String status = MfgUnlockerBootstrap.status();
+                        context.getSource().sendFeedback(Component.literal(status));
+                        LOGGER.info("{}", status);
+                        return 1;
+                    }))
                 .then(ClientCommands.literal("status")
                     .executes(context -> {
                         context.getSource().sendFeedback(Component.literal("RTX Status:"));

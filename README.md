@@ -42,12 +42,17 @@ Download the **Windows x64 installer ZIP** (not GitHub's automatic source-code Z
 
 1. Extract the release archive.
 2. Double-click `install.bat`, choose Install, then Prism Launcher (recommended).
-3. Launch the **RTX Remix Community 26.3 (Experimental)** profile from your launcher.
+3. Launch the **RTX Remix Community 26.3 Beta (Experimental)** profile from your launcher.
 
 The standalone `-win64.jar` is an alternative for an existing **separate** 26.3
 Fabric instance; it has no `install.bat`. Install Java 25, Fabric Loader 0.20.1
 and Fabric API 0.165.0+26.3 first, then add the packaged JAR to `mods/`.
 Do not install both download formats into the same instance.
+
+For automatic experimental MFG addon setup, run `install-mfg.bat` from the
+installer ZIP. **The native MFG menu and generated frames are not working in
+the recorded RTX 3070 Ti session.** Read [MFG status and recovery](docs/MFG_UNLOCKER.md)
+before enabling it; a beta label does not certify MFG or DLSS 5 support.
 
 The step-by-step version, with launcher advice and troubleshooting, is in
 [Playing](docs/PLAYING.md).

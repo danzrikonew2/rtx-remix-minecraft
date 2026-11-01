@@ -11,6 +11,19 @@ also part of every mod file name.
 
 ## Unreleased
 
+## 0.2.0-beta.1 - 2026-11-01
+
+### Installation and diagnostics
+
+- Add `install-mfg.bat` for automatic opt-in Prism addon setup and isolate beta
+  installations from earlier installer profiles.
+- Add `/rtx mfg` native menu diagnostics and a reversible `ResetMenu` repair
+  action that backs up the UI INI and restores Backspace without resetting
+  rendering preferences.
+- Document the observed MFG compatibility blocker: the DLL loads on the test
+  RTX 3070 Ti, but its native menu does not attach and no frame generation or
+  DLSS 5 evaluations were recorded. Beta 1 does not claim these features work.
+
 ### Experimental integrations
 
 - Add opt-in, pinned MFG Unlocker 1.7.0 installation for Prism, with checksum

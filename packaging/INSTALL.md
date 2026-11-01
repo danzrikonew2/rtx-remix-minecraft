@@ -9,6 +9,10 @@ extract the whole ZIP. The standalone JAR download has no batch installer; see
 [manual installation](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/docs/PLAYING.md#installing-without-the-installer).
 GitHub's automatic source-code ZIP is not an installation bundle.
 
+For automatic experimental MFG setup, double-click `install-mfg.bat` instead.
+The native menu and FG/DLSS 5 are blocked in the recorded RTX 3070 Ti session;
+see [status and recovery](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/docs/MFG_UNLOCKER.md).
+
 This archive installs a Fabric mod that renders Minecraft Java Edition 26.3
 through NVIDIA RTX Remix. It sets up a launcher, Java,
 Fabric, the mod, and the RTX Remix runtime for you.
@@ -32,7 +36,7 @@ Fabric, the mod, and the RTX Remix runtime for you.
 3. **Sign in** to your Microsoft account in Prism Launcher
 
 4. Play
-    * In Prism Launcher, double-click the 'RTX Remix Community 26.3 (Experimental)' instance
+    * In Prism Launcher, double-click the 'RTX Remix Community 26.3 Beta (Experimental)' instance
     * *Note: if the instance is missing, press F5 to refresh*
     * *Note: on the very first launch, RTX Remix compiles its shaders before showing the world (one time only). See First Launch.*
 
@@ -48,7 +52,7 @@ Fabric, the mod, and the RTX Remix runtime for you.
     * Choose 'Install' -> 'Microsoft Launcher' (this will set up the mod automatically)
 
 5. Play
-    * In Minecraft Launcher, on the 'Minecraft: Java Edition' tab: **choose** 'RTX Remix Community 26.3 (Experimental)' from the installation list, and hit 'Play'
+    * In Minecraft Launcher, on the 'Minecraft: Java Edition' tab: **choose** 'RTX Remix Community 26.3 Beta (Experimental)' from the installation list, and hit 'Play'
     * *Note: on the very first launch, RTX Remix compiles its shaders before showing the world (one time only). See First Launch.*
 
 ---
@@ -108,7 +112,7 @@ launch.
    the path the installer prints when it finishes. Sign in to your Microsoft
    account if you have not already. In Prism this is Accounts, then Manage
    Accounts, then Add Microsoft.
-6. Start the game. Select the **RTX Remix Community 26.3 (Experimental)** instance in
+6. Start the game. Select the **RTX Remix Community 26.3 Beta (Experimental)** instance in
    Prism, or the profile of the same name in the Microsoft launcher.
 
 `INSTALLER_REFERENCE.md` covers the rest: the modes, every flag, headless and
@@ -193,9 +197,9 @@ installed for you, listing only the ones that are actually on disk.
 Everything is under the game folder, which is:
 
 - Prism, when the installer downloaded a portable copy:
-  `%LOCALAPPDATA%\RtxRemixMinecraft26.3\PrismLauncher\instances\RTX Remix Community 26.3 (Experimental)\.minecraft\`
+  `%LOCALAPPDATA%\RtxRemixMinecraft26.3\PrismLauncher\instances\RTX Remix Community 26.3 Beta (Experimental)\.minecraft\`
 - Prism, when you already had it: the same
-  `instances\RTX Remix Community 26.3 (Experimental)\.minecraft\` path under your own
+  `instances\RTX Remix Community 26.3 Beta (Experimental)\.minecraft\` path under your own
   Prism data folder, usually `%APPDATA%\PrismLauncher\`
 - Microsoft launcher: `%APPDATA%\.minecraft-rtx-remix-26.3\`
 

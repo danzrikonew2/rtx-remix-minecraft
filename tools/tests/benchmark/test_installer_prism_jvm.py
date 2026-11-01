@@ -93,7 +93,7 @@ switch ($Action) {
 }
 """
 PROMPTED = "Confirm-YesNo:"
-INSTANCE_NAME = "RTX Remix Community 26.3 (Experimental)"
+INSTANCE_NAME = "RTX Remix Community 26.3 Beta (Experimental)"
 # instance.cfg as Initialize-PrismInstance creates it.
 NEW_INSTANCE = f"InstanceType=OneSix\r\nname={INSTANCE_NAME}\r\nJavaVersion=21"
 USER_MEMORY = "OverrideMemory=true\r\nMinMemAlloc=1024\r\nMaxMemAlloc=8192\r\n"
@@ -665,10 +665,15 @@ def test_removing_the_instance_removes_its_record(tmp_path: Path):
     legacy.parent.mkdir(parents=True)
     legacy.write_bytes(b"preserve 1.21.1")
 
+    alpha = data_dir / "instances" / "RTX Remix Community 26.3 (Experimental)" / "instance.cfg"
+    alpha.parent.mkdir(parents=True)
+    alpha.write_bytes(b"preserve working 26.3")
+
     run_harness(tmp_path, "-Action", "RemoveInstance", "-Dest", str(data_dir))
 
     assert not instance.exists()
     assert legacy.read_bytes() == b"preserve 1.21.1"
+    assert alpha.read_bytes() == b"preserve working 26.3"
 
 
 def test_memory_set_in_prism_is_kept(sync: Sync):

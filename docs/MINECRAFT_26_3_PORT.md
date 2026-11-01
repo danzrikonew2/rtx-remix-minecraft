@@ -1,8 +1,12 @@
 # Minecraft 26.3 community port
 
 This is an **unofficial, experimental community port**, not an NVIDIA release.
-The current installer release is `v0.2.0-alpha.2` in the community fork;
+The current installer release is `v0.2.0-beta.1` in the community fork;
 alpha 1 provided only a standalone JAR.
+Beta 1 includes automatic optional MFG setup and `/rtx mfg` diagnostics.
+The recorded RTX 3070 Ti session could not display the addon's native menu and
+reported no active frame generation or DLSS 5 evaluations. This is an open
+compatibility blocker, not a verified feature; see [MFG details](MFG_UNLOCKER.md).
 The objective is to preserve RTX Remix terrain, entities, materials, lighting,
 and controls on Minecraft Java Edition 26.3 without changing a working 1.21.1
 installation. Compilation is not proof of correct rendering.
@@ -191,7 +195,7 @@ For a custom Prism executable set `prism.executable` in ignored
 `tools/config.local.json`. Do not commit that personal path. The developer
 `install` command defaults to `%APPDATA%\.minecraft-rtx-remix-26.3`; explicit
 `--game-dir` must name a disposable 26.3 directory. The public installer uses
-`RTX Remix Community 26.3 (Experimental)` in Prism, and a separate
+`RTX Remix Community 26.3 Beta (Experimental)` in Prism, and a separate
 `.minecraft-rtx-remix-26.3` game directory in the Microsoft launcher. Its
 installer validation scope is recorded in the checklist above.
 
