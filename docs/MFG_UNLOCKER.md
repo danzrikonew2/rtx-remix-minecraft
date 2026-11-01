@@ -81,7 +81,8 @@ The kernel inputs have now been recovered locally from the verified public
 release DLL and checked with upstream's unchanged validator: 131 resources,
 13 programs and 387 contracts. Eight DLSS-stage shaders and the three-shader
 menu header match upstream pins. A native candidate builds with XeSS disabled,
-using source-only helpers under [`native/mfg/`](../native/mfg/README.md).
+using source-only helpers under
+[`native/mfg/`](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/native/mfg/README.md).
 The separate XeSS inputs remain absent.
 
 The candidate adds explicit, runtime-hash-bound Vulkan host registration and
@@ -94,11 +95,19 @@ remains pending. A separate native-FG request still recorded no feature creation
 or active FG and failed menu initialization after swapchain recreation. This
 does not complete the FG startup/presenter adapter.
 
-MFG documents an OptiScaler adapter route, including a dedicated fork for
-Vulkan XeFG output. Source inspection confirms that adapter has Vulkan
-interception code. This is a separate possible experiment, not evidence of a
-working DLSS FG port for Remix or permission to label XeFG as DLSS. It has not
-been installed or validated in this project.
+A subsequent private-Streamline Vulkan startup patch now passes startup and
+creates one real NVIDIA DLSS FG feature on the RTX 3070 Ti through the documented
+OptiScaler adapter. Its native cache/program and six presentation buffers pass
+the existing checks. Evaluation remains at zero: Streamline logs that the probe
+window is unfocused, and Windows refused automatic focus. Generated frames and
+Minecraft integration are still unverified. Source, exact dependencies, test
+results and reproduction are in the
+[native adapter guide](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/native/mfg/README.md#private-streamline-vulkan-startup).
+
+The isolated adapter probe above uses DLSS FG output. OptiScaler also documents
+a Vulkan XeFG output route, which has not been tested here. These are separate
+backends; XeFG results would not establish DLSS FG compatibility. Neither
+adapter has been added to the public beta installer or installed into Minecraft.
 
 Primary references:
 

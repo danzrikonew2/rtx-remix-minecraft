@@ -121,3 +121,108 @@ source lookup did not resolve in public upstream during this investigation.
 Public `dxvk-remix/main` presenter source is reference material, not proof of
 matching binary layouts. Guards remain in place. No generated frames,
 multiplier, DLSS 5 image quality or game-performance improvement is claimed.
+
+## Private Streamline Vulkan startup
+
+`patch_private_vulkan.py` supplies the missing Vulkan counterpart of MFG's
+private OptiScaler D3D12 startup path. It hotpatches the private `slInit` at
+module load using the existing validated profile. Before forwarding that
+initialization it installs the Vulkan setup gateway with validated relocation,
+outside the loader notification. MFG's nonblocking loader installation still
+prohibits relocation. A successful initialization is recorded through the
+existing current-entry/generation evidence validator. Provider preparation,
+CUDA program validation, capacity, ownership and evaluation guards remain active.
+Upstream's private-startup policy test passes all 63 checks. The rebuilt
+candidate also passes the 387 recovered contracts, host registration and the
+34-present Vulkan menu regression with zero reported render failures or Vulkan
+validation errors.
+
+With the documented OptiScaler adapter and the actual pinned Remix runtime,
+the RTX 3070 Ti native probe now records:
+
+| Observation | Result |
+|---|---|
+| Vulkan startup decision | Admitted with verified device |
+| Startup failure mask | 0 |
+| Native preparation stage / cache | 14 / valid |
+| Allocated presentation buffers | 6, validated by the wrapper |
+| Real NVIDIA provider FG creation | Accepted; one tracked feature |
+| Active/applied mode | DLSS, fixed 2x requested |
+| FG evaluation attempts | 0 |
+| Reported last presentation batch | 1 frame |
+
+Feature creation is established, **generated frames are not yet established**.
+Visible and moving-camera probes also recorded zero evaluations. The attempt
+to focus the window returned false, and Streamline explicitly logged
+`DLSS-G disabled: window not focused`. A manual foreground click is required
+for the next interpolation test. These probes are separate from Minecraft;
+Prism integration and visual/performance acceptance remain pending.
+
+A fresh 60-frame hidden run using the tracked probe and final candidate exited
+normally, reproduced feature creation and recorded zero foreground presents
+and zero evaluations. The requested 2x value is configuration, not a measured
+frame-rate multiplier.
+
+### Reproduce the adapter probe
+
+Use a new ignored test directory. Follow MFG's
+[documented adapter installation](https://github.com/dashdogy/MFG-Unlocker#optiscaler-support)
+there, with these exact inputs:
+
+- [OptiScaler nightly-20261024](https://github.com/optiscaler/OptiScaler-nightly/releases/tag/nightly-20261024),
+  archive SHA-256 `74f20189e0ec76288c86d69057b3feb4750f4680118a9852fb743b343274ac1d`.
+- Replace its root DLL with the
+  [MFG adapter fork](https://github.com/dashdogy/OptiScaler/releases/tag/mfgunlocker-v1.7.0),
+  source `aeb1f29783106b96c89ba71ce9b6db80eacdae46`, DLL SHA-256
+  `0b70d723f61fcf1cc38c26e4033666bd08936f435a848f624222c77dc86ca7fe`.
+  Keep its GPL-3.0 license and corresponding-source notice.
+- Copy the locally built MFG candidate as
+  `OptiScaler/plugins/MFGUnlocker.asi`; retain its MIT notice.
+- Put Streamline 2.14.1 `sl.*.dll` files, `NvLowLatencyVk.dll` and their notices
+  under `OptiScaler/streamline/`. Copy the selected Remix runtime's
+  `nvngx_dlss*.dll` files under both `OptiScaler/` and that Streamline directory.
+  The tested FG provider is 310.9.16.
+- Copy `OptiRemixProbe.exe` from the native checks build beside the root
+  OptiScaler DLL. Copy `packaging/rtx.conf` into the test directory.
+
+In the nightly INI set:
+
+```ini
+[Upscalers]
+VulkanUpscaler=dlss
+[FrameGen]
+Enabled=true
+FGInput=upscaler
+FGOutput=dlssg
+FGNvngxReplacement=None
+[DLSSG]
+InterpolationCount=1
+[Plugins]
+LoadAsiPlugins=true
+Path=ABSOLUTE_TEST_DIRECTORY/OptiScaler/plugins
+[Libraries]
+OptiDllPath=ABSOLUTE_TEST_DIRECTORY/OptiScaler
+[Log]
+LogToFile=true
+LogLevel=1
+```
+
+From that directory run, using absolute DLL paths and an external process
+timeout:
+
+```powershell
+.\OptiRemixProbe.exe ABSOLUTE_OPTISCALER_DLL ABSOLUTE_REMIX_DLL visible 600
+```
+
+The probe preloads the system Vulkan loader before OptiScaler, then renders a
+moving-camera triangle through the actual Remix C API. Click its own window
+to focus it. It closes automatically after the requested 40–3600 frames;
+`hidden` is available for startup checks. It does not open Minecraft or access
+accounts/worlds. Verify the current process's `RTXMFG-Universal.status.json`
+and runtime logs for successful evaluations and generated presentation batches.
+An active mode or created feature alone is insufficient.
+
+This uses the adapter's upscaler input and FG control. An additional native
+Remix FG request after adapter initialization was also tested and rejected
+outside the recognized wrapper's creation stack; it did not generate frames.
+The public beta installer has not been changed to include this adapter.

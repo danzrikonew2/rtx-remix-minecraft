@@ -9,8 +9,11 @@ reported no active frame generation or DLSS 5 evaluations. This is an open
 compatibility blocker, not a verified feature; see [MFG details](MFG_UNLOCKER.md).
 An unreleased native candidate now builds from recovered, validated inputs and
 passes isolated tests for actual-runtime menu drawing, Backspace and shutdown.
-FG startup/presentation remains incomplete; see the
-[native adapter development guide](../native/mfg/README.md).
+The private OptiScaler Vulkan path also passes startup and creates a real FG
+feature on the 3070 Ti; interpolation validation is pending a foreground probe.
+A standalone direct-Remix FG adapter and Minecraft interpolation validation
+remain incomplete; see the
+[native adapter development guide](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/native/mfg/README.md).
 The objective is to preserve RTX Remix terrain, entities, materials, lighting,
 and controls on Minecraft Java Edition 26.3 without changing a working 1.21.1
 installation. Compilation is not proof of correct rendering.

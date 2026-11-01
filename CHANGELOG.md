@@ -11,6 +11,12 @@ also part of every mod file name.
 
 ## Unreleased
 
+- Add guarded private Streamline Vulkan startup for the experimental MFG adapter.
+  An isolated 3070 Ti probe passes startup/program/buffer checks and creates a
+  real NVIDIA FG feature. Evaluation remains unverified because Streamline
+  suppresses interpolation while the probe is unfocused; the public installer
+  and working game profiles are unchanged.
+
 - Add source-only native MFG build-input recovery and a runtime-bound Vulkan
   menu adapter, with explicit registration and retirement through the JNI bridge.
   Isolated tests against the pinned runtime verify menu drawing, Backspace and

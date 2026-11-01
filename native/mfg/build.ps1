@@ -26,6 +26,8 @@ if ($LASTEXITCODE -ne 0) { throw 'SDK input validation failed' }
 if ($LASTEXITCODE -ne 0) { throw 'Native build source patch failed' }
 & $PythonExe "$PSScriptRoot/patch_remix.py" --source $sourceRoot
 if ($LASTEXITCODE -ne 0) { throw 'Remix host source patch failed' }
+& $PythonExe "$PSScriptRoot/patch_private_vulkan.py" --source $sourceRoot
+if ($LASTEXITCODE -ne 0) { throw 'Private Vulkan startup patch failed' }
 $configure=@('-S',"$sourceRoot/source/native",'-B',$buildRoot,'-G',$Generator,'-A','x64',
     "-DCMAKE_SYSTEM_VERSION=$WindowsSdk","-DSTREAMLINE_ROOT=$streamline","-DIMGUI_ROOT=$imgui",
     "-DVULKAN_INCLUDE_DIR=$vulkan","-DPython3_EXECUTABLE=$PythonExe",

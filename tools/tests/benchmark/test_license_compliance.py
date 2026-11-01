@@ -29,6 +29,7 @@ SPDX_LICENSE_LINE = "SPDX-License-Identifier: Apache-2.0"
 SOURCE_LICENSE_OVERRIDES = {
     "native/mfg/patch_build.py": "SPDX-License-Identifier: MIT",
     "native/mfg/patch_remix.py": "SPDX-License-Identifier: MIT",
+    "native/mfg/patch_private_vulkan.py": "SPDX-License-Identifier: MIT",
 }
 
 # Release compliance review requires this exact entity, trailing period included.
