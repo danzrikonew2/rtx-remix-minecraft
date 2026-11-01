@@ -54,6 +54,10 @@ installer ZIP. **The native MFG menu and generated frames are not working in
 the recorded RTX 3070 Ti session.** Read [MFG status and recovery](docs/MFG_UNLOCKER.md)
 before enabling it; a beta label does not certify MFG or DLSS 5 support.
 
+Native development progress and reproducible build instructions are in
+[`native/mfg/`](native/mfg/README.md). Its unreleased menu adapter passes isolated
+runtime tests; the FG startup/presenter adapter remains incomplete.
+
 The step-by-step version, with launcher advice and troubleshooting, is in
 [Playing](docs/PLAYING.md).
 

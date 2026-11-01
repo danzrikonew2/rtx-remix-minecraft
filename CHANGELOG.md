@@ -11,6 +11,12 @@ also part of every mod file name.
 
 ## Unreleased
 
+- Add source-only native MFG build-input recovery and a runtime-bound Vulkan
+  menu adapter, with explicit registration and retirement through the JNI bridge.
+  Isolated tests against the pinned runtime verify menu drawing, Backspace and
+  shutdown. FG/DLSS 5 remains unverified and the native FG adapter is incomplete;
+  this candidate is not substituted into the public beta installer.
+
 - Include abrupt Overworld clock changes in the short volumetric-history
   settling window. Ordinary ticks and midnight wraparound keep normal history.
   This is a volumetric mitigation; surface sparkle and delayed ground-lighting

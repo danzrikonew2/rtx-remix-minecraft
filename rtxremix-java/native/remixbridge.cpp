@@ -523,6 +523,27 @@ static jint initializeRuntime(const wchar_t* dllPath)
         return REMIXAPI_ERROR_CODE_GET_PROC_ADDRESS_FAILURE;
     }
 
+    // An optional development addon must attach to this renderer before it
+    // creates Vulkan objects. The addon's registration validates the exact
+    // runtime identity; the stock addon has no such export and is unchanged.
+    // This registers menu imports only, never FG capability or presentation.
+    if (HMODULE addon = GetModuleHandleW(L"MFGUnlocker.dll")) {
+        using RegisterHost = BOOL (WINAPI*)(HMODULE);
+        auto registerHost = reinterpret_cast<RegisterHost>(
+            GetProcAddress(addon, "MfgUnlockRegisterRemixVulkanHost"));
+        if (registerHost) {
+            BOOL accepted = FALSE;
+            // The addon's inventory worker may still own its nonblocking
+            // publication gate. Keep retries bounded and before Vulkan startup.
+            for (unsigned attempt = 0; attempt < 20 && !accepted; ++attempt) {
+                accepted = registerHost(g_remixDll);
+                if (!accepted) Sleep(10);
+            }
+            fprintf(stderr, "[remixbridge] MFG Vulkan menu host registration: %s; FG admission unchanged\n",
+                    accepted ? "accepted" : "unavailable");
+        }
+    }
+
     remixapi_InitializeLibraryInfo initInfo = {};
     initInfo.sType   = REMIXAPI_STRUCT_TYPE_INITIALIZE_LIBRARY_INFO;
     initInfo.version = REMIXAPI_VERSION_MAKE(
@@ -675,6 +696,17 @@ Java_com_nvidia_rtxremix_RemixBridge_shutdown(JNIEnv*, jclass)
 {
     if (!g_inited || !g_remix.Shutdown) return REMIXAPI_ERROR_CODE_NOT_INITIALIZED;
     auto shutdown = g_remix.Shutdown;
+    // Retire optional menu resources on this thread before native presentation
+    // workers are joined. Stock MFG releases have no retirement export.
+    if (HMODULE addon = GetModuleHandleW(L"MFGUnlocker.dll")) {
+        using RetireHost = BOOL (WINAPI*)(HMODULE);
+        auto retireHost = reinterpret_cast<RetireHost>(
+            GetProcAddress(addon, "MfgUnlockRetireRemixVulkanHost"));
+        if (retireHost) {
+            fprintf(stderr, "[remixbridge] MFG Vulkan menu retirement: %s\n",
+                    retireHost(g_remixDll) ? "accepted" : "unavailable");
+        }
+    }
     g_inited = false;
     uninstallCrashHandler();
     {

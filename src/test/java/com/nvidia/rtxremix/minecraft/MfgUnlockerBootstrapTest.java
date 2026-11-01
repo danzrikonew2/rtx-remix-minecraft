@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MfgUnlockerBootstrapTest {
     @TempDir Path directory;
@@ -29,5 +30,16 @@ class MfgUnlockerBootstrapTest {
         Files.writeString(payload, "");
         assertEquals("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                 MfgUnlockerBootstrap.sha256(payload));
+    }
+
+    @Test
+    void developmentPayloadRequiresAnExplicitMatchingFullHash() {
+        String local = "a".repeat(64);
+        assertTrue(MfgUnlockerBootstrap.acceptedHash(MfgUnlockerBootstrap.DLL_SHA256, ""));
+        assertFalse(MfgUnlockerBootstrap.acceptedHash(local, ""));
+        assertFalse(MfgUnlockerBootstrap.acceptedHash(local, "true"));
+        assertFalse(MfgUnlockerBootstrap.acceptedHash(local, "a".repeat(63)));
+        assertFalse(MfgUnlockerBootstrap.acceptedHash(local, "b".repeat(64)));
+        assertTrue(MfgUnlockerBootstrap.acceptedHash(local, local));
     }
 }

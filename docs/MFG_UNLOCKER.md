@@ -77,6 +77,23 @@ and XeSS program inputs which its source checkout does not include. Reusing
 its MIT source requires retaining its attribution; installing its existing DLL
 does not expose an API that replaces the missing native integration.
 
+The kernel inputs have now been recovered locally from the verified public
+release DLL and checked with upstream's unchanged validator: 131 resources,
+13 programs and 387 contracts. Eight DLSS-stage shaders and the three-shader
+menu header match upstream pins. A native candidate builds with XeSS disabled,
+using source-only helpers under [`native/mfg/`](../native/mfg/README.md).
+The separate XeSS inputs remain absent.
+
+The candidate adds explicit, runtime-hash-bound Vulkan host registration and
+menu retirement through optional JNI notifications. A standalone test using
+the actual pinned Remix runtime passed 40 presents/menu draws, Backspace
+open/close checks and shutdown with zero reported render failures. Early probe
+teardown failures were investigated before installation; retiring menu resources
+before native shutdown resolves the observed hang. Minecraft visual acceptance
+remains pending. A separate native-FG request still recorded no feature creation
+or active FG and failed menu initialization after swapchain recreation. This
+does not complete the FG startup/presenter adapter.
+
 MFG documents an OptiScaler adapter route, including a dedicated fork for
 Vulkan XeFG output. Source inspection confirms that adapter has Vulkan
 interception code. This is a separate possible experiment, not evidence of a

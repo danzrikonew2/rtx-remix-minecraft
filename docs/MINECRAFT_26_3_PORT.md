@@ -7,6 +7,10 @@ Beta 1 includes automatic optional MFG setup and `/rtx mfg` diagnostics.
 The recorded RTX 3070 Ti session could not display the addon's native menu and
 reported no active frame generation or DLSS 5 evaluations. This is an open
 compatibility blocker, not a verified feature; see [MFG details](MFG_UNLOCKER.md).
+An unreleased native candidate now builds from recovered, validated inputs and
+passes isolated tests for actual-runtime menu drawing, Backspace and shutdown.
+FG startup/presentation remains incomplete; see the
+[native adapter development guide](../native/mfg/README.md).
 The objective is to preserve RTX Remix terrain, entities, materials, lighting,
 and controls on Minecraft Java Edition 26.3 without changing a working 1.21.1
 installation. Compilation is not proof of correct rendering.

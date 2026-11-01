@@ -186,3 +186,10 @@ MIT License. Its notice is preserved below and copied with the optional DLL.
 
 The addon binary is not embedded in the mod JAR. Existing NVIDIA runtime
 libraries and their original licenses remain separate.
+
+The development-only `native/mfg/patch_build.py` and `patch_remix.py` adapt
+MFG Unlocker source at commit `7523faa4f804813669dab8b932d51f619641384a` and
+retain the MIT license. Its complete notice is also preserved in
+[`native/mfg/LICENSE-MFG`](native/mfg/LICENSE-MFG). Recovered native/shader
+build inputs are local generated data, excluded from this repository and the
+release package.

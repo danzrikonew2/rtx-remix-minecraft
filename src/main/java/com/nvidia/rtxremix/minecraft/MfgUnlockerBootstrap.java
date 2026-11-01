@@ -42,7 +42,12 @@ final class MfgUnlockerBootstrap {
                 throw new IOException("Unsupported addon marker version; rerun the matching addon installer");
             }
             Path dll = addon.resolve("MFGUnlocker.dll");
-            if (!DLL_SHA256.equals(sha256(dll))) throw new IOException("MFG Unlocker DLL checksum mismatch");
+            String developmentHash = System.getProperty("rtxremix.mfgDevelopmentDllSha256", "");
+            String actualHash = sha256(dll);
+            if (!acceptedHash(actualHash, developmentHash)) throw new IOException("MFG Unlocker DLL checksum mismatch");
+            if (!DLL_SHA256.equals(actualHash)) {
+                LOGGER.warn("Using explicitly pinned local MFG development build; native FG remains unverified");
+            }
             // Use only the NVIDIA library already supplied by the selected runtime.
             // The unlocker searches beside its own module; never modify shared Java.
             Path neuralRendering = runtimeDirectory.resolve("nvngx_dlssnr.dll");
@@ -57,6 +62,11 @@ final class MfgUnlockerBootstrap {
         } catch (IOException | NoSuchAlgorithmException | UnsatisfiedLinkError failure) {
             LOGGER.warn("MFG Unlocker was not loaded; continuing normal Remix startup: {}", failure.toString());
         }
+    }
+
+    /** A local native build requires an explicit full hash; release downloads keep their fixed pin. */
+    static boolean acceptedHash(String actual, String developmentHash) {
+        return DLL_SHA256.equals(actual) || (developmentHash.matches("[a-f0-9]{64}") && developmentHash.equals(actual));
     }
 
     /** Queries the addon's documented 64-byte v1 status ABI only on explicit request. */

@@ -26,6 +26,10 @@ REPO_ROOT = util.PROJECT_DIR
 WRAPPER_ROOT = REPO_ROOT / "rtxremix-java"
 
 SPDX_LICENSE_LINE = "SPDX-License-Identifier: Apache-2.0"
+SOURCE_LICENSE_OVERRIDES = {
+    "native/mfg/patch_build.py": "SPDX-License-Identifier: MIT",
+    "native/mfg/patch_remix.py": "SPDX-License-Identifier: MIT",
+}
 
 # Release compliance review requires this exact entity, trailing period included.
 NVIDIA_ENTITY = "NVIDIA CORPORATION & AFFILIATES. All rights reserved."
@@ -146,8 +150,19 @@ class SourceHeaderTests(unittest.TestCase):
     def test_public_sources_carry_the_spdx_header(self):
         sources = headered_sources()
 
-        missing = [name for name in sources if SPDX_LICENSE_LINE not in read_text(REPO_ROOT / name)]
+        missing = [
+            name
+            for name in sources
+            if SOURCE_LICENSE_OVERRIDES.get(name, SPDX_LICENSE_LINE) not in read_text(REPO_ROOT / name)
+        ]
         self.assertEqual([], missing, "sources without an SPDX header (new files usually arrive via rebase or merge)")
+
+    def test_native_mfg_adaptation_retains_the_upstream_mit_notice(self):
+        notice = read_text(REPO_ROOT / "native/mfg/LICENSE-MFG")
+        self.assertIn("Copyright (c) 2026 Michael Robles", notice)
+        self.assertIn("Permission is hereby granted, free of charge", notice)
+        for name in SOURCE_LICENSE_OVERRIDES:
+            self.assertIn("LICENSE-MFG", read_text(REPO_ROOT / name))
 
     def test_headers_use_the_required_nvidia_entity(self):
         # Release compliance tooling matches on the exact entity string, trailing

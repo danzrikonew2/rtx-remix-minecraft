@@ -1,0 +1,123 @@
+# Experimental native MFG adapter
+
+This is an unofficial development adapter for the 26.3 community port. It is
+**not a working FG release**. The public beta installer still uses the pinned
+upstream MFG 1.7.0 DLL. These sources build a separate local candidate.
+
+## Implemented and checked
+
+- Read-only recovery from the exact public 1.7.0 DLL: 131 CUDA resources,
+  13 program descriptions and 387 kernel contracts, including 310.9.16.
+- Reconstruction of three native manifests and the hash-bound resource list.
+- Recovery of eight DLSS-stage SPIR-V shaders with their upstream hashes and
+  three menu shaders whose generated header matches the upstream header hash.
+- Native build with XeSS disabled, retaining existing kernel, shader, adapter,
+  feature-lifetime and FG admission checks.
+- `MfgUnlockRegisterRemixVulkanHost` registration after loading the Remix DLL
+  and before renderer initialization. Only the exact pinned runtime hash is
+  admitted, including outside the private Java directory. Its Vulkan imports
+  and resolvers use the addon's existing gateways.
+- `MfgUnlockRetireRemixVulkanHost` before Remix shutdown. The native probe
+  originally hung during shutdown; retiring the menu first resolves that hang.
+
+No CUDA instruction, provider DLL or Remix runtime binary is patched on disk.
+Recovered inputs remain local build data under ignored `build/`; their original
+license terms apply and they are not included in this repository. Adapted MFG
+source retains [its MIT license](LICENSE-MFG). Build helpers and standalone
+probes carry their own SPDX identifiers.
+
+## Inputs and build
+
+Use a fresh disposable MFG checkout at
+[`7523faa4f804813669dab8b932d51f619641384a`](https://github.com/dashdogy/MFG-Unlocker/tree/7523faa4f804813669dab8b932d51f619641384a).
+Patch helpers preserve originals in `.remix-original/`, accept repeat application
+and refuse to overwrite unrecognized source edits. They modify that disposable
+checkout only.
+
+Acquire these public inputs separately, extracting SDKs under `build/`:
+
+| Input | Version / identity |
+|---|---|
+| [MFG release ZIP](https://github.com/dashdogy/MFG-Unlocker/releases/tag/v1.7.0) | 1.7.0; ZIP SHA-256 `5bd19d03288e1ece1d0bb2030ac072b36758045028da192044dcaad73fd901dd` |
+| MFG DLL from that ZIP | SHA-256 `e6b6e6b70a6ed3af839c9647a32fc22660ae6b2d655062c5c072246c91fc10c7` |
+| [Streamline SDK](https://github.com/NVIDIA-RTX/Streamline/releases/tag/v2.14.1) | 2.14.1, x64 |
+| [ImGui](https://github.com/ocornut/imgui/tree/3912b3d9a9c1b3f17431aebafd86d2f40ee6e59c) | Exact revision in the link |
+| [Vulkan headers](https://github.com/KhronosGroup/Vulkan-Headers/tree/v1.2.176) | 1.2.176 |
+| Python / CMake | Python 3.10+; tested with Python 3.12 and CMake 4.3.3 |
+| C++ tools | Tested with VS 2026, MSVC 14.51, Windows SDK 10.0.26100.0 |
+
+This compatibility build uses a different compiler/Windows SDK from upstream's
+frozen release toolchain and reconstructs manifest formatting. It does not claim
+byte-identical release reproduction. XeSS functionality is omitted with
+`MFG_UNLOCK_XESS=OFF`; its program set and CUDA compiler are not required.
+
+From the Minecraft repository root, substitute your extraction paths:
+
+```powershell
+python native/mfg/recover_inputs.py --dll PATH/TO/MFGUnlocker.dll `
+    --source build/mfg-source --output build/mfg-inputs
+python native/mfg/verify_headers.py --source build/mfg-source `
+    --streamline build/streamline --imgui build/imgui --normalize-pinned-text
+./native/mfg/build.ps1 -MfgSource build/mfg-source -Inputs build/mfg-inputs `
+    -StreamlineRoot build/streamline -ImGuiRoot build/imgui `
+    -VulkanInclude build/vulkan/include -BuildDirectory build/mfg-native
+```
+
+`verify_headers.py` validates all 36 upstream Streamline/ImGui source pins.
+Optional normalization changes line endings only when that produces the exact
+upstream byte hash. Run it on disposable SDK extractions. `build.ps1` accepts
+explicit `-PythonExe`, `-CmakeExe`, `-Generator` and `-WindowsSdk` values. It does
+not install the result into a launcher or change a game configuration.
+
+Output: `build/mfg-native/Release/MFGUnlocker.dll`; the script prints its hash.
+Local testing requires that hash in the instance JVM option
+`-Drtxremix.mfgDevelopmentDllSha256=FULL_LOWERCASE_SHA256`. Ordinary addon
+downloads retain their fixed release pin. Keep this option out of shared Java
+and working 1.21.1/26.3 profiles.
+
+## Automated native checks
+
+```powershell
+cmake -S native/mfg -B build/mfg-checks -G "Visual Studio 18 2026" -A x64 `
+    -DMFG_SOURCE=ABSOLUTE_MFG_SOURCE_PATH -DMFG_INPUTS=ABSOLUTE_RECOVERED_INPUT_PATH `
+    -DMFG_DLL=ABSOLUTE_CANDIDATE_DLL_PATH -DREMIX_DLL=ABSOLUTE_PINNED_RUNTIME_DLL_PATH
+cmake --build build/mfg-checks --config Release
+ctest --test-dir build/mfg-checks -C Release --output-on-failure
+```
+
+The contract executable uses upstream's unchanged `ValidateNativeContainer` to
+check all 387 recovered contracts. The host check loads the actual pinned
+runtime without starting its renderer, verifies registration and rejects null,
+system and addon modules. These tests do not execute FG kernels.
+
+`MfgRemixPresentSmoke.exe` is an additional GPU test. Run from a new disposable
+directory containing a copy of `packaging/rtx.conf`; pass absolute candidate and
+runtime DLL paths. It creates its own hidden window, starts the actual Remix C
+API, presents 40 empty-scene frames, checks Backspace opening and closing the
+menu, retires the menu and shuts down. It accesses no Minecraft account/world.
+Use a process timeout for this experimental probe. Passing `none` instead of the
+addon DLL runs the stock-runtime control.
+
+Upstream `VulkanDynamicMenuTests` passed: 34 presents/menu draws, recreation,
+keyboard toggles, UI pixel readback, zero reported render failures and unchanged
+Vulkan-loader executable sections. Native status tests passed 29 checks. The
+real-runtime menu probe passed 40 presents/menu draws with zero reported render
+failures. Its stock control and corrected candidate shut down. Both report the
+runtime's existing 42 undisposed common-device objects; this is not fixed here.
+
+## Remaining FG integration
+
+The menu adapter does not publish FG capability or satisfy MFG's Streamline
+wrapper allocation contract. An original game call failed startup admission
+before reaching the NVIDIA provider (failure 120). The new isolated `fg-probe`
+request recorded no feature creation/active FG, and menu initialization failed
+after swapchain recreation. This is a failed experiment, not a passing FG test.
+
+A direct Remix adapter still needs startup/program preparation bound to the
+Vulkan device, verified live presentation-buffer capacity, feature ownership,
+resource synchronization and presentation pacing. Remix uses a different
+presenter from the Streamline wrapper MFG recognizes. The matching `71a581da`
+source lookup did not resolve in public upstream during this investigation.
+Public `dxvk-remix/main` presenter source is reference material, not proof of
+matching binary layouts. Guards remain in place. No generated frames,
+multiplier, DLSS 5 image quality or game-performance improvement is claimed.
