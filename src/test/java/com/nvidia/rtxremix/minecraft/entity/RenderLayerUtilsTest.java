@@ -21,6 +21,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class RenderLayerUtilsTest {
 
+    @org.junit.jupiter.api.Test
+    void standaloneGlintIsExcludedButIntegratedBaseItemPipelinesRemain() {
+        org.junit.jupiter.api.Assertions.assertTrue(RenderLayerUtils.isStandaloneGlintPipeline(
+                net.minecraft.client.renderer.RenderPipelines.GLINT));
+        org.junit.jupiter.api.Assertions.assertFalse(RenderLayerUtils.isStandaloneGlintPipeline(
+                net.minecraft.client.renderer.RenderPipelines.ITEM_CUTOUT_GLINT));
+        org.junit.jupiter.api.Assertions.assertFalse(RenderLayerUtils.isStandaloneGlintPipeline(
+                net.minecraft.client.renderer.RenderPipelines.ENTITY_SOLID_GLINT));
+        org.junit.jupiter.api.Assertions.assertFalse(RenderLayerUtils.isStandaloneGlintPipeline(
+                net.minecraft.client.renderer.RenderPipelines.ITEM_TRANSLUCENT_GLINT));
+    }
+
     @ParameterizedTest
     @CsvSource({
             "false, false, true, false, true, CUTOUT",

@@ -64,6 +64,7 @@ public final class ServerLightSnapshot {
     @Nullable
     private ColumnLayer columnTop;
     private int columnSize;
+    private int columnMinimum;
 
     /** The maps a pass published: the section view, and for sky light the column view. */
     public record Published(Long2ObjectOpenHashMap<DataLayer> sections, @Nullable Long2IntOpenHashMap columns) {
@@ -81,6 +82,7 @@ public final class ServerLightSnapshot {
             @Nullable Long2IntOpenHashMap liveColumns,
             LongSet dirtySections) {
         int pendingDeltas = deltaEntries + dirtySections.size();
+        columnMinimum = liveColumns != null ? liveColumns.defaultReturnValue() : 0;
         if (base == null || pendingDeltas > Math.max(FLATTEN_FLOOR, base.size() / FLATTEN_DIVISOR)) {
             base = live.clone();
             top = null;
@@ -94,7 +96,7 @@ public final class ServerLightSnapshot {
 
         View previous = new View(base, top, size);
         Layer layer = new Layer(top, dirtySections.size());
-        ColumnView previousColumns = columnBase != null ? new ColumnView(columnBase, columnTop, columnSize) : null;
+        ColumnView previousColumns = columnBase != null ? new ColumnView(columnBase, columnTop, columnSize, columnMinimum) : null;
         ColumnLayer columnLayer = columnBase != null ? new ColumnLayer(columnTop) : null;
         int newSize = size;
         int newColumnSize = columnSize;
@@ -142,7 +144,7 @@ public final class ServerLightSnapshot {
     private Published published() {
         return new Published(
                 new View(base, top, size),
-                columnBase != null ? new ColumnView(columnBase, columnTop, columnSize) : null);
+                columnBase != null ? new ColumnView(columnBase, columnTop, columnSize, columnMinimum) : null);
     }
 
     /** One pass's deltas over the layer below it. Complete before any view sees it. */
@@ -320,7 +322,7 @@ public final class ServerLightSnapshot {
     /**
      * Read-only column-to-top-section map for sky light. {@code SkyLightStorage.Data} sets the
      * default return value on construction to the same minimum section the engine's map uses,
-     * so that call is accepted; absent columns answer with the base's default.
+     * so that call is accepted; absent columns answer with this publication's minimum.
      */
     static final class ColumnView extends Long2IntOpenHashMap {
         private final Long2IntOpenHashMap base;
@@ -328,25 +330,25 @@ public final class ServerLightSnapshot {
         private final ColumnLayer top;
         private final int size;
 
-        ColumnView(Long2IntOpenHashMap base, @Nullable ColumnLayer top, int size) {
+        ColumnView(Long2IntOpenHashMap base, @Nullable ColumnLayer top, int size, int minimum) {
             super(0);
             this.base = base;
             this.top = top;
             this.size = size;
-            super.defaultReturnValue(base.defaultReturnValue());
+            super.defaultReturnValue(minimum);
         }
 
         @Override
         public int get(long column) {
             for (ColumnLayer layer = top; layer != null; layer = layer.parent) {
                 if (!layer.removed.isEmpty() && layer.removed.contains(column)) {
-                    return base.defaultReturnValue();
+                    return defaultReturnValue();
                 }
                 if (layer.changed.containsKey(column)) {
                     return layer.changed.get(column);
                 }
             }
-            return base.get(column);
+            return base.getOrDefault(column, defaultReturnValue());
         }
 
         @Override
@@ -364,7 +366,7 @@ public final class ServerLightSnapshot {
 
         @Override
         public void defaultReturnValue(int value) {
-            if (value != base.defaultReturnValue()) {
+            if (value != defaultReturnValue()) {
                 throw readOnly();
             }
         }

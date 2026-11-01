@@ -11,6 +11,15 @@ also part of every mod file name.
 
 ## Unreleased
 
+- Fix upstream #69: skylight snapshots capture each publication's current
+  minimum section height, including removed columns and immutable older views.
+- Mitigate upstream #54: failed renderer initialization disables RTX capture,
+  keeps SDK file availability distinct from startup success and rejects
+  re-enabling an unavailable renderer instead of hiding vanilla terrain.
+- Mitigate upstream #65/#80: skip standalone GLINT-blended overlay geometry.
+  Base item surfaces remain captured; standalone enchantment glint is omitted
+  until its decal semantics are supported. Visual acceptance remains pending.
+
 ## 0.2.0-beta.1 - 2026-11-01
 
 ### Installation and diagnostics

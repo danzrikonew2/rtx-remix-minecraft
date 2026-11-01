@@ -21,6 +21,28 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ServerLightSnapshotTest {
 
+    @Test
+    void changedMinimumPreservesStoredOldSentinelAndRemovedColumns() {
+        ServerLightSnapshot snapshots = new ServerLightSnapshot();
+        var sections = new Long2ObjectOpenHashMap<DataLayer>();
+        var columns = new Long2IntOpenHashMap();
+        columns.defaultReturnValue(6);
+        long kept = SectionPos.asLong(0, 0, 0);
+        long removed = SectionPos.asLong(1, 0, 0);
+        columns.put(kept, 6);
+        columns.put(removed, 8);
+        var first = snapshots.publish(sections, columns, LongOpenHashSet.of());
+        columns.defaultReturnValue(-5);
+        columns.remove(removed);
+        var next = snapshots.publish(sections, columns, LongOpenHashSet.of(removed));
+        assertEquals(6, next.columns().get(kept));
+        assertEquals(-5, next.columns().get(removed));
+        assertEquals(-5, next.columns().get(SectionPos.asLong(2, 0, 0)));
+        assertEquals(6, first.columns().defaultReturnValue());
+        assertEquals(8, first.columns().get(removed));
+        assertThrows(UnsupportedOperationException.class, () -> next.columns().defaultReturnValue(6));
+    }
+
     /** Columns and section heights addressed by the simulated engine; small so removals recur. */
     private static final int COLUMNS = 10;
     private static final int HEIGHT = 6;
@@ -39,6 +61,7 @@ class ServerLightSnapshotTest {
         List<Long2IntOpenHashMap> columnClones = new ArrayList<>();
 
         for (int pass = 0; pass < 400; pass++) {
+            liveColumns.defaultReturnValue(MIN_SECTION - pass % 11);
             // Enough passes of every size that layers merge many times and the base rebuilds.
             int operations = pass < 20 ? 60 : 1 + random.nextInt(12);
             for (int i = 0; i < operations; i++) {
@@ -70,6 +93,10 @@ class ServerLightSnapshotTest {
             Long2ObjectOpenHashMap<DataLayer> expected = clones.get(i);
             Long2IntOpenHashMap columns = views.get(i).columns();
             Long2IntOpenHashMap expectedColumns = columnClones.get(i);
+            assertEquals(expectedColumns.defaultReturnValue(), columns.defaultReturnValue());
+            // The vanilla skylight map constructor re-applies this sentinel.
+            new net.minecraft.world.level.lighting.SkyLightSectionStorage.SkyDataLayerStorageMap(
+                    view, columns, expectedColumns.defaultReturnValue());
             assertEquals(expected.size(), view.size(), "size of publish " + i);
             assertEquals(expectedColumns.size(), columns.size(), "column count of publish " + i);
             for (int x = 0; x < COLUMNS; x++) {

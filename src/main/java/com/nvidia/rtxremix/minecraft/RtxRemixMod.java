@@ -742,7 +742,7 @@ public class RtxRemixMod implements ClientModInitializer {
                 .then(ClientCommands.literal("on")
                     .executes(context -> {
                         setRtxEnabled(true);
-                        context.getSource().sendFeedback(Component.literal("RTX Rendering: ON"));
+                        context.getSource().sendFeedback(Component.literal("RTX Rendering: " + (rtxEnabled ? "ON" : "OFF (renderer unavailable; check startup log)")));
                         return 1;
                     }))
                 .then(ClientCommands.literal("off")
@@ -2162,14 +2162,16 @@ public class RtxRemixMod implements ClientModInitializer {
             LOGGER.info("RTX Remix renderer created successfully");
         } catch (RemixException e) {
             LOGGER.error("Failed to initialize RTX Remix renderer", e);
-            remixAvailable = false;
+            rtxEnabled = false;
+            LOGGER.warn("RTX disabled after initialization failure; vanilla rendering remains enabled. SDK file availability is unchanged.");
             if (e.getErrorCode() == ErrorCode.HRESULT_DRIVER_VERSION_BELOW_MINIMUM) {
                 LOGGER.error("NVIDIA driver is below the minimum supported by RTX Remix; closing Minecraft");
                 client.stop();
             }
         } catch (Exception e) {
             LOGGER.error("Failed to initialize RTX Remix renderer", e);
-            remixAvailable = false;
+            rtxEnabled = false;
+            LOGGER.warn("RTX disabled after initialization failure; vanilla rendering remains enabled. SDK file availability is unchanged.");
         }
     }
     
@@ -2345,6 +2347,10 @@ public class RtxRemixMod implements ClientModInitializer {
         Minecraft client = Minecraft.getInstance();
         if (client != null && !client.isSameThread()) {
             throw new IllegalStateException("setRtxEnabled must run on the render thread");
+        }
+        if (enabled && instance != null && (renderer == null || !renderer.isInitialized())) {
+            LOGGER.warn("Cannot enable RTX: renderer initialization has not succeeded; keeping vanilla rendering");
+            return;
         }
         if (rtxEnabled == enabled) return;
         if (!enabled && client != null && client.level != null) {

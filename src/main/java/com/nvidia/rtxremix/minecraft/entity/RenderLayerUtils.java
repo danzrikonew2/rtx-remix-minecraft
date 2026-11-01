@@ -95,6 +95,11 @@ final class RenderLayerUtils {
     }
 
     private static Optional<Identifier> capturableTextureUncached(RenderType layer) {
+        // A standalone glint pass is a multiplicative decal, not another item
+        // surface. Capturing its scrolling overlay as geometry duplicates the
+        // item with an unrelated texture/material (#65/#80). Integrated item
+        // pipelines retain their base surface; only GLINT blend passes are skipped.
+        if (isStandaloneGlintPipeline(layer.pipeline())) return Optional.empty();
         DepthStencilState depth = layer.pipeline().getDepthStencilState();
         if (depth == null || depth.depthTest() == CompareOp.ALWAYS_PASS) {
             return Optional.empty();
@@ -191,6 +196,10 @@ final class RenderLayerUtils {
                         || pipeline == RenderPipelines.TEXT_GRAYSCALE
                         || pipeline == RenderPipelines.TEXT_POLYGON_OFFSET
                         || pipeline == RenderPipelines.TEXT_GRAYSCALE_POLYGON_OFFSET);
+    }
+
+    static boolean isStandaloneGlintPipeline(RenderPipeline pipeline) {
+        return BlendFunction.GLINT.equals(blendFunction(pipeline));
     }
 
     private static BlendFunction blendFunction(RenderPipeline pipeline) {
