@@ -103,9 +103,9 @@ final class RetainedEntityPartRegistry<O, V> {
         Map<Slot, Entry<V>> parts = owners.computeIfAbsent(owner, ignored -> new HashMap<>());
         Entry<V> entry = parts.get(slotProbe.set(categoryFlags, layerIndex, partIndex));
         if (entry != null && !reusable.test(entry.value)) {
+            retire.accept(entry.value);
             parts.remove(slotProbe);
             size--;
-            retire.accept(entry.value);
             entry = null;
         }
 
@@ -122,13 +122,17 @@ final class RetainedEntityPartRegistry<O, V> {
 
     /** Retires every part this owner holds, so a partly submitted owner leaves nothing in the scene. */
     void discardOwner(O owner, Consumer<? super V> retire) {
-        Map<Slot, Entry<V>> parts = owners.remove(owner);
+        Map<Slot, Entry<V>> parts = owners.get(owner);
         if (parts == null) return;
 
-        size -= parts.size();
-        for (Entry<V> entry : parts.values()) {
+        Iterator<Entry<V>> iterator = parts.values().iterator();
+        while (iterator.hasNext()) {
+            Entry<V> entry = iterator.next();
             retire.accept(entry.value);
+            iterator.remove();
+            size--;
         }
+        owners.remove(owner);
     }
 
     void discardIf(Predicate<? super V> predicate, Consumer<? super V> retire) {
@@ -140,9 +144,9 @@ final class RetainedEntityPartRegistry<O, V> {
                 Entry<V> entry = partIt.next();
                 if (!predicate.test(entry.value)) continue;
 
+                retire.accept(entry.value);
                 partIt.remove();
                 size--;
-                retire.accept(entry.value);
             }
             if (parts.isEmpty()) ownerIt.remove();
         }
@@ -159,9 +163,9 @@ final class RetainedEntityPartRegistry<O, V> {
                     Entry<V> entry = partIt.next();
                     if (entry.lastSeenFrame == frameIndex) continue;
 
+                    retire.accept(entry.value);
                     partIt.remove();
                     size--;
-                    retire.accept(entry.value);
                 }
                 if (parts.isEmpty()) ownerIt.remove();
             }
@@ -178,9 +182,9 @@ final class RetainedEntityPartRegistry<O, V> {
             Iterator<Entry<V>> partIt = parts.values().iterator();
             while (partIt.hasNext()) {
                 Entry<V> entry = partIt.next();
+                retire.accept(entry.value);
                 partIt.remove();
                 size--;
-                retire.accept(entry.value);
             }
             ownerIt.remove();
         }

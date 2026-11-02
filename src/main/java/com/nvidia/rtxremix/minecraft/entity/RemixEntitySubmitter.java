@@ -42,7 +42,6 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.ints.IntComparator;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +59,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.geom.ModelPart;
@@ -717,6 +717,7 @@ public class RemixEntitySubmitter {
             retireUnseenBeaconLensAssets();
             retireTransientMeshes();
             evictColdRigidMeshesIfNeeded();
+            textureResidency.retireCold(frameIndex(), dynamicTextureVersions.keySet(), retireDynamicTexture);
         } finally {
             frameOpen = false;
         }
@@ -859,7 +860,7 @@ public class RemixEntitySubmitter {
         if (consumer.getPartCount() == 0) return;
 
         long frame = frameIndex();
-        if (dynamicTextureCheckFrames.put(texId, frame) != frame) {
+        if (textureResidency.shouldRefresh(texId, frame)) {
             refreshDynamicTexture(texId);
         }
 
@@ -1477,9 +1478,10 @@ public class RemixEntitySubmitter {
     }
 
     private final RigidMeshLookupKey rigidMeshLookupKey = new RigidMeshLookupKey();
-    /** Frame stamp per dynamic texture, so each refreshes once a frame, not once a layer. */
-    private final Object2LongOpenHashMap<Identifier> dynamicTextureCheckFrames =
-            new Object2LongOpenHashMap<>();
+    /** Shared refresh stamps also retire cold owned dynamic textures under a bounded budget. */
+    private final EntityTextureResidency textureResidency = new EntityTextureResidency();
+    private final Consumer<Identifier> retireDynamicTexture = this::retireUnusedDynamicTexture;
+    private long retiredDynamicTextureSets;
 
     /**
      * Interned tint extensions, one per distinct canvas role and tint. {@code setBlendExt}
@@ -2489,6 +2491,11 @@ public class RemixEntitySubmitter {
         }
     }
 
+    private void retireUnusedDynamicTexture(Identifier textureId) {
+        invalidateMaterialTexture(textureId);
+        retiredDynamicTextureSets++;
+    }
+
     private void invalidateMaterialTexture(Identifier textureId) {
         invalidateMeshesForTexture(textureId);
         Iterator<Map.Entry<EntityMaterialKey, RemixMaterial>> materials = materialCache.entrySet().iterator();
@@ -2496,13 +2503,14 @@ public class RemixEntitySubmitter {
             Map.Entry<EntityMaterialKey, RemixMaterial> entry = materials.next();
             if (!textureId.equals(entry.getKey().textureId())) continue;
             RemixMaterial material = entry.getValue();
-            materials.remove();
             if (!isBorrowedAtlasMaterial(textureId) && material != null && !material.isDeleted()) {
                 material.destroy();
             }
+            materials.remove();
         }
-        EntityTextureSet textures = textureSets.remove(textureId);
+        EntityTextureSet textures = textureSets.get(textureId);
         if (textures != null) textures.destroy();
+        textureSets.remove(textureId);
         dynamicTextureSizes.remove(textureId);
         dynamicTextureVersions.remove(textureId);
         failedTextures.remove(textureId);
@@ -2519,8 +2527,8 @@ public class RemixEntitySubmitter {
             if (!textureId.equals(entry.getKey().texId())) continue;
 
             RemixMesh mesh = entry.getValue().mesh;
-            rigidIt.remove();
             if (mesh != null && !mesh.isDeletedFast()) mesh.destroy();
+            rigidIt.remove();
         }
 
     }
@@ -2800,8 +2808,10 @@ public class RemixEntitySubmitter {
 
     /** Invalidates all resource-derived assets while retaining downloaded skin pixels. */
     public void reloadMaterials() {
-        retainedEntityParts.clear(RemixEntitySubmitter::destroyRetainedPart);
+        LOGGER.info("Entity dynamic texture cleanup: {} cold sets retired, {} sets cached before reload",
+                retiredDynamicTextureSets, dynamicTextureVersions.size());
         frameOpen = false;
+        retainedEntityParts.clear(RemixEntitySubmitter::destroyRetainedPart);
         clearBeaconLensAssets();
 
         for (PooledMesh pooled : rigidMeshPool.values()) {
@@ -2823,6 +2833,8 @@ public class RemixEntitySubmitter {
         textureSets.clear();
         dynamicTextureSizes.clear();
         dynamicTextureVersions.clear();
+        textureResidency.clear();
+        retiredDynamicTextureSets = 0;
         failedTextures.clear();
         resourceMissing.clear();
         missingMaterialSince.clear();

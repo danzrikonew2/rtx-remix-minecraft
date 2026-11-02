@@ -20,6 +20,61 @@ import static org.junit.jupiter.api.Assertions.fail;
 class RetainedEntityPartRegistryTest {
 
     @Test
+    void failedFrameRetirementPreservesTheOwnerAndClosesTheFrameForRetry() {
+        RetainedEntityPartRegistry<Object, String> registry = new RetainedEntityPartRegistry<>();
+        registry.beginFrame();
+        registry.retain(new Object(), 0, 0, 0, value -> true, () -> "mesh", ignored -> {});
+        registry.endFrame(ignored -> {});
+        registry.beginFrame();
+        assertThrows(IllegalStateException.class, () -> registry.endFrame(value -> {
+            throw new IllegalStateException("native destroy failed");
+        }));
+        assertEquals(1, registry.size());
+        List<String> retired = new ArrayList<>();
+        registry.beginFrame();
+        registry.endFrame(retired::add);
+        assertEquals(List.of("mesh"), retired);
+        assertEquals(0, registry.size());
+    }
+
+    @Test
+    void failedOwnerPredicateAndClearRetirementsRemainRetryable() {
+        RetainedEntityPartRegistry<Object, String> registry = new RetainedEntityPartRegistry<>();
+        Object owner = new Object();
+        registry.beginFrame();
+        registry.retain(owner, 0, 0, 0, value -> true, () -> "mesh", ignored -> {});
+        java.util.function.Consumer<String> failure = value -> { throw new IllegalStateException("destroy"); };
+        assertThrows(IllegalStateException.class, () -> registry.discardOwner(owner, failure));
+        assertEquals(1, registry.size());
+        assertThrows(IllegalStateException.class, () -> registry.discardIf(value -> true, failure));
+        assertEquals(1, registry.size());
+        assertThrows(IllegalStateException.class, () -> registry.clear(failure));
+        assertEquals(1, registry.size());
+        List<String> retired = new ArrayList<>();
+        registry.clear(retired::add);
+        assertEquals(List.of("mesh"), retired);
+        assertEquals(0, registry.size());
+    }
+
+    @Test
+    void failedReplacementDoesNotForgetTheOriginalPart() {
+        RetainedEntityPartRegistry<Object, String> registry = new RetainedEntityPartRegistry<>();
+        Object owner = new Object();
+        registry.beginFrame();
+        registry.retain(owner, 0, 0, 0, value -> true, () -> "original", ignored -> {});
+        assertThrows(IllegalStateException.class, () -> registry.retain(owner, 0, 0, 0,
+                value -> false, () -> "replacement", value -> { throw new IllegalStateException("destroy"); }));
+        assertEquals(1, registry.size());
+        List<String> retired = new ArrayList<>();
+        String replacement = registry.retain(owner, 0, 0, 0, value -> false,
+                () -> "replacement", retired::add);
+        assertEquals("replacement", replacement);
+        assertEquals(List.of("original"), retired);
+        assertEquals(1, registry.size());
+        registry.endFrame(ignored -> fail("current replacement must stay"));
+    }
+
+    @Test
     void retainsSeenPartsAndRetiresMissingPartsAtFrameEnd() {
         RetainedEntityPartRegistry<Object, String> registry = new RetainedEntityPartRegistry<>();
         Object owner = new Object();
