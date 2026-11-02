@@ -16,10 +16,14 @@ also part of every mod file name.
   Minecraft adapter run generated no frames and ended in device loss; a revised
   private-JVM renderer probe passes admission and 60 hidden presents. Game
   stability remains unverified.
-- Pulse SHaRC/NRC surface-lighting history reset after abrupt Overworld time
-  commands, then clear it on the next frame or world exit. The pinned-runtime
-  probe accepts both options and verifies cleared values; visual confirmation
-  is pending. Sapling material behavior is deferred and unchanged.
+- Retain warm surface-lighting caches after abrupt Overworld clock or weather
+  changes. A short settling layer uses 8-frame SHaRC accumulation/stale age,
+  then restores the authored settings. It replaces the ineffective reset-pulse
+  experiment; visual confirmation remains pending. Add `/rtx lighting cache
+  off|on` and resolved status for an in-place foliage-cache comparison.
+- Record 26,794 successful FG evaluations in the experimental Minecraft session
+  with zero failed batches. Generated display quality and frame-rate gain remain
+  unverified. Sapling/resource-pack behavior is deferred and unchanged.
 
 - Verify 785 successful FG provider evaluations and 785 submitted batches on
   RTX 3070 Ti in the focused native Remix probe, with zero failed batches.

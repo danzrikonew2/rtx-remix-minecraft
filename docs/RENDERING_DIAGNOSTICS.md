@@ -1,5 +1,30 @@
 # Rendering Diagnostics
 
+## Bright foliage after time changes
+
+The transition layer `mc.lighting.settling` briefly reduces SHaRC history after
+an abrupt Overworld clock change or moving weather. It retains warm cache
+entries and restores the authored history settings afterwards. It is a
+mitigation under visual testing, not proof that cached lighting causes every
+bright foliage patch.
+
+For a reversible comparison in the same view:
+
+```text
+/rtx lighting cache
+/rtx lighting cache off
+/time set day
+/time set midnight
+/rtx lighting cache on
+```
+
+Repeat the time changes with queries on. `off` bypasses primary thin-opaque
+foliage queries, not the whole renderer. `on` restores those queries. Status
+reports resolved values; a write may take a native frame or more to resolve.
+Each command writes its result to `logs/latest.log`. Restore `on` after the
+comparison. Report whether the bright patches differ with cache queries off,
+and whether they fade while the camera stays still.
+
 Read the [architecture and invariants](../AGENTS.md#architecture) first. This
 guide explains failure signatures and the ownership boundaries behind them;
 [Benchmarking](../tools/docs/BENCHMARKING.md) owns measured counters and

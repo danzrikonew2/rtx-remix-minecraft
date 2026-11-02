@@ -16,6 +16,11 @@ private-Java smoke test; Minecraft presentation and visual validation are pendin
 The first game run then failed early FG admission and ended in Vulkan device
 loss. A revised native readiness gate passes a 60-frame private-JVM renderer
 probe; game stability remains unverified. See [session evidence](PERFORMANCE_26_3.md).
+The next game session records 26,794 successful FG evaluations with zero failed
+batches and completed native shutdown. Display quality and frame-rate gains
+remain unverified. Bright foliage after clock changes remains an open rendering
+problem; the latest candidate keeps SHaRC warm with a brief shorter-history layer
+and provides reversible foliage-cache diagnostics.
 A standalone direct-Remix FG adapter and Minecraft interpolation validation
 remain incomplete; see the
 [native adapter development guide](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/native/mfg/README.md).

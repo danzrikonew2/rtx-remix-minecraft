@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cmath>
 #include <filesystem>
+#include <string>
 #include "single_module_status.h"
 #include "remix_c.h"
 
@@ -14,7 +15,7 @@ static void Check(remixapi_ErrorCode code, const char* operation) {
     }
 }
 int wmain(int argc, wchar_t** argv) {
-    if (argc < 3 || argc > 5) { puts("Usage: OptiRemixProbe.exe OPTISCALER_DLL REMIX_DLL [visible|hidden] [frame-count]"); return 2; }
+    if (argc < 3 || argc > 6) { puts("Usage: OptiRemixProbe.exe OPTISCALER_DLL REMIX_DLL [visible|hidden] [frame-count] [lighting-conf]"); return 2; }
     const bool visible = argc > 3 && wcscmp(argv[3], L"visible") == 0;
     if (argc > 3 && !visible && wcscmp(argv[3], L"hidden") != 0) return 2;
     const int frameLimit = argc > 4 ? _wtoi(argv[4]) : 600;
@@ -59,14 +60,26 @@ int wmain(int argc, wchar_t** argv) {
     startup.combineGuiInFinalColor=1;
     Check(api.Startup(&startup), "Startup");
     if (!deviceReady()) { puts("FAIL: private Vulkan startup rejected"); api.Shutdown(); return 1; }
-    const char* resetKeys[] = {"rtx.spatiallyHashedRadianceCache.resetHistory", "rtx.neuralRadianceCache.resetHistory"};
-    for (const char* key : resetKeys) {
+    auto readOption = [&api](const char* key) {
         char value[32]{};
         auto query = remixapi_ConfigVariableResolvedInfo_init();
         query.key = key; query.value = value; query.valueSize = sizeof(value);
-        Check(api.GetConfigVariableResolved(&query), "Read lighting history reset option");
-        Check(api.SetConfigVariable(key, "true"), "Request lighting history reset");
-        printf("Lighting reset accepted: %s\n", key);
+        Check(api.GetConfigVariableResolved(&query), "Read cache diagnostic option");
+        return std::string(value);
+    };
+    const char* queryKey = "rtx.spatiallyHashedRadianceCache.queryForThinOpaquePrimaryView";
+    const char* accumulationKey = "rtx.spatiallyHashedRadianceCache.maxNumFramesToAccumulate";
+    const char* staleKey = "rtx.spatiallyHashedRadianceCache.staleFrameNumber";
+    const auto queryBefore = readOption(queryKey);
+    const auto accumulationBefore = readOption(accumulationKey);
+    const auto staleBefore = readOption(staleKey);
+    Check(api.SetConfigVariable(queryKey, "false"), "Disable foliage cache query for diagnostic");
+    remixapi_ConfigLayerHandle lightingLayer{};
+    if (argc > 5) {
+        const auto encoded = std::filesystem::absolute(argv[5]).u8string();
+        const std::string path(encoded.begin(), encoded.end());
+        Check(api.AcquireConfigLayer(path.c_str(), 3101.0f, 0.5f, &lightingLayer), "Acquire lighting settling layer");
+        Check(api.SetConfigLayerBlending(lightingLayer, 1.0f, 0.5f), "Enable lighting settling layer");
     }
     if (visible) { ShowWindow(window,SW_SHOW); UpdateWindow(window); }
     printf("Probe owns foreground: %u\n", GetForegroundWindow()==window);
@@ -121,22 +134,25 @@ int wmain(int argc, wchar_t** argv) {
         Check(api.Submit(&submit), "Submit");
         auto present=remixapi_PresentInfo_init();
         Check(api.Present(&present), "Present");
-        if (frame == 0) {
-            for (const char* key : resetKeys) Check(api.SetConfigVariable(key, "false"), "End lighting history reset pulse");
+        if (frame == 10) {
+            if (_stricmp(readOption(queryKey).c_str(), "false") != 0) { puts("FAIL: foliage cache query did not disable"); return 1; }
+            if (lightingLayer) {
+                if (readOption(accumulationKey) != "8" || readOption(staleKey) != "8") { puts("FAIL: lighting layer did not resolve to 8/8"); return 1; }
+                puts("Lighting layer active: accumulation=8 stale=8");
+                Check(api.SetConfigLayerBlending(lightingLayer, 0.0f, 0.5f), "Disable lighting settling layer");
+            }
+            Check(api.SetConfigVariable(queryKey, queryBefore.c_str()), "Restore foliage cache query");
         }
         ++presents;
         if (GetForegroundWindow() == window) ++foregroundPresents;
         Sleep(16);
     }
     printf("Probe presents=%u foreground presents=%u\n", presents, foregroundPresents);
-    for (const char* key : resetKeys) {
-        char value[32]{};
-        auto query = remixapi_ConfigVariableResolvedInfo_init();
-        query.key = key; query.value = value; query.valueSize = sizeof(value);
-        Check(api.GetConfigVariableResolved(&query), "Read post-frame lighting reset state");
-        printf("Lighting reset after frames: %s=%s\n", key, value);
-        if (_stricmp(value, "false") != 0) { puts("FAIL: lighting reset remained asserted"); return 1; }
+    if (readOption(queryKey) != queryBefore || readOption(accumulationKey) != accumulationBefore || readOption(staleKey) != staleBefore) {
+        puts("FAIL: lighting defaults were not restored"); return 1;
     }
+    printf("Lighting defaults restored: query=%s accumulation=%s stale=%s\n", queryBefore.c_str(), accumulationBefore.c_str(), staleBefore.c_str());
+    if (lightingLayer) Check(api.ReleaseConfigLayer(lightingLayer), "Release lighting settling layer");
     Check(api.DestroyMesh(mesh),"DestroyMesh");
     Check(api.DestroyMaterial(material),"DestroyMaterial");
     status.size=sizeof(status);
@@ -154,11 +170,11 @@ int wmain(int argc, wchar_t** argv) {
 }
 
 #ifdef MFG_PROBE_JAVA_HOST
-extern "C" __declspec(dllexport) int MfgRunJavaHostProbe(wchar_t* addon, wchar_t* runtime) {
+extern "C" __declspec(dllexport) int MfgRunJavaHostProbe(wchar_t* addon, wchar_t* runtime, wchar_t* lightingConf) {
     wchar_t name[] = L"JavaHostProbe";
     wchar_t mode[] = L"hidden";
     wchar_t frames[] = L"60";
-    wchar_t* args[] = {name, addon, runtime, mode, frames};
-    return wmain(5, args);
+    wchar_t* args[] = {name, addon, runtime, mode, frames, lightingConf};
+    return wmain(6, args);
 }
 #endif

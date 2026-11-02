@@ -758,6 +758,13 @@ public class RtxRemixMod implements ClientModInitializer {
                         LOGGER.info("{}", status);
                         return 1;
                     }))
+                .then(ClientCommands.literal("lighting")
+                    .then(ClientCommands.literal("cache")
+                        .executes(context -> lightingCacheDiagnostic(context.getSource(), null))
+                        .then(ClientCommands.literal("off").executes(context ->
+                                lightingCacheDiagnostic(context.getSource(), false)))
+                        .then(ClientCommands.literal("on").executes(context ->
+                                lightingCacheDiagnostic(context.getSource(), true)))))
                 .then(ClientCommands.literal("status")
                     .executes(context -> {
                         context.getSource().sendFeedback(Component.literal("RTX Status:"));
@@ -2175,6 +2182,30 @@ public class RtxRemixMod implements ClientModInitializer {
         }
     }
     
+    private static int lightingCacheDiagnostic(FabricClientCommandSource source, Boolean enabled) {
+        if (renderer == null || !renderer.isInitialized()) {
+            source.sendFeedback(Component.literal("Lighting diagnostics require an initialized RTX renderer."));
+            return 0;
+        }
+        var api = renderer.getRemixApi();
+        String key = "rtx.spatiallyHashedRadianceCache.queryForThinOpaquePrimaryView";
+        String message;
+        if (enabled != null) {
+            api.setConfigVariable(key, enabled.toString());
+            message = "Foliage cache queries requested " + (enabled ? "on" : "off")
+                    + ". Use /rtx lighting cache to read the resolved setting.";
+        } else {
+            message = "Foliage cache query=" + api.getConfigVariableResolved(key)
+                    + ", accumulation=" + api.getConfigVariableResolved(
+                            "rtx.spatiallyHashedRadianceCache.maxNumFramesToAccumulate")
+                    + ", stale frames=" + api.getConfigVariableResolved(
+                            "rtx.spatiallyHashedRadianceCache.staleFrameNumber");
+        }
+        source.sendFeedback(Component.literal(message));
+        LOGGER.info("{}", message);
+        return 1;
+    }
+
     private void shutdownRemix() {
         if (renderer != null) {
             renderer.shutdown();

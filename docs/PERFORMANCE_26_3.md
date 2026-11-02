@@ -1,5 +1,35 @@
 # Minecraft 26.3 stability and performance baseline
 
+## Foliage lighting retest: 2026-11-01, build 931391c
+
+The user still observed bright foliage patches after natural midnight followed
+by day/night commands. The log confirms clock-change detection, so the previous
+reset pulse did not resolve the reported artifact. Reading both flags back as
+false proved configuration restoration, not that a native frame consumed the
+short pulse: the SDK documents option resolution trailing the application by
+several frames. A full reset also discards warm lighting samples.
+
+The revised candidate uses a dedicated `mc.lighting.settling` layer. For an
+abrupt clock change or moving weather it limits SHaRC accumulation/stale age to
+8/8 frames, holds for 0.75 seconds after the change, then restores the normal
+profile. It leaves warm cache entries in place and does not clear NRC or SHaRC.
+The original profile uses 1,000/1,024 frames. The pinned-runtime probe verifies
+8/8 while enabled and exact default restoration while disabled. This is a
+targeted convergence mitigation; the visual cause remains unconfirmed.
+
+`/rtx lighting cache off` bypasses SHaRC queries for primary thin-opaque foliage
+for comparison; `on` restores them. `/rtx lighting cache` prints the resolved
+query and history settings. Commands affect a runtime setting, not pack assets.
+Compare the same view and time commands in both modes, then restore `on`.
+
+The same game session records 26,794 successful FG evaluations/submitted batches
+across three created features, zero failed batches, and a recovered first failure
+171 (last failure 0). It completed native shutdown; the final mode was `none`.
+That establishes successful FG provider execution in Minecraft, not unique
+generated display images, a measured multiplier or artifact-free presentation.
+The shutdown OpenGL warning and 42 undisposed common-device objects remain.
+No foliage/resource-pack assets were changed.
+
 ## Experimental adapter failure: 2026-11-01, build b603d0a
 
 The 22:45–22:50 Jakarta session loaded OptiScaler and MFG, but generated no

@@ -46,8 +46,8 @@ import net.minecraft.world.phys.Vec3;
  * inherits the rest from the archetype. Single-player only: a remote server
  * gives this client no save directory.
  *
- * Water, automatic view distance, volumetric settling, weather, and four fixed
- * time-of-day layers come from a static table and are mod-owned. Optional
+ * Water, automatic view distance, volumetric and surface-lighting settling,
+ * weather, and four fixed time-of-day layers come from a static table and are mod-owned. Optional
  * biome and zone layers are discovered from confs/biomes/*.conf and
  * confs/zones/*.conf file names in either root, at acquire, join, and reload
  * time. The runtime resolves the layer stack per frame; temporal easing
@@ -146,16 +146,16 @@ public final class ConfLayerDriver {
 
     /**
      * The fixed layer catalog: water, automatic view distance, volumetric
-     * settling, weather, and four fixed time-of-day profiles (9 rows, one per
-     * shipped conf; ConfLayerDriverTest cross-checks them against the shipped
+     * and surface-lighting settling, weather, and four fixed time-of-day profiles
+     * (10 rows, one per shipped conf; ConfLayerDriverTest cross-checks them against the shipped
      * confs). Biome and zone layers are NOT listed here: they are discovered
      * from their conf file names at acquire and reload time, so a new authored
      * look needs no code.
      * Priorities: water dominates everything, zones beat biomes, thunder
-     * beats rain, time supplies the environmental foundation, and the two
+     * beats rain, time supplies the environmental foundation, and the three
      * integration-owned controllers (automatic view distance, volumetric
-     * settling) sit below every situational profile so authors can
-     * intentionally override their keys. The four time priorities must stay
+     * and surface-lighting settling) sit below every situational profile so
+     * authors can intentionally override their keys. The four time priorities must stay
      * ordered dawn/day/dusk/night so the hardcoded strengths compensate for the
      * runtime's nested LERP.
      * Avoid 10000 (the runtime's default dynamic-layer priority).
@@ -179,6 +179,8 @@ public final class ConfLayerDriver {
                 "confs/view_distance.conf", 3000f, 0.01f, false, LayerSource.MOD));
         table.add(new LayerSpec(LogicChannels.VOLUMETRICS_SETTLING,
                 "confs/volumetrics/settling.conf", 3100f, 0.01f, false, LayerSource.MOD));
+        table.add(new LayerSpec(LogicChannels.SURFACE_LIGHTING_SETTLING,
+                "confs/lighting/settling.conf", 3101f, 0.5f, false, LayerSource.MOD));
         table.add(new LayerSpec(LogicChannels.WEATHER_THUNDER, "confs/weather/thunder.conf", 5500f, 0.01f, false,
                 LayerSource.MOD));
         table.add(new LayerSpec(LogicChannels.WEATHER_RAIN, "confs/weather/rain.conf", 5000f, 0.01f, false,
@@ -349,6 +351,10 @@ public final class ConfLayerDriver {
             holdSeconds = transitioning ? HOLD_SECONDS : Math.max(0.0f, holdSeconds - dtSeconds);
             return holdSeconds > 0.0f ? 1.0f : 0.0f;
         }
+
+        void clear() {
+            holdSeconds = 0.0f;
+        }
     }
 
     /** Narrow config-layer seam so lifecycle behavior can be tested without JNI. */
@@ -358,8 +364,6 @@ public final class ConfLayerDriver {
         void setConfigLayerBlending(long handle, float strength, float blendThreshold);
 
         void releaseConfigLayer(long handle);
-
-        void setLightingHistoryReset(boolean reset);
     }
 
     private record RemixConfigLayerApi(RemixAPI delegate) implements ConfigLayerApi {
@@ -376,13 +380,6 @@ public final class ConfLayerDriver {
         @Override
         public void releaseConfigLayer(long handle) {
             delegate.releaseConfigLayer(handle);
-        }
-
-        @Override
-        public void setLightingHistoryReset(boolean reset) {
-            String value = Boolean.toString(reset);
-            delegate.setConfigVariable("rtx.spatiallyHashedRadianceCache.resetHistory", value);
-            delegate.setConfigVariable("rtx.neuralRadianceCache.resetHistory", value);
         }
     }
 
@@ -401,11 +398,11 @@ public final class ConfLayerDriver {
     private boolean active = false;
     private long lastFrameNanos = 0;
     private final SettlingEnvelope settling = new SettlingEnvelope();
+    private final SettlingEnvelope surfaceLightingSettling = new SettlingEnvelope();
     private float lastRainGradient;
     private float lastThunderGradient;
     private Object lastClockWorld;
     private long lastClockTime;
-    private boolean lightingResetActive;
 
     /** Ignore ordinary ticks/wraparound; a jump over ten simulated seconds is discontinuous. */
     static boolean isAbruptClockChange(long previous, long current) {
@@ -414,25 +411,17 @@ public final class ConfLayerDriver {
         return Math.min(distance, DAY_LENGTH_TICKS - distance) > 200L;
     }
 
-    /** A discontinuous clock invalidates surface radiance; ordinary ticks keep accumulated history. */
+    /** Detects a discontinuous Overworld clock without discarding warm lighting caches. */
     boolean updateClockHistory(Object world, boolean overworld, long clockTime) {
-        clearLightingHistoryReset();
         boolean jumped = overworld && world == lastClockWorld
                 && isAbruptClockChange(lastClockTime, clockTime);
         lastClockWorld = world;
         lastClockTime = clockTime;
-        if (jumped) {
-            configLayerApi.setLightingHistoryReset(true);
-            lightingResetActive = true;
-        }
         return jumped;
     }
 
-    private void clearLightingHistoryReset() {
-        if (lightingResetActive) {
-            configLayerApi.setLightingHistoryReset(false);
-            lightingResetActive = false;
-        }
+    float advanceSurfaceLighting(boolean changing, float dtSeconds) {
+        return surfaceLightingSettling.advance(changing, dtSeconds);
     }
 
     public ConfLayerDriver() {
@@ -581,7 +570,7 @@ public final class ConfLayerDriver {
 
     /** Drops the joined world's profiles; the mod catalog keeps driving. */
     public void onWorldLeave() {
-        clearLightingHistoryReset();
+        surfaceLightingSettling.clear();
         lastClockWorld = null;
         if (worldConfRoot == null) {
             return;
@@ -768,7 +757,7 @@ public final class ConfLayerDriver {
         long clockTime = world.getOverworldClockTime();
         boolean overworld = Level.OVERWORLD.equals(world.dimension());
         boolean timeJump = updateClockHistory(world, overworld, clockTime);
-        if (timeJump) LOGGER.info("Abrupt Overworld clock change; resetting surface lighting history and settling volumetrics");
+        if (timeJump) LOGGER.info("Abrupt Overworld clock change; shortening surface-lighting history and settling volumetrics");
         TimeLayerStrengths time = overworld
                 ? timeLayerStrengths(clockTime)
                 : TimeLayerStrengths.ZERO;
@@ -804,6 +793,8 @@ public final class ConfLayerDriver {
         // tells the cache how much history to trust, so it follows them.
         setTarget(LogicChannels.VOLUMETRICS_SETTLING,
                 settling.advance(timeJump || weatherMoving || anySmoothedLayerEasing(), dtSeconds));
+        setTarget(LogicChannels.SURFACE_LIGHTING_SETTLING,
+                advanceSurfaceLighting(timeJump || weatherMoving, dtSeconds));
 
         for (LayerState layer : layersById.values()) {
             if (layer.handle == 0) {
@@ -871,7 +862,7 @@ public final class ConfLayerDriver {
 
     /** Releases every acquired layer; affected options revert in the runtime. */
     public void releaseAll() {
-        clearLightingHistoryReset();
+        surfaceLightingSettling.clear();
         active = false;
         for (LayerState layer : layersById.values()) {
             releaseLayer(layer);

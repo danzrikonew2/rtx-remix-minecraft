@@ -122,6 +122,13 @@ A private-JVM C API test passes admission and 60 hidden presents. Minecraft
 stability and generated display output still require validation; see the
 [session evidence](PERFORMANCE_26_3.md#experimental-adapter-failure-2026-11-01-build-b603d0a).
 
+The subsequent `931391c` game session records 26,794 successful FG evaluations
+and submitted batches across three features, zero failed batches and a recovered
+first failure 171 (last failure 0). Native shutdown completed. This establishes
+provider execution in Minecraft; displayed interpolation quality and a measured
+frame-rate gain remain unverified. The reported bright foliage is still unresolved;
+see the [latest lighting comparison](RENDERING_DIAGNOSTICS.md#bright-foliage-after-time-changes).
+
 Primary references:
 
 - [MFG RTX 30 backend](https://github.com/dashdogy/MFG-Unlocker/blob/main/source/native/ampere_backend.cpp)

@@ -250,10 +250,12 @@ stops renderer initialization and requires a restart, since hooks cannot be
 treated as safely unloaded by a Java exception.
 
 `MfgJavaHostProbe.dll` reuses the native probe inside the private JVM through an
-FFM call to `MfgRunJavaHostProbe(wchar_t* adapter, wchar_t* runtime)`. It passes
-device admission and 60 hidden presents. The probe also verifies that the pinned
-runtime accepts both SHaRC/NRC history-reset options and that a one-frame API
-pulse explicitly returns both to false. This is still not a Minecraft game test.
+FFM call to `MfgRunJavaHostProbe(wchar_t* adapter, wchar_t* runtime, wchar_t* lightingConf)`.
+It passes device admission and 60 hidden presents. With the new lighting conf it
+verifies 8/8 accumulation/stale frames while the layer is enabled and exact
+1,000/1,024 restoration afterwards. It also verifies a foliage-query off/on
+round trip. The old reset-pulse test only established option acceptance and
+restoration, not that a native frame consumed the pulse.
 
 Keep the adapter fork's `LICENSE` and `SOURCE.txt` beside the extracted test
 package. Stage it into an existing experimental addon installation:

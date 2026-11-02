@@ -138,7 +138,7 @@ per option by priority.
 Two limits come with map profiles. They are read when you join a world and
 dropped when you leave, so one map's look never bleeds into the next. And only
 zone and biome profiles are read from a map: water, weather, time of day,
-automatic view distance, and volumetric settling are global looks rather than
+automatic view distance, volumetric settling, and surface-lighting settling are global looks rather than
 map content.
 
 `/rtx conf reload` always reads the copy belonging to the Minecraft instance
@@ -252,7 +252,13 @@ from several places with a shared channel.
 | `confs/time/day.conf` | Fixed Overworld schedule | 4001 | 0.50 | The clock curve below |
 | `confs/time/dawn.conf` | Fixed Overworld schedule | 4000 | 0.50 | The clock curve below |
 | `confs/volumetrics/settling.conf` | A weather gradient moving, or a smoothed profile still easing: 0 or 1 | 3100 | 0.01 | Immediate, held 0.75 s after the last movement |
+| `confs/lighting/settling.conf` | Abrupt Overworld clock change or weather movement: 0 or 1 | 3101 | 0.50 | Immediate, held 0.75 s; temporarily limits SHaRC history/stale age to 8 frames without clearing the cache |
 | `confs/view_distance.conf` | Render distance, 2 to 32 chunks | 3000 | 0.01 | Immediate on each change |
+
+The surface-lighting settling layer retains warm SHaRC entries and releases
+after 0.75 seconds of stillness, restoring the underlying profile. It does not
+issue full NRC/SHaRC resets. The separate volumetric layer controls froxel
+history during profile transitions.
 
 A smoothed strength halves its remaining distance to the target every half
 second and snaps when the gap becomes imperceptible, so a full swing looks

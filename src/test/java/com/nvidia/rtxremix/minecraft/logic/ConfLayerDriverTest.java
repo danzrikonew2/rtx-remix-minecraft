@@ -34,50 +34,56 @@ import static org.junit.jupiter.api.Assertions.fail;
 class ConfLayerDriverTest {
 
     @Test
-    void clockCommandsResetSurfaceLightingOnceButTicksAndNewWorldsDoNot(@TempDir Path gameDir) {
-        FakeConfigLayerApi api = new FakeConfigLayerApi();
+    void clockCommandsAreDetectedButTicksAndNewWorldsAreNot() {
         ConfLayerDriver driver = new ConfLayerDriver();
-        assertTrue(driver.acquireAll(api, gameDir));
         Object world = new Object();
         assertFalse(driver.updateClockHistory(world, true, 1000));
         assertFalse(driver.updateClockHistory(world, true, 1001));
-        assertEquals(0, api.lightingResets);
         assertTrue(driver.updateClockHistory(world, true, 18000));
-        assertEquals(1, api.lightingResets);
         assertFalse(driver.updateClockHistory(world, true, 18000));
-        assertEquals(List.of(true, false), api.lightingResetStates,
-                "the reset must clear even when the clock remains frozen");
         assertFalse(driver.updateClockHistory(world, true, 18001));
-        assertEquals(1, api.lightingResets);
         assertFalse(driver.updateClockHistory(new Object(), true, 6000));
-        assertEquals(1, api.lightingResets);
     }
 
     @Test
-    void midnightWrapAndOtherDimensionsKeepSurfaceHistory(@TempDir Path gameDir) {
-        FakeConfigLayerApi api = new FakeConfigLayerApi();
+    void midnightWrapAndOtherDimensionsDoNotOpenALightingTransition() {
         ConfLayerDriver driver = new ConfLayerDriver();
-        assertTrue(driver.acquireAll(api, gameDir));
         Object world = new Object();
         assertFalse(driver.updateClockHistory(world, true, 23999));
         assertFalse(driver.updateClockHistory(world, true, 24000));
         assertFalse(driver.updateClockHistory(world, false, 6000));
-        assertEquals(0, api.lightingResets);
     }
 
     @Test
-    void leavingTheWorldEndsAPendingLightingReset(@TempDir Path gameDir) {
+    void leavingTheWorldResetsClockIdentity(@TempDir Path gameDir) {
         FakeConfigLayerApi api = new FakeConfigLayerApi();
         ConfLayerDriver driver = new ConfLayerDriver();
         assertTrue(driver.acquireAll(api, gameDir));
         Object world = new Object();
         driver.updateClockHistory(world, true, 1000);
         driver.updateClockHistory(world, true, 18000);
+        assertEquals(1.0f, driver.advanceSurfaceLighting(true, 0.016f));
         driver.onWorldLeave();
-        assertEquals(List.of(true, false), api.lightingResetStates);
+        assertEquals(0.0f, driver.advanceSurfaceLighting(false, 0.016f));
+        assertFalse(driver.updateClockHistory(world, true, 1000));
         driver.releaseAll();
-        assertEquals(List.of(true, false), api.lightingResetStates,
-                "cleanup must not repeatedly reset stable lighting");
+    }
+
+    @Test
+    void surfaceLightingWindowSurvivesAFrozenClockAndReleasesItsOverride() {
+        ConfLayerDriver driver = new ConfLayerDriver();
+        Object world = new Object();
+        driver.updateClockHistory(world, true, 1000);
+        assertEquals(1.0f, driver.advanceSurfaceLighting(
+                driver.updateClockHistory(world, true, 18000), 1.0f / 60));
+        for (int frame = 0; frame < 30; frame++) {
+            assertEquals(1.0f, driver.advanceSurfaceLighting(
+                    driver.updateClockHistory(world, true, 18000), 1.0f / 60));
+        }
+        for (int frame = 0; frame < 30; frame++) {
+            driver.advanceSurfaceLighting(false, 1.0f / 60);
+        }
+        assertEquals(0.0f, driver.advanceSurfaceLighting(false, 1.0f / 60));
     }
 
     @Test
@@ -357,13 +363,13 @@ class ConfLayerDriverTest {
     // --- layer table invariants ---
 
     @Test
-    void staticTableHasNineUniqueRows() {
+    void staticTableHasTenUniqueRows() {
         // 1 water + 1 view-distance controller + 1 volumetric settling
-        // controller + 2 weather + 4 time profiles. Optional biome and zone
+        // controller + 1 surface-lighting controller + 2 weather + 4 time profiles. Optional biome and zone
         // rows are discovered from disk.
         assertEquals(67, ConfLayerDriver.vanillaBiomeNames().size(),
                 "vanilla 26.3 biome count (Biomes)");
-        assertEquals(9, ConfLayerDriver.STATIC_LAYER_TABLE.size());
+        assertEquals(10, ConfLayerDriver.STATIC_LAYER_TABLE.size());
         Set<String> names = new HashSet<>();
         Set<String> paths = new HashSet<>();
         for (var spec : ConfLayerDriver.STATIC_LAYER_TABLE) {
@@ -430,6 +436,8 @@ class ConfLayerDriverTest {
                 expected = 3000f;
             } else if (spec.name().equals(LogicChannels.VOLUMETRICS_SETTLING)) {
                 expected = 3100f;
+            } else if (spec.name().equals(LogicChannels.SURFACE_LIGHTING_SETTLING)) {
+                expected = 3101f;
             } else if (spec.name().startsWith(LogicChannels.ZONE_PREFIX)) {
                 expected = 11000f;
             } else if (spec.name().startsWith(LogicChannels.BIOME_PREFIX)) {
@@ -460,6 +468,7 @@ class ConfLayerDriverTest {
     void blendThresholdsMatchTheAuthoredLayerBehavior() {
         for (var spec : representativeLayerSpecs()) {
             float expected = spec.name().equals(LogicChannels.UNDERWATER)
+                      || spec.name().equals(LogicChannels.SURFACE_LIGHTING_SETTLING)
                     || spec.name().startsWith(LogicChannels.TIME_PREFIX) ? 0.5f : 0.01f;
             assertEquals(expected, spec.blendThreshold(), spec.name());
         }
@@ -687,14 +696,6 @@ class ConfLayerDriverTest {
         private long nextHandle = 1L;
         boolean failDusk;
         boolean failWater;
-        int lightingResets;
-        final List<Boolean> lightingResetStates = new ArrayList<>();
-
-        @Override
-        public void setLightingHistoryReset(boolean reset) {
-            if (reset) lightingResets++;
-            lightingResetStates.add(reset);
-        }
 
         @Override
         public long acquireConfigLayer(String path, float priority, float blendThreshold) {

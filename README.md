@@ -50,14 +50,15 @@ and Fabric API 0.165.0+26.3 first, then add the packaged JAR to `mods/`.
 Do not install both download formats into the same instance.
 
 For automatic experimental MFG addon setup, run `install-mfg.bat` from the
-installer ZIP. **The native MFG menu and generated frames are not working in
-the recorded RTX 3070 Ti session.** Read [MFG status and recovery](docs/MFG_UNLOCKER.md)
+installer ZIP. **The public beta's original standalone MFG route remains
+unverified.** Read [MFG status and recovery](docs/MFG_UNLOCKER.md)
 before enabling it; a beta label does not certify MFG or DLSS 5 support.
 
 Native development progress and reproducible build instructions are in
 [`native/mfg/`](native/mfg/README.md). Its unreleased menu adapter passes isolated
 runtime tests. Its private Vulkan route also completes FG provider evaluations
-on a 3070 Ti in a focused native probe. The opt-in Minecraft adapter remains
+on a 3070 Ti in a focused native probe and in an experimental Minecraft session.
+The opt-in Minecraft adapter remains
 experimental; game presentation, image quality and performance are unverified.
 
 The step-by-step version, with launcher advice and troubleshooting, is in
