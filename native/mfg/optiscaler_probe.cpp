@@ -21,7 +21,7 @@ int wmain(int argc, wchar_t** argv) {
     const int frameLimit = argc > 4 ? _wtoi(argv[4]) : 600;
     if (frameLimit < 40 || frameLimit > 3600) return 2;
     const bool controls = argc > 6 && wcscmp(argv[6], L"controls") == 0;
-    if (argc > 6 && (!controls || frameLimit < 120)) return 2;
+    if (argc > 6 && (!controls || frameLimit < 140)) return 2;
     setvbuf(stdout, nullptr, _IONBF, 0);
     SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
     const auto addon = std::filesystem::absolute(argv[1]);
@@ -78,6 +78,12 @@ int wmain(int argc, wchar_t** argv) {
     const auto queryBefore = readOption(queryKey);
     const auto accumulationBefore = readOption(accumulationKey);
     const auto staleBefore = readOption(staleKey);
+    const char* eyeKey = "rtx.autoExposure.enabled";
+    const char* speedKey = "rtx.autoExposure.autoExposureSpeed";
+    const auto eyeBefore = readOption(eyeKey);
+    const auto speedBefore = readOption(speedKey);
+    Check(api.SetConfigVariable(eyeKey, "true"), "Enable eye adaptation");
+    Check(api.SetConfigVariable(speedKey, "2.0"), "Set gentle adaptation speed");
     Check(api.SetConfigVariable(queryKey, "false"), "Disable foliage cache query for diagnostic");
     remixapi_ConfigLayerHandle lightingLayer{};
     if (argc > 5) {
@@ -118,7 +124,7 @@ int wmain(int argc, wchar_t** argv) {
         if (!IsWindow(window)) break;
         // Only this probe's own window receives synthetic messages. No global input or focus change.
         if (controls && (frame == 20 || frame == 45 || frame == 70 || frame == 95)) {
-            const UINT key = frame < 70 ? VK_BACK : VK_END;
+            const UINT key = frame < 70 ? VK_INSERT : VK_END;
             PostMessageW(window, WM_KEYDOWN, key, 1);
             PostMessageW(window, WM_KEYUP, key, (1ll << 31) | (1ll << 30) | 1);
             printf("Own-window control: frame=%d key=%u\n", frame, key);
@@ -147,6 +153,13 @@ int wmain(int argc, wchar_t** argv) {
         auto present=remixapi_PresentInfo_init();
         Check(api.Present(&present), "Present");
         if (frame == 10) {
+            if (_stricmp(readOption(eyeKey).c_str(), "true") != 0
+                    || std::abs(std::stof(readOption(speedKey)) - 2.0f) > 0.001f) {
+                puts("FAIL: eye adaptation options did not resolve"); return 1;
+            }
+            puts("Eye adaptation verified: enabled=true speed=2; restoring previous values");
+            Check(api.SetConfigVariable(eyeKey, eyeBefore.c_str()), "Restore eye adaptation");
+            Check(api.SetConfigVariable(speedKey, speedBefore.c_str()), "Restore adaptation speed");
             if (_stricmp(readOption(queryKey).c_str(), "false") != 0) { puts("FAIL: foliage cache query did not disable"); return 1; }
             if (lightingLayer) {
                 if (readOption(accumulationKey) != "8" || readOption(staleKey) != "8") { puts("FAIL: lighting layer did not resolve to 8/8"); return 1; }
@@ -164,9 +177,10 @@ int wmain(int argc, wchar_t** argv) {
         if (_stricmp(readOption("rtx.dlfg.enable").c_str(), "false") != 0) {
             puts("FAIL: conflicting native FG request was not cleared"); return 1;
         }
-        puts("Native FG request cleared; check fresh OptiScaler log for Backspace open/close and End off/on");
+        puts("Native FG request cleared; check fresh OptiScaler log for Insert open/close and End off/on");
     }
-    if (readOption(queryKey) != queryBefore || readOption(accumulationKey) != accumulationBefore || readOption(staleKey) != staleBefore) {
+    if (readOption(queryKey) != queryBefore || readOption(accumulationKey) != accumulationBefore
+            || readOption(staleKey) != staleBefore || readOption(eyeKey) != eyeBefore || readOption(speedKey) != speedBefore) {
         puts("FAIL: lighting defaults were not restored"); return 1;
     }
     printf("Lighting defaults restored: query=%s accumulation=%s stale=%s\n", queryBefore.c_str(), accumulationBefore.c_str(), staleBefore.c_str());

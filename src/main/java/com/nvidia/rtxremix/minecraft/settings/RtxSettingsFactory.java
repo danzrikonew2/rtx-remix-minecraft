@@ -227,6 +227,13 @@ public final class RtxSettingsFactory {
                 postProcessing::getHighlightsLevel, postProcessing::setHighlightsLevel));
 
         // --- Eye adaptation ---
+        list.add(RtxSetting.ofBool("post.eyeAdaptation", SettingGroup.EYE_ADAPTATION,
+                "rtxremix.setting.post.eyeAdaptation", "rtxremix.setting.post.eyeAdaptation.tip", true,
+                postProcessing::isEyeAdaptation, postProcessing::setEyeAdaptation));
+        list.add(RtxSetting.ofFloat("post.adaptationSpeed", SettingGroup.EYE_ADAPTATION,
+                "rtxremix.setting.post.adaptationSpeed", "rtxremix.setting.post.adaptationSpeed.tip",
+                0.5, 10.0, 2.0, () -> (double) postProcessing.getAdaptationSpeed(),
+                value -> postProcessing.setAdaptationSpeed(value.floatValue())));
         list.add(floatSetting("post.lowLightAdaptation", SettingGroup.EYE_ADAPTATION,
                 "rtxremix.setting.post.lowLightAdaptation", -5.0, 5.0,
                 postProcessing::getLowLightAdaptation, postProcessing::setLowLightAdaptation));

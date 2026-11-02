@@ -139,9 +139,11 @@ or a frame-rate gain.
 
 The old adapter INI left its shared menu on `ShortcutKey=auto`, which resolves
 to **Insert**. The standalone MFG UI's `ToggleKey=8` did not configure that menu.
-The new loader migrates automatic/default Insert to **Backspace**, automatic
-FG toggle to **End**, and automatic overlay enable to explicit `true` before
-loading OptiScaler. It backs up the INI as
+Build 34d264d migrated Insert to Backspace, including explicitly saved Insert,
+which caused the reported shortcut reversion. The current loader sets only
+missing/automatic keys to **Insert** (45), FG toggle to **End** (35), and
+automatic overlay enable to `true`. Explicit saved keys are always preserved.
+It backs up changed INIs as
 `OptiScaler.ini.before-remix-menu-fix`, preserves explicit custom keys/overlay
 opt-outs and leaves FG quality, multiplier and presets alone. New staging uses
 the same defaults. It applies only to the manifest-pinned development adapter;
@@ -150,7 +152,7 @@ the public beta's standalone addon is unchanged.
 For the **RTX Remix Community 26.3 FG Adapter (Development)** profile:
 
 1. Close Remix's graphics/developer menu with **Alt+X** before testing.
-2. Press and release **Backspace** to open/close the OptiScaler menu. Use its
+2. Press and release **Insert** to open/close the OptiScaler menu. Use its
    Frame Generation controls, with the existing upscaler input and DLSSG output.
 3. Press and release **End** to toggle adapter FG off/on. This control does not
    require Remix's native FG checkbox to be enabled.
@@ -167,6 +169,28 @@ evaluations; this control test does not establish Minecraft input handling,
 visible overlay correctness, displayed interpolation or a performance gain.
 The next game check should exercise those four steps and compare motion with
 End off/on. Minecraft's F3 FPS alone does not count generated presentation frames.
+
+### Neural controls and current provider limitation
+
+`/rtx dlss5` or **RTX Remix Settings → DLSS 5 (Experimental)**
+opens a Minecraft settings page. It exposes the enable request and Vulkan
+Auto/After Upscaling hook choices while preserving other MFG JSON settings.
+Writes are backed up and replaced atomically; malformed existing files are
+preserved. Live status requires the current PID and a fresh heartbeat. An enable
+request is not reported as successful neural rendering. F8 retains its RTX toggle.
+
+The staging helper copies the unchanged selected `nvngx_dlssnr.dll` beside
+`OptiScaler/plugins/MFGUnlocker.asi`, where provider lookup actually searches.
+The copy is included in the explicit manifest/hash pin. A 150-present isolated
+Vulkan run detects it but rejects neural creation with state 4 (unsupported)
+and `0xBAD00001`: zero creates/evaluations, one failure. FG startup and renderer
+shutdown pass. DLSS 5 remains off by default and is **not working on this tested
+3070 Ti setup**. No provider/GPU admission guard was bypassed.
+
+A second native-menu chaining experiment hung at startup on a later run and was
+removed. The candidate retains the established OptiScaler presentation path and
+uses the Minecraft page for neural controls. The standalone ResetMenu action now
+targets `RTXMFG-UI.ini`, rather than obsolete `RTX40MFG-UI.ini`.
 
 ### Game controls and multiplier evidence (2026-11-02)
 
@@ -248,7 +272,7 @@ Prism, then run:
 .\mfg-unlocker.ps1 -GameDir 'PATH-TO-EXPERIMENTAL-GAME-DIRECTORY' -Mode ResetMenu
 ```
 
-This backs up `RTX40MFG-UI.ini` beside the private Java executable and restores
+This backs up `RTXMFG-UI.ini` beside the private Java executable and restores
 `[Overlay] ToggleKey=8` (Backspace). It preserves the addon's rendering JSON,
 worlds and launcher accounts. If the native overlay is unattached, the shortcut
 still cannot display it. Do not repeatedly reset graphics settings to fix that.

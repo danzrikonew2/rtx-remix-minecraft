@@ -5,6 +5,7 @@
 package com.nvidia.rtxremix.minecraft.settings;
 
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 /**
  * Tracks post-processing values exposed by the Fabric settings screen. The
@@ -18,6 +19,8 @@ public final class PostProcessingSettings {
     private static final String HIGHLIGHTS_KEY = "rtx.localtonemap.highlights";
     private static final String LOW_LIGHT_ADAPTATION_KEY = "rtx.autoExposure.evMinValue";
     private static final String HIGH_LIGHT_ADAPTATION_KEY = "rtx.autoExposure.evMaxValue";
+    private static final String EYE_ADAPTATION_KEY = "rtx.autoExposure.enabled";
+    private static final String ADAPTATION_SPEED_KEY = "rtx.autoExposure.autoExposureSpeed";
 
     private static final float DEFAULT_EXPOSURE = 0.21405728f;
     private static final float DEFAULT_SHADOWS = 1.4f;
@@ -32,9 +35,18 @@ public final class PostProcessingSettings {
     private float highlightsLevel = DEFAULT_HIGHLIGHTS;
     private float lowLightAdaptation = DEFAULT_LOW_LIGHT_ADAPTATION;
     private float highLightAdaptation = DEFAULT_HIGH_LIGHT_ADAPTATION;
+    private boolean eyeAdaptation = true;
+    private float adaptationSpeed = 2.0f;
 
     public PostProcessingSettings(BiConsumer<String, String> configWriter) {
         this.configWriter = configWriter;
+    }
+
+    /** Seed new adaptation controls from resolved native settings without overwriting saved choices. */
+    public PostProcessingSettings(BiConsumer<String, String> configWriter, Function<String, String> configReader) {
+        this(configWriter);
+        eyeAdaptation = Boolean.parseBoolean(configReader.apply(EYE_ADAPTATION_KEY));
+        adaptationSpeed = Float.parseFloat(configReader.apply(ADAPTATION_SPEED_KEY));
     }
 
     public float getExposure() {
@@ -84,5 +96,19 @@ public final class PostProcessingSettings {
 
     private void apply(String key, float value) {
         configWriter.accept(key, Float.toString(value));
+    }
+
+    public boolean isEyeAdaptation() { return eyeAdaptation; }
+
+    public void setEyeAdaptation(boolean value) {
+        eyeAdaptation = value;
+        configWriter.accept(EYE_ADAPTATION_KEY, Boolean.toString(value));
+    }
+
+    public float getAdaptationSpeed() { return adaptationSpeed; }
+
+    public void setAdaptationSpeed(float value) {
+        adaptationSpeed = value;
+        apply(ADAPTATION_SPEED_KEY, value);
     }
 }

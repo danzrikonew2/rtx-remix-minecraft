@@ -44,6 +44,7 @@ if destination.exists():
     )
 for required in (
     "OptiScaler.ini",
+    "OptiScaler/nvngx_dlssnr.dll",
     "OptiScaler/streamline/sl.interposer.dll",
     "Licenses",
 ):
@@ -66,13 +67,19 @@ shutil.copy2(
     Path(__file__).with_name("LICENSE-MFG"), destination / "Licenses/MFG-LICENSE.txt"
 )
 shutil.copy2(candidate, destination / "OptiScaler/plugins/MFGUnlocker.asi")
+# MFG's provider lookup checks beside its own module. Keep the unchanged NVIDIA
+# provider beside the ASI as well as in OptiScaler's library directories.
+shutil.copy2(
+    package / "OptiScaler/nvngx_dlssnr.dll",
+    destination / "OptiScaler/plugins/nvngx_dlssnr.dll",
+)
 config = configparser.ConfigParser(interpolation=None)
 config.optionxform = str
 config.read(package / "OptiScaler.ini", encoding="utf-8")
 config["Libraries"]["OptiDllPath"] = str(destination / "OptiScaler")
 config["Plugins"]["Path"] = str(destination / "OptiScaler/plugins")
 config["Menu"]["OverlayMenu"] = "true"
-config["Menu"]["ShortcutKey"] = "8"  # VK_BACK; the standalone MFG UI INI does not control this menu.
+config["Menu"]["ShortcutKey"] = "45"  # VK_INSERT; preserve explicit user choices on later launches.
 config["Menu"]["FGShortcutKey"] = "35"  # VK_END; independent of Remix's native FG checkbox.
 with (destination / "OptiScaler.ini").open("w", encoding="utf-8") as stream:
     config.write(stream)

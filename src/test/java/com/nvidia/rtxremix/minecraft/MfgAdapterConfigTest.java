@@ -19,7 +19,7 @@ class MfgAdapterConfigTest {
         String before = "[FrameGen]\r\nEnabled = true\r\n[Menu]\r\nShortcutKey = auto ; old default\r\n"
                 + "OverlayMenu = auto\r\nFGShortcutKey = auto\r\n[DLSSG]\r\nInterpolationCount = 1\r\n";
         String after = MfgAdapterConfig.migrate(before);
-        assertTrue(after.contains("ShortcutKey = 8 ; old default\r\n"));
+        assertTrue(after.contains("ShortcutKey = 45 ; old default\r\n"));
         assertTrue(after.contains("OverlayMenu = true\r\nFGShortcutKey = 35\r\n"));
         assertTrue(after.startsWith("[FrameGen]\r\nEnabled = true\r\n"));
         assertTrue(after.endsWith("[DLSSG]\r\nInterpolationCount = 1\r\n"));
@@ -30,13 +30,16 @@ class MfgAdapterConfigTest {
     void preservesExplicitCustomKeysAndDisabledOverlay() throws Exception {
         String custom = "[Menu]\nShortcutKey=112\nFGShortcutKey=113\nOverlayMenu=false\n";
         assertEquals(custom, MfgAdapterConfig.migrate(custom));
-        assertTrue(MfgAdapterConfig.migrate("[Menu]\nShortcutKey=45\n").contains("ShortcutKey = 8\n"));
+        String savedInsert = "[Menu]\nShortcutKey=45\nFGShortcutKey=35\nOverlayMenu=true\n";
+        assertEquals(savedInsert, MfgAdapterConfig.migrate(savedInsert));
+        String savedBackspace = "[Menu]\nShortcutKey=8\nFGShortcutKey=35\nOverlayMenu=true\n";
+        assertEquals(savedBackspace, MfgAdapterConfig.migrate(savedBackspace));
     }
 
     @Test
     void fillsMissingMenuKeysInsideTheirSectionAndRejectsAmbiguousSections() throws Exception {
         String after = MfgAdapterConfig.migrate("[Menu]\nScale=1.25\n[Log]\nLogLevel=1\n");
-        assertTrue(after.contains("Scale=1.25\nOverlayMenu = true\nShortcutKey = 8\nFGShortcutKey = 35\n[Log]"));
+        assertTrue(after.contains("Scale=1.25\nOverlayMenu = true\nShortcutKey = 45\nFGShortcutKey = 35\n[Log]"));
         assertTrue(MfgAdapterConfig.migrate("[FrameGen]\nEnabled=true").contains("\n[Menu]\n"));
         assertThrows(IOException.class, () -> MfgAdapterConfig.migrate("[Menu]\n[Menu]\n"));
         assertThrows(IOException.class, () -> MfgAdapterConfig.migrate(
@@ -52,4 +55,5 @@ class MfgAdapterConfigTest {
         assertEquals(before, Files.readString(directory.resolve("OptiScaler.ini.before-remix-menu-fix")));
         assertFalse(MfgAdapterConfig.prepare(directory));
     }
+
 }

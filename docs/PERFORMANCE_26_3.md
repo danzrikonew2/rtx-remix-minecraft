@@ -1,5 +1,26 @@
 # Minecraft 26.3 stability and performance baseline
 
+## Combined settings candidate: 2026-11-02
+
+- Insert is the default OptiScaler menu key. The old migration replaced explicit
+  Insert with Backspace at startup. Explicit saved keys are now preserved.
+- Eye adaptation enable/speed controls use existing native options. A pinned
+  renderer test verifies enable + speed 2 and exact restoration. The default
+  speed is 2 instead of 10; manual exposure and EV bounds remain unchanged.
+  Visual acceptance remains pending.
+- DLSS 5 discovery succeeds with the unchanged DLL beside the ASI, but neural
+  creation is rejected as unsupported (`0xBAD00001`), with zero evaluations.
+  The 150-present hidden test exits normally. Minecraft controls report actual
+  provider status rather than treating an enable request as success.
+- A second native-menu chaining experiment hung at startup and was removed.
+  The existing presentation route remains. Higher MFG output and unique
+  displayed interpolation are not validated.
+- The latest user log completes native shutdown at 19:58:42 and the addon's
+  log records Session end at 19:58:43. An OpenGL DxPresent(createDevice) warning
+  occurs during exit. The prior archive records a stop at 19:31:38; no matching
+  Java crash report/Windows Java application-error event was found. The oldest
+  inspected archive lacks enough exit evidence. No crash cause/fix is claimed.
+
 ## User comparison and FG controls: 2026-11-02, build 34d264d
 
 The user reports that `/rtx lighting cache off` fixes the bright-grass artifact.

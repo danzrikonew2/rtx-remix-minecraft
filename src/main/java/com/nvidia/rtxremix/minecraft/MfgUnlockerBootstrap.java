@@ -49,7 +49,7 @@ final class MfgUnlockerBootstrap {
                 Path adapter = addon.resolve(MfgOptiScalerPayload.DIRECTORY);
                 MfgOptiScalerPayload.validate(adapter, adapterManifestHash, developmentHash);
                 if (MfgAdapterConfig.prepare(adapter)) {
-                    LOGGER.info("Migrated OptiScaler automatic menu keys: Backspace menu, End FG toggle; previous INI backed up");
+                    LOGGER.info("Configured automatic OptiScaler menu keys: Insert menu, End FG toggle; explicit saved keys preserved");
                 }
                 adapterLoadAttempted = true;
                 MfgOptiScalerPayload.load(adapter);
@@ -137,7 +137,7 @@ final class MfgUnlockerBootstrap {
     static void prepareRemixStartup(java.util.function.BiConsumer<String, String> configWriter) {
         if (optiScalerAdapter) {
             configWriter.accept("rtx.dlfg.enable", "false");
-            LOGGER.info("OptiScaler owns FG. Use its Backspace menu and End toggle; keep Remix native FG off.");
+            LOGGER.info("OptiScaler owns FG. Default controls: Insert menu, End toggle; keep Remix native FG off.");
         }
     }
 
@@ -159,7 +159,8 @@ final class MfgUnlockerBootstrap {
             if (accepted == 0) return "MFG addon rejected its status query.";
             if (optiScalerAdapter) {
                 return "MFG loaded; backend owner=" + (status.get(ValueLayout.JAVA_INT, 8) != 0)
-                        + "; OptiScaler owns FG. Default controls: Backspace opens its menu, End toggles FG. "
+                        + "; OptiScaler owns FG. Default controls: Insert opens FG settings, End toggles FG, "
+                        + "/rtx dlss5 opens neural-rendering settings. "
                         + "Keep Remix's native FG checkbox OFF; /rtx mfg reset clears a stuck native request. "
                         + "Standalone menu counters do not measure this route. "
                         + "Check the current process's MFG/OptiScaler logs for evaluations and presentation.";

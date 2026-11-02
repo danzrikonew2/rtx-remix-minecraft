@@ -5,7 +5,6 @@
 package com.nvidia.rtxremix.minecraft.settings;
 
 import com.nvidia.rtxremix.minecraft.input.RemixInputGate;
-import com.nvidia.rtxremix.minecraft.texture.BlockTextureManager;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.components.Tooltip;
@@ -54,6 +53,10 @@ public final class RtxSettingsScreen extends Screen {
         // Set apart from the categories because it leaves Minecraft's screens
         // for Remix's own menu rather than opening another page.
         categories.addChild(openRemixMenuButton(), positioner -> positioner.paddingTop(8));
+        if (RtxRemixMod.isMfgAdapterActive()) {
+            categories.addChild(Button.builder(Component.literal("DLSS 5 (Experimental)"),
+                    button -> RtxRemixMod.openMfgNeuralSettings(this)).width(204).build());
+        }
         this.layout.addToContents(categories);
 
         LinearLayout footer = LinearLayout.horizontal().spacing(8);
@@ -101,20 +104,7 @@ public final class RtxSettingsScreen extends Screen {
     private void confirmReset() {
         this.minecraft.gui.setScreen(new ConfirmScreen(confirmed -> {
             if (confirmed) {
-                boolean rebuildBlockLights =
-                        settings.hasOverrides(SettingGroup.BLOCK_LIGHTS);
-                settings.resetAll();
-                BlockTextureManager textures = BlockTextureManager.get();
-                boolean rebuildMaterials = textures != null
-                        && textures.commitTerrainEmissionMultiplier();
-                if (saveSettings != null) {
-                    saveSettings.run();
-                }
-                if (rebuildMaterials) {
-                    RtxRemixMod.rebuildTerrainForMaterialSettings();
-                } else if (rebuildBlockLights) {
-                    RtxRemixMod.rebuildLoadedTerrain();
-                }
+                RtxSettingsReset.apply(settings, saveSettings);
             }
             this.minecraft.gui.setScreen(new RtxSettingsScreen(parent, settings, saveSettings));
         }, Component.translatable("rtxremix.settings.resetAll.confirm.title"),

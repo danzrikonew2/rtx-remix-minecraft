@@ -772,8 +772,32 @@ public class RtxRemixMod implements ClientModInitializer {
                         }
                         MfgUnlockerBootstrap.prepareRemixStartup(renderer.getRemixApi()::setConfigVariable);
                         context.getSource().sendFeedback(Component.literal(
-                                "Remix native FG requested OFF. Adapter FG is separate: use End or the Backspace menu. "
+                                "Remix native FG requested OFF. Adapter FG is separate: use End or the Insert menu. "
                                 + "Use /rtx mfg to check the route."));
+                        return 1;
+                    })))
+                .then(ClientCommands.literal("dlss5").executes(context -> {
+                    if (!isMfgAdapterActive()) {
+                        context.getSource().sendFeedback(Component.literal("The experimental MFG adapter is not loaded."));
+                        return 0;
+                    }
+                    Minecraft.getInstance().execute(() -> openMfgNeuralSettings(null));
+                    return 1;
+                }))
+                .then(ClientCommands.literal("settings")
+                    .then(ClientCommands.literal("reset").executes(context -> {
+                        if (rtxSettings == null) {
+                            context.getSource().sendFeedback(Component.literal("RTX settings are not initialized."));
+                            return 0;
+                        }
+                        com.nvidia.rtxremix.minecraft.settings.RtxSettingsReset.apply(
+                                rtxSettings, RtxRemixMod::saveRtxSettings);
+                        context.getSource().sendFeedback(Component.literal(
+                                "Mod settings restored to installed defaults. To also clear native Remix graphics "
+                                + "overrides, click Delete All User Settings in the opened graphics menu. "
+                                + "Worlds, resource packs, accounts and addon files are preserved."));
+                        LOGGER.info("RTX mod settings reset; native User Settings reset requires the menu action");
+                        Minecraft.getInstance().execute(() -> openRemixMenu(RemixInputGate.Menu.GRAPHICS_SETTINGS));
                         return 1;
                     })))
                 .then(ClientCommands.literal("lighting")
@@ -2290,6 +2314,13 @@ public class RtxRemixMod implements ClientModInitializer {
     /** Only the explicitly installed development adapter uses a separate FG menu. */
     public static boolean isMfgAdapterActive() {
         return MfgUnlockerBootstrap.usesOptiScalerAdapter();
+    }
+
+    public static void openMfgNeuralSettings(net.minecraft.client.gui.screens.Screen parent) {
+        if (!isMfgAdapterActive()) return;
+        Minecraft.getInstance().gui.setScreen(
+                new com.nvidia.rtxremix.minecraft.settings.MfgNeuralSettingsScreen(parent,
+                        new MfgNeuralSettings(FabricLoader.getInstance().getGameDir())));
     }
     
     /**

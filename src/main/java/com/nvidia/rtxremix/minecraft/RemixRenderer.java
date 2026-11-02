@@ -307,7 +307,8 @@ public class RemixRenderer {
 
             }
 
-            postProcessingSettings = new PostProcessingSettings(remixApi::setConfigVariable);
+            postProcessingSettings = new PostProcessingSettings(
+                    remixApi::setConfigVariable, remixApi::getConfigVariableResolved);
             
             // NOTE: Submit() allocates the image, but semaphores are always ready
             InteropInfo interopInfo = remixApi.dxvkGetInteropInfo();

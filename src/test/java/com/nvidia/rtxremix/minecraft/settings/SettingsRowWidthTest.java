@@ -94,6 +94,8 @@ class SettingsRowWidthTest {
             entry("rtxremix.setting.materials.terrainEmission", "50.00×"),
             entry("rtxremix.setting.materials.smoothReliefMaps", "OFF"),
             entry("rtxremix.setting.post.exposure", "2.00"),
+            entry("rtxremix.setting.post.eyeAdaptation", "OFF"),
+            entry("rtxremix.setting.post.adaptationSpeed", "10.00"),
             entry("rtxremix.setting.post.shadows", "-5.00"),
             entry("rtxremix.setting.post.highlights", "10.00"),
             entry("rtxremix.setting.post.lowLightAdaptation", "-5.00"),

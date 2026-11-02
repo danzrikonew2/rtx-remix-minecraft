@@ -20,9 +20,13 @@ final class MfgAdapterConfig {
         Path ini = directory.resolve("OptiScaler.ini");
         String before = Files.readString(ini);
         String after = migrate(before);
+        return saveMigration(ini, before, after, "before-remix-menu-fix");
+    }
+
+    private static boolean saveMigration(Path ini, String before, String after, String suffix) throws IOException {
         if (before.equals(after)) return false;
-        Path backup = directory.resolve("OptiScaler.ini.before-remix-menu-fix");
-        if (!Files.exists(backup)) Files.copy(ini, backup);
+        Path backup = ini.resolveSibling(ini.getFileName() + "." + suffix);
+        if (Files.exists(ini) && !Files.exists(backup)) Files.copy(ini, backup);
         Files.writeString(ini, after);
         return true;
     }
@@ -30,8 +34,13 @@ final class MfgAdapterConfig {
     static String migrate(String ini) throws IOException {
         Map<String, String> missing = new LinkedHashMap<>();
         missing.put("overlaymenu", "OverlayMenu = true");
-        missing.put("shortcutkey", "ShortcutKey = 8"); // Windows VK_BACK, not SDL's key code.
+        missing.put("shortcutkey", "ShortcutKey = 45"); // Windows VK_INSERT, not SDL's key code.
         missing.put("fgshortcutkey", "FGShortcutKey = 35"); // Windows VK_END.
+        return migrateSection(ini, "Menu", missing);
+    }
+
+    private static String migrateSection(String ini, String section, Map<String, String> missing) throws IOException {
+        var controlledKeys = new HashSet<>(missing.keySet());
         String newline = ini.contains("\r\n") ? "\r\n" : "\n";
         String[] lines = ini.split("\\R", -1);
         boolean inMenu = false;
@@ -43,21 +52,20 @@ final class MfgAdapterConfig {
             String trimmed = line.replace("\uFEFF", "").split("[;#]", 2)[0].trim();
             if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
                 if (inMenu) appendMissing(result, missing, newline);
-                inMenu = trimmed.equalsIgnoreCase("[Menu]");
-                if (inMenu && menuSeen) throw new IOException("Duplicate OptiScaler Menu section");
+                inMenu = trimmed.equalsIgnoreCase("[" + section + "]");
+                if (inMenu && menuSeen) throw new IOException("Duplicate addon " + section + " section");
                 menuSeen |= inMenu;
             } else if (inMenu && !trimmed.startsWith(";") && !trimmed.startsWith("#")) {
                 int equals = line.indexOf('=');
                 if (equals >= 0) {
                     String key = line.substring(0, equals).trim().toLowerCase(Locale.ROOT);
-                    if ((key.equals("overlaymenu") || key.equals("shortcutkey") || key.equals("fgshortcutkey"))
-                            && !seen.add(key)) throw new IOException("Duplicate OptiScaler menu key: " + key);
+                    if (controlledKeys.contains(key) && !seen.add(key)) {
+                        throw new IOException("Duplicate addon menu key: " + key);
+                    }
                     String replacement = missing.remove(key);
                     String value = line.substring(equals + 1).split("[;#]", 2)[0].trim();
-                    // Preserve explicit custom keys and overlay opt-outs. Old Insert was the
-                    // adapter's implicit default, whereas this mod documents Backspace.
-                    if (replacement != null && (value.isEmpty() || value.equalsIgnoreCase("auto")
-                            || (key.equals("shortcutkey") && value.equals("45")))) {
+                    // Never rewrite an explicit saved key, including a former shipped default.
+                    if (replacement != null && (value.isEmpty() || value.equalsIgnoreCase("auto"))) {
                         int comment = line.indexOf(';', equals + 1);
                         if (comment < 0) comment = line.indexOf('#', equals + 1);
                         line = replacement + (comment >= 0 ? " " + line.substring(comment) : "");
@@ -69,7 +77,7 @@ final class MfgAdapterConfig {
         }
         if (!missing.isEmpty()) {
             if (!result.isEmpty() && !result.toString().endsWith(newline)) result.append(newline);
-            if (!menuSeen) result.append("[Menu]").append(newline);
+            if (!menuSeen) result.append("[").append(section).append("]").append(newline);
             appendMissing(result, missing, newline);
         }
         return result.toString();

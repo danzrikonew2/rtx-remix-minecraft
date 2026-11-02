@@ -63,7 +63,7 @@ def test_menu_reset_backs_up_ui_and_preserves_rendering_settings(tmp_path):
     runtime_bin = addon / "java" / "bin"
     runtime_bin.mkdir(parents=True)
     (runtime_bin / "javaw.exe").write_bytes(b"runtime sentinel")
-    ui = runtime_bin / "RTX40MFG-UI.ini"
+    ui = runtime_bin / "RTXMFG-UI.ini"
     old_ui = "[Overlay]\nToggleKey=123\n"
     ui.write_text(old_ui)
     config = runtime_bin / "RTXMFG-Universal.json"
@@ -71,7 +71,7 @@ def test_menu_reset_backs_up_ui_and_preserves_rendering_settings(tmp_path):
     result = run_helper(tmp_path, "ResetMenu")
     assert result.returncode == 0, result.stderr
     assert "ToggleKey=8" in ui.read_text()
-    backups = list(runtime_bin.glob("RTX40MFG-UI.ini.*.bak"))
+    backups = list(runtime_bin.glob("RTXMFG-UI.ini.*.bak"))
     assert len(backups) == 1
     assert backups[0].read_text() == old_ui
     assert config.read_text() == '{"mode":"follow"}'

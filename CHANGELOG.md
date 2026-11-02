@@ -11,6 +11,15 @@ also part of every mod file name.
 
 ## Unreleased
 
+- Use Insert as the adapter menu default and preserve explicit saved keys,
+  fixing the repeated Insert-to-Backspace reversion. Correct the standalone
+  menu-reset INI filename.
+- Add experimental `/rtx dlss5` controls with process-matched native status and
+  provider discovery beside the ASI. The tested provider rejects creation on
+  this setup; no working neural rendering is claimed.
+- Add eye-adaptation enable/speed controls; use a gentler speed 2 default without
+  changing manual brightness or EV bounds. Add `/rtx settings reset` for mod
+  defaults plus the native graphics-reset workflow.
 - Default primary thin-opaque SHaRC queries to off after the user's in-game
   comparison removed bright grass following time changes. Other cache uses
   remain enabled; this is a targeted workaround with unmeasured performance

@@ -26,6 +26,17 @@ class PostProcessingSettingsTest {
     }
 
     @Test
+    void savedNativeAdaptationChoicesAreReadWithoutWritingOverThem() {
+        Map<String, String> saved = Map.of("rtx.autoExposure.enabled", "false",
+                "rtx.autoExposure.autoExposureSpeed", "7.0");
+        Map<String, String> writes = new HashMap<>();
+        PostProcessingSettings settings = new PostProcessingSettings(writes::put, saved::get);
+        assertFalse(settings.isEyeAdaptation());
+        assertEquals(7.0f, settings.getAdaptationSpeed());
+        assertTrue(writes.isEmpty());
+    }
+
+    @Test
     void javaDefaultsMatchAuthoredBaseline() throws Exception {
         Map<String, String> baseline = new HashMap<>();
         for (String line : Files.readAllLines(Path.of("packaging", "rtx.conf"))) {
@@ -46,6 +57,9 @@ class PostProcessingSettingsTest {
                 Float.parseFloat(baseline.get("rtx.autoExposure.evMinValue")));
         assertEquals(settings.getHighLightAdaptation(),
                 Float.parseFloat(baseline.get("rtx.autoExposure.evMaxValue")));
+        assertEquals(settings.getAdaptationSpeed(),
+                Float.parseFloat(baseline.get("rtx.autoExposure.autoExposureSpeed")));
+        assertEquals(settings.isEyeAdaptation(), Boolean.parseBoolean(baseline.get("rtx.autoExposure.enabled")));
         assertFalse(baseline.containsKey("rtx.userBrightness.userBrightness"));
     }
 
@@ -59,6 +73,8 @@ class PostProcessingSettingsTest {
         settings.setHighlightsLevel(6.0f);
         settings.setLowLightAdaptation(-2.5f);
         settings.setHighLightAdaptation(7.0f);
+        settings.setEyeAdaptation(false);
+        settings.setAdaptationSpeed(1.5f);
 
         assertEquals(0.75f, settings.getExposure());
         assertEquals(2.0f, settings.getShadowLevel());
@@ -70,5 +86,7 @@ class PostProcessingSettingsTest {
         assertEquals("6.0", values.get("rtx.localtonemap.highlights"));
         assertEquals("-2.5", values.get("rtx.autoExposure.evMinValue"));
         assertEquals("7.0", values.get("rtx.autoExposure.evMaxValue"));
+        assertEquals("false", values.get("rtx.autoExposure.enabled"));
+        assertEquals("1.5", values.get("rtx.autoExposure.autoExposureSpeed"));
     }
 }

@@ -60,9 +60,13 @@ runtime tests. Its private Vulkan route also completes FG provider evaluations
 on a 3070 Ti in a focused native probe and in an experimental Minecraft session.
 The opt-in Minecraft adapter remains
 experimental; game presentation, image quality and performance are unverified.
-Its default controls are **Backspace** for the shared menu and **End** for FG
+Its default controls are **Insert** for the shared menu and **End** for FG
 off/on. Leave Remix's native FG checkbox off; `/rtx mfg reset` clears a stuck
 native request. See the [development control guide](docs/MFG_UNLOCKER.md#development-adapter-controls-after-931391c).
+`/rtx dlss5` opens experimental neural controls and reports the provider's actual
+status. The tested 3070 Ti provider rejects DLSS 5 creation; this is not a working
+DLSS 5 release. Image & Exposure includes eye-adaptation enable/speed controls.
+Use `/rtx settings reset` for mod defaults and the native graphics-reset workflow.
 
 The step-by-step version, with launcher advice and troubleshooting, is in
 [Playing](docs/PLAYING.md).

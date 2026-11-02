@@ -202,7 +202,7 @@ FGNvngxReplacement=None
 InterpolationCount=1
 [Menu]
 OverlayMenu=true
-ShortcutKey=8
+ShortcutKey=45
 FGShortcutKey=35
 [Plugins]
 LoadAsiPlugins=true
@@ -228,20 +228,27 @@ to focus it. It closes automatically after the requested 40–3600 frames;
 accounts/worlds. Verify the current process's `RTXMFG-Universal.status.json`
 and runtime logs for successful evaluations and generated presentation batches.
 
-Backspace (`VK_BACK=8`) opens the shared OptiScaler menu; End (`VK_END=35`)
-toggles its FG. The standalone `RTX40MFG-UI.ini` does not configure these shared
+Insert (`VK_INSERT=45`) opens the shared OptiScaler menu; End (`VK_END=35`)
+toggles its FG. The standalone `RTXMFG-UI.ini` does not configure these shared
 controls. Keep Remix's native `rtx.dlfg.enable=false`: that checkbox requests a
 different presenter. The development loader clears a saved conflicting request
 before startup, and `/rtx mfg reset` clears it in-game without changing adapter
 FG or quality. Explicit custom INI shortcuts/overlay opt-outs are preserved;
-automatic/default settings migrate once with an adjacent backup.
+only missing/automatic settings migrate, with an adjacent backup.
 
 For an isolated control regression, append the absolute shipped lighting-conf
-path and `controls` after `hidden 140`. The probe posts Backspace twice and End
+path and `controls` after `hidden 140`. The probe posts Insert twice and End
 twice only to its own window, and verifies a seeded native FG request was cleared.
 Inspect that process's fresh OptiScaler log for menu opening/closing and
 `FGEnabled` false/true. This passed with two FG features and zero failed batches;
 the hidden window has zero evaluations, so the result does not measure FG gain.
+
+For neural discovery, keep the selected unchanged `nvngx_dlssnr.dll` beside the
+ASI and include it in the manifest. The 150-present hidden probe detects it but
+creation returns unsupported (`0xBAD00001`) with zero evaluations on the tested
+3070 Ti. `/rtx dlss5` exposes controls/status in Minecraft without bypassing
+provider admission. The second native-overlay chain was removed after a startup
+hang; the earlier standalone menu test does not establish safe ASI chaining.
 An active mode or created feature alone is insufficient.
 
 This uses the adapter's upscaler input and FG control. An additional native

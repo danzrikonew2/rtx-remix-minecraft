@@ -15,7 +15,7 @@ $marker = Join-Path $addon 'enabled.txt'
 if ($Mode -eq 'ResetMenu') {
     $bin = Join-Path $addon 'java\bin'
     if (-not (Test-Path -LiteralPath (Join-Path $bin 'javaw.exe'))) { throw 'Private Java runtime not found; install the addon first.' }
-    $ui = Join-Path $bin 'RTX40MFG-UI.ini'
+    $ui = Join-Path $bin 'RTXMFG-UI.ini'
     if (Test-Path -LiteralPath $ui) {
         Copy-Item -LiteralPath $ui -Destination ($ui + '.' + [guid]::NewGuid().ToString('N') + '.bak')
     }

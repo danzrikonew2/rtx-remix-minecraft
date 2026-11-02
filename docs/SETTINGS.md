@@ -52,6 +52,13 @@ Reset All on the landing page does.
 
 ## Image & Exposure
 
+**Eye Adaptation** enables Remix's scene exposure adaptation. **Adaptation Speed**
+sets its response speed (0.5–10; packaged default 2, previously 10). A lower value
+eases light/dark transitions; it does not add light or raise every shadow. Manual
+exposure and low/high-light EV bounds are unchanged. Start with speed 2; completely
+unlit spaces still need a light source. OptiScaler's similarly named input flag
+is separate. Visual acceptance of the new response speed remains pending.
+
 This page adjusts tonemapping and eye adaptation. Taking control of a value
 here masks that option in a map's lighting profiles for the rest of the
 session. Only these controls and Smooth Relief Maps on the Materials page have
@@ -77,6 +84,14 @@ page after asking for confirmation. The landing page has **Reset All**, which
 restores every setting the mod owns, including the Block Lights table.
 
 Both save immediately.
+
+In a world, `/rtx settings reset` runs the same mod reset/save/rebuild transaction
+and opens Remix Graphics Settings. To clear native graphics overrides too, click
+**Delete All User Settings** there. The native action removes User Settings
+opinions with the runtime's `NoReset` exceptions. The public API cannot clear
+that layer, so writing numeric defaults is not presented as the same operation.
+Worlds, resource packs, accounts, addon files and saved OptiScaler shortcuts are
+preserved. `/rtx mfg reset` only clears the competing native FG request.
 
 Restart the game after a reset if you had changed anything on the Image &
 Exposure page or Smooth Relief Maps. Those values are handed to the Remix
