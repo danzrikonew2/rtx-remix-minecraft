@@ -82,6 +82,12 @@ int wmain(int argc, wchar_t** argv) {
     const char* speedKey = "rtx.autoExposure.autoExposureSpeed";
     const auto eyeBefore = readOption(eyeKey);
     const auto speedBefore = readOption(speedKey);
+    const char* sparseKey = "rtx.sparseRendering.enableSparseRendering";
+    const char* sparseQualityKey = "rtx.sparseRendering.quality";
+    const auto sparseBefore = readOption(sparseKey);
+    const auto sparseQualityBefore = readOption(sparseQualityKey);
+    Check(api.SetConfigVariable(sparseKey, "false"), "Disable sparse tracing");
+    Check(api.SetConfigVariable(sparseQualityKey, "0.5"), "Set balanced sparse quality");
     Check(api.SetConfigVariable(eyeKey, "true"), "Enable eye adaptation");
     Check(api.SetConfigVariable(speedKey, "2.0"), "Set gentle adaptation speed");
     Check(api.SetConfigVariable(queryKey, "false"), "Disable foliage cache query for diagnostic");
@@ -153,6 +159,12 @@ int wmain(int argc, wchar_t** argv) {
         auto present=remixapi_PresentInfo_init();
         Check(api.Present(&present), "Present");
         if (frame == 10) {
+            if (_stricmp(readOption(sparseKey).c_str(), "false") != 0
+                    || std::abs(std::stof(readOption(sparseQualityKey)) - 0.5f) > 0.001f) {
+                puts("FAIL: sparse tracing options did not resolve"); return 1;
+            }
+            puts("Sparse tracing verified off, quality=0.5; testing on");
+            Check(api.SetConfigVariable(sparseKey, "true"), "Enable sparse tracing");
             if (_stricmp(readOption(eyeKey).c_str(), "true") != 0
                     || std::abs(std::stof(readOption(speedKey)) - 2.0f) > 0.001f) {
                 puts("FAIL: eye adaptation options did not resolve"); return 1;
@@ -168,6 +180,14 @@ int wmain(int argc, wchar_t** argv) {
             }
             Check(api.SetConfigVariable(queryKey, queryBefore.c_str()), "Restore foliage cache query");
         }
+        if (frame == 25) {
+            if (_stricmp(readOption(sparseKey).c_str(), "true") != 0) {
+                puts("FAIL: sparse tracing did not enable"); return 1;
+            }
+            puts("Sparse tracing verified on; restoring previous values");
+            Check(api.SetConfigVariable(sparseKey, sparseBefore.c_str()), "Restore sparse tracing");
+            Check(api.SetConfigVariable(sparseQualityKey, sparseQualityBefore.c_str()), "Restore sparse quality");
+        }
         ++presents;
         if (GetForegroundWindow() == window) ++foregroundPresents;
         Sleep(16);
@@ -180,7 +200,8 @@ int wmain(int argc, wchar_t** argv) {
         puts("Native FG request cleared; check fresh OptiScaler log for Insert open/close and End off/on");
     }
     if (readOption(queryKey) != queryBefore || readOption(accumulationKey) != accumulationBefore
-            || readOption(staleKey) != staleBefore || readOption(eyeKey) != eyeBefore || readOption(speedKey) != speedBefore) {
+            || readOption(staleKey) != staleBefore || readOption(eyeKey) != eyeBefore || readOption(speedKey) != speedBefore
+            || readOption(sparseKey) != sparseBefore || readOption(sparseQualityKey) != sparseQualityBefore) {
         puts("FAIL: lighting defaults were not restored"); return 1;
     }
     printf("Lighting defaults restored: query=%s accumulation=%s stale=%s\n", queryBefore.c_str(), accumulationBefore.c_str(), staleBefore.c_str());

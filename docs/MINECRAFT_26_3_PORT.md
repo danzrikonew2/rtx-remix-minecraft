@@ -40,6 +40,12 @@ installation. Compilation is not proof of correct rendering.
 
 ## Combined candidate acceptance
 
+The next temporal-quality candidate restores sparse quality 0.5, adds a saved
+Sparse Tracing toggle and `/rtx temporal` diagnostics, and caps minimized windows
+at 1 FPS. The latest user video/adapter logs show artifacts even with FG off;
+the root cause and visual benefit remain unverified. See the
+[focused comparison and memory explanation](PERFORMANCE_26_3.md#latest-temporal-quality-candidate-2026-11-02).
+
 Use only **RTX Remix Community 26.3 FG Adapter (Development)** and the existing
 test world. Complete one pass, then quit Minecraft and Prism and report the rows
 together. F8 remains the RTX rendering toggle. No long-running capture is needed.
@@ -50,6 +56,8 @@ together. F8 remains the RTX rendering toggle. No long-running capture is needed
 | Grass/day-night | `/rtx lighting cache` reports false. Change day → midnight in the same view; the previously bright grass patches should stay fixed. |
 | Exposure | In Image & Exposure enable Eye Adaptation, start with speed 2, and move from daylight into a dim, lit space and back. Report harsh jumps, pumping, excessive darkness or washed-out shadows. Completely unlit spaces still need a light. |
 | FG controls/hand | Keep Remix native FG off. In OptiScaler use 2x, compare motion and the held item with End off/on. F3 need not double. Do not use 6x as a success test: repeated output reuse remains unresolved. |
+| Temporal comparison | Keep both FG routes off and DLSS Balanced fixed. Compare stationary stone, a slow pan and log breaking with `/rtx temporal sparse off`, then `on`. Report trails/shimmer and FPS together. Off costs more GPU time; it does not disable denoising. |
+| Background rendering | Minimize Minecraft, check competing-game performance, then restore it. Minimized rendering is capped at 1 FPS; an unfocused visible window uses its background cap, default 10. GPU memory may remain allocated. |
 | Reset | Change one mod option, run `/rtx settings reset`, then click Delete All User Settings in the opened native menu. Confirm mod defaults and native graphics defaults, with worlds/packs and the saved Insert shortcut preserved. |
 | Neural page | `/rtx dlss5` opens the Minecraft page. Default is off. The isolated 3070 Ti provider reports unsupported if enabled, not Running. Restore off after any check. Report stale status, save errors, or an unexpected result. |
 | Exit | Leave/reopen the world once, then quit the game and Prism normally. Report any crash/freeze and roughly when it occurred. Logs are reviewed after exit. |

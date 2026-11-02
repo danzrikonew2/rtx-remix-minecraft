@@ -11,6 +11,13 @@ also part of every mod file name.
 
 ## Unreleased
 
+- Restore sparse-sampling quality from 0.3 to the runtime's recommended 0.5
+  balance. Add a saved Sparse Tracing control and `/rtx temporal sparse off|on`
+  comparison commands. This is a temporal-quality candidate, not a verified
+  ghosting fix; full sampling costs more GPU time.
+- Cap minimized Remix windows at 1 FPS, independently of the configurable
+  unfocused limit. Foreground caps and benchmark behavior are preserved.
+  This reduces background rendering; it does not unload GPU resources.
 - Use Insert as the adapter menu default and preserve explicit saved keys,
   fixing the repeated Insert-to-Backspace reversion. Correct the standalone
   menu-reset INI filename.

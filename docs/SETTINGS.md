@@ -28,8 +28,10 @@ overrides a stronger situational profile, so a map that authors its own fade
 keeps it.
 
 The background frame cap only lowers Minecraft's own Max Framerate;
-Unlimited leaves that setting in charge. A running benchmark is never capped,
-since it measures the renderer.
+Unlimited leaves that setting in charge while unfocused. Minimized windows
+are capped at 1 FPS even with Unlimited selected. A running benchmark bypasses
+these extra caps, since it measures the renderer. This reduces background GPU
+work without unloading textures, render targets or other GPU resources.
 
 ## Lighting
 
@@ -51,6 +53,15 @@ It has its own Reset: the Lighting page's Reset does not reach into it, but
 Reset All on the landing page does.
 
 ## Image & Exposure
+
+**Sparse Tracing** traces fewer pixels and reconstructs the rest. Turning it
+off requests full sampling and can help isolate sparse-sampling trails or
+shimmer, with a higher GPU cost. DLSS and denoising remain enabled. The packaged
+sparse quality is now 0.5, replacing the more aggressive 0.3 setting; visual
+improvement is not yet verified. `/rtx temporal` shows the resolved enable/quality
+values and the separate native FG request. `/rtx temporal sparse off|on` changes
+the same saved setting as this toggle. Compare a fixed view and DLSS resolution
+with frame generation off before deciding which sampling mode to keep.
 
 **Eye Adaptation** enables Remix's scene exposure adaptation. **Adaptation Speed**
 sets its response speed (0.5–10; packaged default 2, previously 10). A lower value

@@ -395,6 +395,64 @@ java --enable-native-access=ALL-UNNAMED -Xcheck:jni -cp "build/classes/java/main
 
 ## Hand jitter investigation
 
+### Latest temporal-quality candidate: 2026-11-02
+
+The user reports renewed stationary held-item shimmer and strong motion blur/
+ghosting, including while chopping logs. The supplied 10-second, 30 FPS video
+shows moving/swinging geometry with soft detail; it cannot measure motion vectors
+or distinguish reconstruction artifacts from video compression by itself.
+The matching 23:21:16 adapter heartbeat reports `gameFG=0`, `appliedFG=0`,
+and unchanged NGX evaluation counters since FG was disabled at 23:13:26.
+Generated frames therefore do not explain all of the reported artifacts.
+The session also records RR creation at 853x456 for a 2560x1369 output after
+the earlier Balanced 1505x805 selection. Comparisons must hold the internal
+resolution fixed. No new Java hand-transform fix is claimed.
+
+The shipped sparse-sampling quality was 0.3. The
+[official runtime option documentation](https://github.com/NVIDIAGameWorks/dxvk-remix/blob/main/src/dxvk/rtx_render/rtx_sparse_rendering.h)
+recommends 0.5 and explicitly describes the detail/temporal-stability cost of
+lower sampling rates. The candidate restores 0.5 and adds a saved **Sparse
+Tracing** control under Image & Exposure. `/rtx temporal` reads resolved sparse
+enable/quality and the separate native FG request; `/rtx temporal sparse off|on`
+uses the same persisted setting as the menu. Off requests full sampling while
+leaving DLSS and denoising enabled. It can increase GPU time substantially;
+neither a ghosting fix nor an FPS gain is established before visual comparison.
+Native C API checks exercise off/on/restore against the pinned runtime rather
+than assuming the public runtime source exactly matches that binary.
+Validation: 817 Java tests pass; tooling checks pass with 1,144 tests and 178
+subtests (one skipped test). A 60-frame isolated native probe
+verifies both sampling modes, quality 0.5 and exact restoration. The private-Java
+loader validates all 33 pinned files and a fresh process-matched status. Its
+renderer also completes 60 frames, but a status check made after SDK shutdown
+is correctly rejected once its last heartbeat is six seconds old; this does
+not establish a live rendering failure or justify relaxing the freshness guard.
+
+The screenshots show about 5,558 MiB of a changing 6,495-6,639 MiB budget,
+leaving roughly 937-1,081 MiB in that displayed budget. The card still reports
+8,192 MiB physical capacity. A dynamic process budget is not physical capacity;
+the [Vulkan memory-budget contract](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceMemoryBudgetPropertiesEXT.html)
+allows it to change with other system activity. Neither the screenshot nor one
+board-wide utilization sample proves exhaustion or GPU underuse caused shimmer.
+The native session reports an oversized water-texture synchronous upload and a
+failed native DLFG feature creation, with no logged device-lost or out-of-memory
+failure in this run. Those are separate observations, not a memory diagnosis.
+
+F8 turns off scene capture/submission and returns world drawing to vanilla;
+it does not shut down the Remix runtime. Terrain is cleared, but runtime caches,
+render targets, other asset stores, the adapter and vanilla resources can stay
+allocated. Alt-tabbing/minimizing similarly does not unload VRAM. The candidate
+caps a minimized initialized Remix client at 1 FPS; an unfocused visible client
+retains its configured cap (default 10). Benchmarks bypass these extra caps.
+Lower submission rates reduce background work, but concurrent games still
+share GPU time and memory. Exiting Minecraft releases its process resources.
+
+One consolidated comparison: keep the same view and DLSS Balanced setting,
+with both FG routes off; compare held stone, a slow pan and log breaking with
+sparse off/on. Report trails/shimmer and FPS for each. Then minimize Minecraft,
+check whether competing-game performance improves, and return to confirm
+rendering resumes. A qualitative report is sufficient; no continuous capture
+or new world is required. Close Minecraft and Prism before installing changes.
+
 The supplied Remix settings screenshot shows DLSS Preset Enabled, DLSS Auto,
 and Computed DLSS Mode Max Performance at 960x540 internal resolution. The
 individual controls appear disabled under the preset. This confirms the

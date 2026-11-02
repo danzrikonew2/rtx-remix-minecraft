@@ -13,6 +13,7 @@ public enum SettingGroup {
     BLOCK_LIGHTS(SettingCategory.LIGHTING, "rtxremix.settings.group.blockLights"),
     TONEMAPPING(SettingCategory.IMAGE, "rtxremix.settings.group.tonemapping"),
     EYE_ADAPTATION(SettingCategory.IMAGE, "rtxremix.settings.group.eyeAdaptation"),
+    TEMPORAL_SAMPLING(SettingCategory.IMAGE, "rtxremix.settings.group.temporalSampling"),
     MATERIALS(SettingCategory.MATERIALS, "rtxremix.settings.group.materials");
 
     private final SettingCategory category;

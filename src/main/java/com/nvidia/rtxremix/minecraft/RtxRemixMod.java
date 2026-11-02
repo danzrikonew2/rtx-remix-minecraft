@@ -807,6 +807,13 @@ public class RtxRemixMod implements ClientModInitializer {
                                 lightingCacheDiagnostic(context.getSource(), false)))
                         .then(ClientCommands.literal("on").executes(context ->
                                 lightingCacheDiagnostic(context.getSource(), true)))))
+                .then(ClientCommands.literal("temporal")
+                    .executes(context -> temporalSamplingDiagnostic(context.getSource(), null))
+                    .then(ClientCommands.literal("sparse")
+                        .then(ClientCommands.literal("off").executes(context ->
+                                temporalSamplingDiagnostic(context.getSource(), false)))
+                        .then(ClientCommands.literal("on").executes(context ->
+                                temporalSamplingDiagnostic(context.getSource(), true)))))
                 .then(ClientCommands.literal("status")
                     .executes(context -> {
                         context.getSource().sendFeedback(Component.literal("RTX Status:"));
@@ -2224,6 +2231,38 @@ public class RtxRemixMod implements ClientModInitializer {
         }
     }
     
+    @SuppressWarnings("unchecked")
+    private static int temporalSamplingDiagnostic(FabricClientCommandSource source, Boolean enabled) {
+        if (renderer == null || !renderer.isInitialized() || rtxSettings == null) {
+            source.sendFeedback(Component.literal("Temporal diagnostics require an initialized RTX renderer."));
+            return 0;
+        }
+        if (enabled != null) {
+            var setting = rtxSettings.byId("image.sparseTracing");
+            if (setting == null || setting.kind() != com.nvidia.rtxremix.minecraft.settings.RtxSetting.Kind.BOOL) {
+                source.sendFeedback(Component.literal("Sparse tracing is unavailable in this runtime."));
+                return 0;
+            }
+            ((com.nvidia.rtxremix.minecraft.settings.RtxSetting<Boolean>) setting).apply(enabled);
+            saveRtxSettings();
+            String message = "Sparse tracing requested " + (enabled ? "on" : "off")
+                    + ". Off increases GPU work; DLSS and denoising remain active. "
+                    + "Use /rtx temporal after another frame to check the resolved setting.";
+            source.sendFeedback(Component.literal(message));
+            LOGGER.info("{}", message);
+        } else {
+            var api = renderer.getRemixApi();
+            String message = "Temporal sampling: sparse=" + api.getConfigVariableResolved(
+                    "rtx.sparseRendering.enableSparseRendering")
+                    + ", sparse quality=" + api.getConfigVariableResolved("rtx.sparseRendering.quality")
+                    + ", native Remix FG=" + api.getConfigVariableResolved("rtx.dlfg.enable")
+                    + ". Native FG is separate from OptiScaler; use /rtx mfg for adapter status.";
+            source.sendFeedback(Component.literal(message));
+            LOGGER.info("{}", message);
+        }
+        return 1;
+    }
+
     private static int lightingCacheDiagnostic(FabricClientCommandSource source, Boolean enabled) {
         if (renderer == null || !renderer.isInitialized()) {
             source.sendFeedback(Component.literal("Lighting diagnostics require an initialized RTX renderer."));

@@ -209,6 +209,11 @@ public final class RtxSettingsFactory {
                 () -> (double) textures.getTerrainEmissionMultiplier(),
                 value -> textures.setTerrainEmissionMultiplier(value.floatValue())));
         RemixAPI remix = renderer.getRemixApi();
+        remixBool("image.sparseTracing", SettingGroup.TEMPORAL_SAMPLING,
+                "rtxremix.setting.image.sparseTracing",
+                "rtx.sparseRendering.enableSparseRendering",
+                remix::getConfigVariableResolved, remix::setConfigVariable)
+                .ifPresent(list::add);
         remixBool("materials.smoothReliefMaps", SettingGroup.MATERIALS,
                 "rtxremix.setting.materials.smoothReliefMaps",
                 "rtx.materials.smoothReliefMapFiltering",

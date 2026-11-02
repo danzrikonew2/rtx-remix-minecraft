@@ -24,6 +24,8 @@ public final class UnfocusedFramerateLimit {
     public static final int STEP = 10;
     /** 100 ms per frame keeps a background window close to idle. */
     public static final int DEFAULT = 10;
+    /** No visible frames need smooth animation while the window is minimized. */
+    public static final int MINIMIZED = 1;
 
     private static int limit = DEFAULT;
 
@@ -38,10 +40,12 @@ public final class UnfocusedFramerateLimit {
     }
 
     /**
-     * @param vanillaLimit the limit Minecraft would use with the window focused
-     * @return the limit to use while the window is unfocused
+     * @param vanillaLimit the limit Minecraft already selected
+     * @return a foreground limit unchanged, the configured background cap, or
+     *         one frame per second while minimized; never raises vanilla's cap
      */
-    public static int apply(int vanillaLimit) {
-        return Math.min(vanillaLimit, limit);
+    public static int apply(int vanillaLimit, boolean focused, boolean minimized) {
+        if (minimized) return Math.min(vanillaLimit, MINIMIZED);
+        return focused ? vanillaLimit : Math.min(vanillaLimit, limit);
     }
 }

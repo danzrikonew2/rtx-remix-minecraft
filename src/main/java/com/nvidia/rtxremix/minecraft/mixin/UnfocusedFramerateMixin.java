@@ -31,9 +31,6 @@ public abstract class UnfocusedFramerateMixin {
 
     @ModifyReturnValue(method = "getFramerateLimit()I", at = @At("RETURN"))
     private int rtxremix$capWhileUnfocused(int limit) {
-        if (Minecraft.getInstance().isWindowActive()) {
-            return limit;
-        }
         // A benchmark measures renderer throughput and must not be throttled
         // because the user tabbed away while it ran.
         RemixRenderer renderer = RtxRemixMod.renderer;
@@ -41,6 +38,8 @@ public abstract class UnfocusedFramerateMixin {
                 || renderer.getBenchmarkController().isRunning()) {
             return limit;
         }
-        return UnfocusedFramerateLimit.apply(limit);
+        Minecraft client = Minecraft.getInstance();
+        return UnfocusedFramerateLimit.apply(limit,
+                client.isWindowActive(), client.getWindow().isIconified());
     }
 }
