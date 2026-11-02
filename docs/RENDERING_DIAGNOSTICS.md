@@ -2,6 +2,14 @@
 
 ## Bright foliage after time changes
 
+On 2026-11-02 the user confirmed that `/rtx lighting cache off` removes the
+bright-grass artifact in their test. The next packaged default therefore disables
+`rtx.spatiallyHashedRadianceCache.queryForThinOpaquePrimaryView`. This bypasses
+primary thin-opaque foliage cache queries; SHaRC remains enabled for other uses.
+It is a confirmed workaround for that scene, not a native cache bug fix or proof
+that every bright-material artifact has the same cause. Its performance impact
+has not been measured. Keep `off` for normal play if it resolves the symptom.
+
 The transition layer `mc.lighting.settling` briefly reduces SHaRC history after
 an abrupt Overworld clock change or moving weather. It retains warm cache
 entries and restores the authored history settings afterwards. It is a
@@ -21,8 +29,8 @@ For a reversible comparison in the same view:
 Repeat the time changes with queries on. `off` bypasses primary thin-opaque
 foliage queries, not the whole renderer. `on` restores those queries. Status
 reports resolved values; a write may take a native frame or more to resolve.
-Each command writes its result to `logs/latest.log`. Restore `on` after the
-comparison. Report whether the bright patches differ with cache queries off,
+Each command writes its result to `logs/latest.log`. Restore `off` after the
+comparison to keep the confirmed workaround. Report whether the bright patches differ with cache queries off,
 and whether they fade while the camera stays still.
 
 Read the [architecture and invariants](../AGENTS.md#architecture) first. This

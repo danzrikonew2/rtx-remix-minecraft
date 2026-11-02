@@ -23,8 +23,13 @@ problem; the latest candidate keeps SHaRC warm with a brief shorter-history laye
 and provides reversible foliage-cache diagnostics.
 The development adapter now migrates its shared-menu default to Backspace and
 uses End for FG off/on. Startup and `/rtx mfg reset` clear the competing native
-Remix FG request. Isolated shared-menu/control checks pass; Minecraft validation
-is pending. See [adapter controls](MFG_UNLOCKER.md#development-adapter-controls-after-931391c).
+Remix FG request. The user now confirms the shared menu works. Provider
+evaluations execute, but requests above 2x encounter repeated output-image reuse
+and fall back to 2x; displayed interpolation remains unmeasured. DLSS 5 is not
+active/exposed in this profile. See [adapter evidence](MFG_UNLOCKER.md#game-controls-and-multiplier-evidence-2026-11-02).
+The user also confirms `/rtx lighting cache off` removes bright grass in their
+scene. The next packaged default uses that targeted foliage-query bypass;
+performance impact and other scenes remain unmeasured.
 A standalone direct-Remix FG adapter and Minecraft interpolation validation
 remain incomplete; see the
 [native adapter development guide](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/native/mfg/README.md).

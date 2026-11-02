@@ -168,6 +168,35 @@ visible overlay correctness, displayed interpolation or a performance gain.
 The next game check should exercise those four steps and compare motion with
 End off/on. Minecraft's F3 FPS alone does not count generated presentation frames.
 
+### Game controls and multiplier evidence (2026-11-02)
+
+The user now confirms the OptiScaler menu is visible and supplies captures of
+Off, ON 2x and ON 6x. A process-matched live snapshot (PID 36824) records 5,834
+successful provider evaluations and 5,832 submitted batches, with zero failed
+batches; a later snapshot records 6,993 evaluations and 6,991 submitted batches.
+There were eight rejected evaluation attempts and recovered failure 131 (last
+failure 0). This supports provider execution, not a measured display multiplier.
+
+The native log reports that the wrapper reuses one output image for multiple
+generated frames (`count=5` while requesting 6x), then explicitly keeps that
+feature at **2x until it is recreated**. Thus **ON 6x is a request, not verified
+6x output**. Keep 2x for the current adapter; distinct multi-output resource
+handling remains incomplete. Do not remove the duplicate-output/lifetime guard
+to make the label succeed. Minecraft's F3 rate measures game frames, while the
+OptiScaler overlay is not a unique-display-frame counter; neither screenshot
+establishes how many distinct generated images reached the monitor.
+
+MFG 1.7.0's separate **DLSS 5 / Neural Rendering** tab exists in its source.
+Its provider-dependent tab and the standalone MFG UI are separate from the
+OptiScaler FG page shown in the captures. This profile reports `dlss5=false`,
+`dlss5Detected=false` and zero DLSS 5 evaluations. The provider is mapped from
+OptiScaler's library folders, but the MFG UI's provider-location gate does not
+detect it there; the profile has no working DLSS 5 menu integration yet.
+Do not present the available SR/RR presets or FG multipliers as DLSS 5.
+Upstream documents Auto/After upscaling for its Vulkan neural-rendering route;
+that is an upstream capability, not a validated Minecraft feature. See the
+[pinned MFG README](https://github.com/dashdogy/MFG-Unlocker/blob/7523faa4f804813669dab8b932d51f619641384a/README.md#v170).
+
 Primary references:
 
 - [MFG RTX 30 backend](https://github.com/dashdogy/MFG-Unlocker/blob/main/source/native/ampere_backend.cpp)

@@ -1,5 +1,28 @@
 # Minecraft 26.3 stability and performance baseline
 
+## User comparison and FG controls: 2026-11-02, build 34d264d
+
+The user reports that `/rtx lighting cache off` fixes the bright-grass artifact.
+The next packaged default bypasses primary thin-opaque SHaRC queries; this is a
+scene-verified workaround, without a measured performance comparison or a claim
+to fix the native cache implementation. Existing 34d264d instances can keep the
+command's runtime setting. No running instance files were replaced for this change.
+
+User captures show the shared menu working with FG Off, 2x and 6x requests.
+F3 stays near the game's base rendering rate. A process-matched live snapshot
+(PID 36824) records 5,834 successful FG evaluations / 5,832 submitted batches;
+a subsequent snapshot records 6,993 / 6,991. Eight evaluation rejections occurred,
+with first failure 131 and last failure 0, and zero failed submitted batches.
+These are live snapshots during testing, not a final session/benchmark report.
+
+At 19:22:22 and 19:22:50 Jakarta time the native log explicitly reports repeated
+generated-output image reuse for `count=5` and latches the feature to 2x until
+recreation. This explains why an ON 6x request cannot be treated as 6x output.
+Distinct multi-output handling remains unresolved; guards stay active. Present
+batch metadata and overlay FPS do not verify unique displayed interpolation or
+a measured frame-rate multiplier. DLSS 5 is disabled/undetected with zero
+evaluations in the same profile; its menu/provider integration remains incomplete.
+
 ## Adapter control diagnosis: 2026-11-02
 
 The user reports that build 931391c still does not open a menu with Backspace

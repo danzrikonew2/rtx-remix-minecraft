@@ -11,6 +11,11 @@ also part of every mod file name.
 
 ## Unreleased
 
+- Default primary thin-opaque SHaRC queries to off after the user's in-game
+  comparison removed bright grass following time changes. Other cache uses
+  remain enabled; this is a targeted workaround with unmeasured performance
+  impact. Record working shared FG controls, repeated-output rejection above
+  2x, and the incomplete DLSS 5 menu/provider integration.
 - Correct the development adapter's shared-menu shortcut from automatic Insert
   to Backspace, with End as the independent adapter FG toggle. Preserve custom
   shortcuts and back up migrated INIs. Clear conflicting native Remix FG at
