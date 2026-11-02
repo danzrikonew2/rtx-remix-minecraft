@@ -129,6 +129,45 @@ provider execution in Minecraft; displayed interpolation quality and a measured
 frame-rate gain remain unverified. The reported bright foliage is still unresolved;
 see the [latest lighting comparison](RENDERING_DIAGNOSTICS.md#bright-foliage-after-time-changes).
 
+### Development adapter controls (after 931391c)
+
+The development profile uses **OptiScaler FG**, independently of Remix's native
+**Enable DLSS Frame Generation** checkbox. Keep that native checkbox **off**.
+Checking it requests a different presenter and can leave an unsupported request
+checked and greyed out. A/C preset selectors are not evidence of interpolation
+or a frame-rate gain.
+
+The old adapter INI left its shared menu on `ShortcutKey=auto`, which resolves
+to **Insert**. The standalone MFG UI's `ToggleKey=8` did not configure that menu.
+The new loader migrates automatic/default Insert to **Backspace**, automatic
+FG toggle to **End**, and automatic overlay enable to explicit `true` before
+loading OptiScaler. It backs up the INI as
+`OptiScaler.ini.before-remix-menu-fix`, preserves explicit custom keys/overlay
+opt-outs and leaves FG quality, multiplier and presets alone. New staging uses
+the same defaults. It applies only to the manifest-pinned development adapter;
+the public beta's standalone addon is unchanged.
+
+For the **RTX Remix Community 26.3 FG Adapter (Development)** profile:
+
+1. Close Remix's graphics/developer menu with **Alt+X** before testing.
+2. Press and release **Backspace** to open/close the OptiScaler menu. Use its
+   Frame Generation controls, with the existing upscaler input and DLSSG output.
+3. Press and release **End** to toggle adapter FG off/on. This control does not
+   require Remix's native FG checkbox to be enabled.
+4. If the native checkbox was enabled, close that menu and run `/rtx mfg reset`.
+   This clears only the native FG request. `/rtx mfg` reports its resolved value
+   (expected `false`) as well as route instructions. Startup also clears the
+   conflicting saved native request before initializing the renderer.
+
+A 140-present hidden test against the pinned runtime verified shared-menu
+open/close from Backspace, adapter FG disabled/enabled from End, and recovery of
+a seeded native FG request to `false`. Logs show two FG features across the
+off/on cycle and zero failed batches. It was unfocused, so it recorded zero FG
+evaluations; this control test does not establish Minecraft input handling,
+visible overlay correctness, displayed interpolation or a performance gain.
+The next game check should exercise those four steps and compare motion with
+End off/on. Minecraft's F3 FPS alone does not count generated presentation frames.
+
 Primary references:
 
 - [MFG RTX 30 backend](https://github.com/dashdogy/MFG-Unlocker/blob/main/source/native/ampere_backend.cpp)
@@ -157,16 +196,18 @@ that resetting user data caused the failure. The menu/presentation integration
 is an unresolved compatibility blocker; reinstalling or changing the key cannot
 be claimed to repair it.
 
-Use `/rtx mfg` in a world to query the native menu hook flags, Windows virtual-key
-code and DXGI/Vulkan/menu frame counters. The command also records the result in
+Use `/rtx mfg` in a world to query the standalone native menu hook flags, Windows
+virtual-key code and DXGI/Vulkan/menu frame counters, or the adapter route's
+instructions/native FG setting when that route is loaded. The command also records the result in
 `logs/latest.log`; it does not enable FG. Key code 8 means Backspace.
 
 A loaded DLL, visible menu or enabled checkbox does not
 prove generated frames are being produced. No FG multiplier or DLSS 5 success
 is claimed until confirmed in an actual game session and runtime/addon logs.
 
-The installer does not force Remix's frame-generation config flag or change
-DLSS/quality settings. Select the feature through its menus when supported.
+The public installer does not force Remix's frame-generation config flag or
+change DLSS/quality settings. The development adapter clears the competing
+native FG flag as described above. Select adapter FG through its own controls.
 DLSS 5 neural rendering and multi-frame generation are separate capabilities.
 
 ## Disable and rollback

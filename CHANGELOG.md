@@ -11,6 +11,12 @@ also part of every mod file name.
 
 ## Unreleased
 
+- Correct the development adapter's shared-menu shortcut from automatic Insert
+  to Backspace, with End as the independent adapter FG toggle. Preserve custom
+  shortcuts and back up migrated INIs. Clear conflicting native Remix FG at
+  startup and add `/rtx mfg reset` recovery plus route-specific help. A hidden
+  pinned-runtime test verifies menu open/close and FG off/on; game display and
+  performance acceptance remain pending.
 - Wait for MFG's actual early Vulkan startup prerequisites before loading Remix,
   and stop renderer initialization if private-device admission fails. The first
   Minecraft adapter run generated no frames and ended in device loss; a revised

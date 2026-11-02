@@ -754,10 +754,28 @@ public class RtxRemixMod implements ClientModInitializer {
                 .then(ClientCommands.literal("mfg")
                     .executes(context -> {
                         String status = MfgUnlockerBootstrap.status();
+                        if (MfgUnlockerBootstrap.usesOptiScalerAdapter()
+                                && renderer != null && renderer.isInitialized()) {
+                            status += " Remix native FG=" + renderer.getRemixApi()
+                                    .getConfigVariableResolved("rtx.dlfg.enable") + " (expected false).";
+                        }
                         context.getSource().sendFeedback(Component.literal(status));
                         LOGGER.info("{}", status);
                         return 1;
-                    }))
+                    })
+                    .then(ClientCommands.literal("reset").executes(context -> {
+                        if (!MfgUnlockerBootstrap.usesOptiScalerAdapter()
+                                || renderer == null || !renderer.isInitialized()) {
+                            context.getSource().sendFeedback(Component.literal(
+                                    "MFG reset requires the initialized experimental OptiScaler adapter."));
+                            return 0;
+                        }
+                        MfgUnlockerBootstrap.prepareRemixStartup(renderer.getRemixApi()::setConfigVariable);
+                        context.getSource().sendFeedback(Component.literal(
+                                "Remix native FG requested OFF. Adapter FG is separate: use End or the Backspace menu. "
+                                + "Use /rtx mfg to check the route."));
+                        return 1;
+                    })))
                 .then(ClientCommands.literal("lighting")
                     .then(ClientCommands.literal("cache")
                         .executes(context -> lightingCacheDiagnostic(context.getSource(), null))
@@ -2267,6 +2285,11 @@ public class RtxRemixMod implements ClientModInitializer {
     
     public RemixRenderer getRenderer() {
         return renderer;
+    }
+
+    /** Only the explicitly installed development adapter uses a separate FG menu. */
+    public static boolean isMfgAdapterActive() {
+        return MfgUnlockerBootstrap.usesOptiScalerAdapter();
     }
     
     /**

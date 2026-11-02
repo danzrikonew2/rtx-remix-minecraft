@@ -71,6 +71,9 @@ config.optionxform = str
 config.read(package / "OptiScaler.ini", encoding="utf-8")
 config["Libraries"]["OptiDllPath"] = str(destination / "OptiScaler")
 config["Plugins"]["Path"] = str(destination / "OptiScaler/plugins")
+config["Menu"]["OverlayMenu"] = "true"
+config["Menu"]["ShortcutKey"] = "8"  # VK_BACK; the standalone MFG UI INI does not control this menu.
+config["Menu"]["FGShortcutKey"] = "35"  # VK_END; independent of Remix's native FG checkbox.
 with (destination / "OptiScaler.ini").open("w", encoding="utf-8") as stream:
     config.write(stream)
 libraries = sorted(

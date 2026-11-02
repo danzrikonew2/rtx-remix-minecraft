@@ -15,11 +15,13 @@ static void Check(remixapi_ErrorCode code, const char* operation) {
     }
 }
 int wmain(int argc, wchar_t** argv) {
-    if (argc < 3 || argc > 6) { puts("Usage: OptiRemixProbe.exe OPTISCALER_DLL REMIX_DLL [visible|hidden] [frame-count] [lighting-conf]"); return 2; }
+    if (argc < 3 || argc > 7) { puts("Usage: OptiRemixProbe.exe OPTISCALER_DLL REMIX_DLL [visible|hidden] [frame-count] [lighting-conf] [controls]"); return 2; }
     const bool visible = argc > 3 && wcscmp(argv[3], L"visible") == 0;
     if (argc > 3 && !visible && wcscmp(argv[3], L"hidden") != 0) return 2;
     const int frameLimit = argc > 4 ? _wtoi(argv[4]) : 600;
     if (frameLimit < 40 || frameLimit > 3600) return 2;
+    const bool controls = argc > 6 && wcscmp(argv[6], L"controls") == 0;
+    if (argc > 6 && (!controls || frameLimit < 120)) return 2;
     setvbuf(stdout, nullptr, _IONBF, 0);
     SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
     const auto addon = std::filesystem::absolute(argv[1]);
@@ -58,6 +60,9 @@ int wmain(int argc, wchar_t** argv) {
     startup.sType=REMIXAPI_STRUCT_TYPE_STARTUP_INFO;
     startup.hwnd=reinterpret_cast<remixapi_HWND>(window);
     startup.combineGuiInFinalColor=1;
+    // Simulate a saved native request, then the Java adapter's pre-startup repair.
+    if (controls) Check(api.SetConfigVariable("rtx.dlfg.enable", "true"), "Seed conflicting native FG request");
+    Check(api.SetConfigVariable("rtx.dlfg.enable", "false"), "Keep native FG off for the OptiScaler route");
     Check(api.Startup(&startup), "Startup");
     if (!deviceReady()) { puts("FAIL: private Vulkan startup rejected"); api.Shutdown(); return 1; }
     auto readOption = [&api](const char* key) {
@@ -111,6 +116,13 @@ int wmain(int argc, wchar_t** argv) {
         MSG message{};
         while (PeekMessageW(&message,nullptr,0,0,PM_REMOVE)) { TranslateMessage(&message); DispatchMessageW(&message); }
         if (!IsWindow(window)) break;
+        // Only this probe's own window receives synthetic messages. No global input or focus change.
+        if (controls && (frame == 20 || frame == 45 || frame == 70 || frame == 95)) {
+            const UINT key = frame < 70 ? VK_BACK : VK_END;
+            PostMessageW(window, WM_KEYDOWN, key, 1);
+            PostMessageW(window, WM_KEYUP, key, (1ll << 31) | (1ll << 30) | 1);
+            printf("Own-window control: frame=%d key=%u\n", frame, key);
+        }
         remixapi_CameraInfoParameterizedEXT parameterized{};
         parameterized.sType=REMIXAPI_STRUCT_TYPE_CAMERA_INFO_PARAMETERIZED_EXT;
         parameterized.forward={0,0,1}; parameterized.up={0,1,0}; parameterized.right={1,0,0};
@@ -148,6 +160,12 @@ int wmain(int argc, wchar_t** argv) {
         Sleep(16);
     }
     printf("Probe presents=%u foreground presents=%u\n", presents, foregroundPresents);
+    if (controls) {
+        if (_stricmp(readOption("rtx.dlfg.enable").c_str(), "false") != 0) {
+            puts("FAIL: conflicting native FG request was not cleared"); return 1;
+        }
+        puts("Native FG request cleared; check fresh OptiScaler log for Backspace open/close and End off/on");
+    }
     if (readOption(queryKey) != queryBefore || readOption(accumulationKey) != accumulationBefore || readOption(staleKey) != staleBefore) {
         puts("FAIL: lighting defaults were not restored"); return 1;
     }

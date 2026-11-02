@@ -60,6 +60,9 @@ runtime tests. Its private Vulkan route also completes FG provider evaluations
 on a 3070 Ti in a focused native probe and in an experimental Minecraft session.
 The opt-in Minecraft adapter remains
 experimental; game presentation, image quality and performance are unverified.
+Its default controls are **Backspace** for the shared menu and **End** for FG
+off/on. Leave Remix's native FG checkbox off; `/rtx mfg reset` clears a stuck
+native request. See the [development control guide](docs/MFG_UNLOCKER.md#development-adapter-controls-after-931391c).
 
 The step-by-step version, with launcher advice and troubleshooting, is in
 [Playing](docs/PLAYING.md).

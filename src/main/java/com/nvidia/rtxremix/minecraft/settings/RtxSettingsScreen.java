@@ -76,7 +76,8 @@ public final class RtxSettingsScreen extends Screen {
                         // dispatching before opening releases that same press.
                         button -> this.minecraft.execute(() -> RtxRemixMod.openRemixMenu(
                                 RemixInputGate.Menu.GRAPHICS_SETTINGS)))
-                .tooltip(Tooltip.create(Component.translatable("rtxremix.settings.openRemixMenu.tip")))
+                .tooltip(Tooltip.create(Component.translatable(RtxRemixMod.isMfgAdapterActive()
+                        ? "rtxremix.settings.openRemixMenu.mfgTip" : "rtxremix.settings.openRemixMenu.tip")))
                 .width(204)
                 .build();
     }

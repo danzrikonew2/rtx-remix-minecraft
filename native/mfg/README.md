@@ -200,6 +200,10 @@ FGOutput=dlssg
 FGNvngxReplacement=None
 [DLSSG]
 InterpolationCount=1
+[Menu]
+OverlayMenu=true
+ShortcutKey=8
+FGShortcutKey=35
 [Plugins]
 LoadAsiPlugins=true
 Path=ABSOLUTE_TEST_DIRECTORY/OptiScaler/plugins
@@ -223,6 +227,21 @@ to focus it. It closes automatically after the requested 40–3600 frames;
 `hidden` is available for startup checks. It does not open Minecraft or access
 accounts/worlds. Verify the current process's `RTXMFG-Universal.status.json`
 and runtime logs for successful evaluations and generated presentation batches.
+
+Backspace (`VK_BACK=8`) opens the shared OptiScaler menu; End (`VK_END=35`)
+toggles its FG. The standalone `RTX40MFG-UI.ini` does not configure these shared
+controls. Keep Remix's native `rtx.dlfg.enable=false`: that checkbox requests a
+different presenter. The development loader clears a saved conflicting request
+before startup, and `/rtx mfg reset` clears it in-game without changing adapter
+FG or quality. Explicit custom INI shortcuts/overlay opt-outs are preserved;
+automatic/default settings migrate once with an adjacent backup.
+
+For an isolated control regression, append the absolute shipped lighting-conf
+path and `controls` after `hidden 140`. The probe posts Backspace twice and End
+twice only to its own window, and verifies a seeded native FG request was cleared.
+Inspect that process's fresh OptiScaler log for menu opening/closing and
+`FGEnabled` false/true. This passed with two FG features and zero failed batches;
+the hidden window has zero evaluations, so the result does not measure FG gain.
 An active mode or created feature alone is insufficient.
 
 This uses the adapter's upscaler input and FG control. An additional native

@@ -300,6 +300,7 @@ public class RemixRenderer {
                     .hwnd(windowHandle)
                     .interopImage(true)
                     .build();
+                MfgUnlockerBootstrap.prepareRemixStartup(remixApi::setConfigVariable);
                 remixApi.startup(startupInfo);
                 MfgUnlockerBootstrap.requireAdapterDeviceReady();
                 LOGGER.info("RTX Remix API started");

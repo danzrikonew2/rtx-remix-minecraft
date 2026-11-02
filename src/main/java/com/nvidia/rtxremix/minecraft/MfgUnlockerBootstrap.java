@@ -48,6 +48,9 @@ final class MfgUnlockerBootstrap {
             if (!adapterManifestHash.isEmpty()) {
                 Path adapter = addon.resolve(MfgOptiScalerPayload.DIRECTORY);
                 MfgOptiScalerPayload.validate(adapter, adapterManifestHash, developmentHash);
+                if (MfgAdapterConfig.prepare(adapter)) {
+                    LOGGER.info("Migrated OptiScaler automatic menu keys: Backspace menu, End FG toggle; previous INI backed up");
+                }
                 adapterLoadAttempted = true;
                 MfgOptiScalerPayload.load(adapter);
                 awaitBackendOwnership();
@@ -126,6 +129,18 @@ final class MfgUnlockerBootstrap {
         }
     }
 
+    static boolean usesOptiScalerAdapter() {
+        return optiScalerAdapter;
+    }
+
+    /** The adapter generates from upscaler inputs; Remix's native FG is a different presenter. */
+    static void prepareRemixStartup(java.util.function.BiConsumer<String, String> configWriter) {
+        if (optiScalerAdapter) {
+            configWriter.accept("rtx.dlfg.enable", "false");
+            LOGGER.info("OptiScaler owns FG. Use its Backspace menu and End toggle; keep Remix native FG off.");
+        }
+    }
+
     /** A local native build requires an explicit full hash; release downloads keep their fixed pin. */
     static boolean acceptedHash(String actual, String developmentHash) {
         return DLL_SHA256.equals(actual) || (developmentHash.matches("[a-f0-9]{64}") && developmentHash.equals(actual));
@@ -144,7 +159,8 @@ final class MfgUnlockerBootstrap {
             if (accepted == 0) return "MFG addon rejected its status query.";
             if (optiScalerAdapter) {
                 return "MFG loaded; backend owner=" + (status.get(ValueLayout.JAVA_INT, 8) != 0)
-                        + "; OptiScaler owns presentation and the shared menu. "
+                        + "; OptiScaler owns FG. Default controls: Backspace opens its menu, End toggles FG. "
+                        + "Keep Remix's native FG checkbox OFF; /rtx mfg reset clears a stuck native request. "
                         + "Standalone menu counters do not measure this route. "
                         + "Check the current process's MFG/OptiScaler logs for evaluations and presentation.";
             }

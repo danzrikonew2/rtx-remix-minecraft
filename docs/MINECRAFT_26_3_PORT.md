@@ -21,6 +21,10 @@ batches and completed native shutdown. Display quality and frame-rate gains
 remain unverified. Bright foliage after clock changes remains an open rendering
 problem; the latest candidate keeps SHaRC warm with a brief shorter-history layer
 and provides reversible foliage-cache diagnostics.
+The development adapter now migrates its shared-menu default to Backspace and
+uses End for FG off/on. Startup and `/rtx mfg reset` clear the competing native
+Remix FG request. Isolated shared-menu/control checks pass; Minecraft validation
+is pending. See [adapter controls](MFG_UNLOCKER.md#development-adapter-controls-after-931391c).
 A standalone direct-Remix FG adapter and Minecraft interpolation validation
 remain incomplete; see the
 [native adapter development guide](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/native/mfg/README.md).

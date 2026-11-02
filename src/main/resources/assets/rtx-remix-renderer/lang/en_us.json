@@ -57,6 +57,7 @@
   "rtxremix.settings.category.materials": "Materials",
   "rtxremix.settings.configure": "Configure...",
   "rtxremix.settings.openRemixMenu": "RTX Remix Graphics Settings",
+  "rtxremix.settings.openRemixMenu.mfgTip": "Opens Remix graphics settings. Experimental FG uses its separate menu: close Remix with Alt+X, then Backspace opens FG controls and End toggles FG. Keep Remix's native Frame Generation off. If stuck, close the menu and run /rtx mfg reset.",
   "rtxremix.settings.openRemixMenu.tip": "Opens the RTX Remix Graphics Settings menu. Minecraft ignores input while it is open. Close it with its own close button or Alt+X.",
   "rtxremix.settings.blockLights.title": "Block Lights",
   "rtxremix.settings.blockLights.block": "Block",

@@ -1,5 +1,27 @@
 # Minecraft 26.3 stability and performance baseline
 
+## Adapter control diagnosis: 2026-11-02
+
+The user reports that build 931391c still does not open a menu with Backspace
+and that enabling Remix's native FG checkbox leaves it checked/greyed with
+preset selectors. The adapter's shared OptiScaler INI had `ShortcutKey=auto`
+(Insert), independently of the standalone MFG UI INI's Backspace setting.
+This establishes a shortcut mismatch, not user error. The adapter's upscaler
+input/DLSSG output also does not require Remix's native FG presenter.
+
+Automatic menu settings now migrate before native loading with a preserved
+backup, and a conflicting native FG request is cleared before startup.
+`/rtx mfg reset` provides explicit recovery; `/rtx mfg` reads the resolved native
+flag and explains the independent controls. Quality/preset settings are retained.
+
+A hidden 140-present pinned-runtime probe sends key messages only to its own
+window. Fresh OptiScaler logs confirm Backspace opens then closes the shared
+menu and End changes `FGEnabled` false then true. The resolved native FG flag
+is false after seeding and repairing a true request before startup. Two features
+are created across the off/on cycle, with zero failed batches. Zero evaluations
+are expected in this unfocused run; these data validate controls and recovery,
+not Minecraft overlay visibility, display output or a frame-rate gain.
+
 ## Foliage lighting retest: 2026-11-01, build 931391c
 
 The user still observed bright foliage patches after natural midnight followed
