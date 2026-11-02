@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -23,6 +24,79 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ZonePersistentStateTest {
+
+    @Test
+    void importsPrevious263BeforeLegacyWithoutChangingEitherFile(@TempDir Path root) throws Exception {
+        Path previous = root.resolve("dimensions/minecraft/overworld/data/rtx-remix-renderer/zones.dat");
+        Path legacy = root.resolve("data/rtx_remix_zones.dat");
+        ZoneDefinition newer = ZoneDefinition.parse("rtx zone define newer", 0, 0, 0);
+        writePrior(previous, newer);
+        writePrior(legacy, ZoneDefinition.parse("rtx zone define legacy", 0, 0, 0));
+        byte[] original = Files.readAllBytes(previous);
+
+        assertEquals(List.of(newer), new ArrayList<>(ZonePersistentState.recoverPriorState(root).snapshot()));
+        assertTrue(java.util.Arrays.equals(original, Files.readAllBytes(previous)));
+        assertTrue(Files.exists(legacy));
+        assertFalse(Files.exists(root.resolve("data/rtx-remix-renderer/zones.dat")));
+    }
+
+    @Test
+    void importsLegacyAndHonorsAnIntentionallyEmptyPrevious263State(@TempDir Path root) throws Exception {
+        Path legacy = root.resolve("data/rtx_remix_zones.dat");
+        ZoneDefinition old = ZoneDefinition.parse("rtx zone define old", 0, 0, 0);
+        writePrior(legacy, old);
+        assertEquals(List.of(old), new ArrayList<>(ZonePersistentState.recoverPriorState(root).snapshot()));
+        writePrior(root.resolve("dimensions/minecraft/overworld/data/rtx-remix-renderer/zones.dat"));
+        assertTrue(ZonePersistentState.recoverPriorState(root).snapshot().isEmpty());
+    }
+
+    @Test
+    void failedCurrentFileLoadNeverResurrectsLegacyDefinitions(@TempDir Path root) throws Exception {
+        writePrior(root.resolve("data/rtx_remix_zones.dat"),
+                ZoneDefinition.parse("rtx zone define old", 0, 0, 0));
+        Path current = root.resolve("data/rtx-remix-renderer/zones.dat");
+        Files.createDirectories(current.getParent());
+        Files.writeString(current, "unreadable current file");
+        ZonePersistentState protectedState = ZonePersistentState.recoverPriorState(root);
+        assertTrue(protectedState.snapshot().isEmpty());
+        assertThrows(IllegalStateException.class, () -> protectedState.put(
+                ZoneDefinition.parse("rtx zone define overwrite", 0, 0, 0)));
+        assertEquals("unreadable current file", Files.readString(current));
+    }
+
+    @Test
+    void corruptOrFuturePreviousStateBlocksFallbackAndEditing(@TempDir Path root) throws Exception {
+        Path previous = root.resolve("dimensions/minecraft/overworld/data/rtx-remix-renderer/zones.dat");
+        writePrior(root.resolve("data/rtx_remix_zones.dat"),
+                ZoneDefinition.parse("rtx zone define legacy", 0, 0, 0));
+        Files.createDirectories(previous.getParent());
+        Files.writeString(previous, "not nbt");
+        assertThrows(IllegalStateException.class, () -> ZonePersistentState.recoverPriorState(root).put(
+                ZoneDefinition.parse("rtx zone define overwrite", 0, 0, 0)));
+        CompoundTag future = new CompoundTag();
+        CompoundTag data = new CompoundTag();
+        data.putInt("version", 999);
+        future.put("data", data);
+        NbtIo.writeCompressed(future, previous);
+        assertThrows(IllegalStateException.class, () -> ZonePersistentState.recoverPriorState(root).put(
+                ZoneDefinition.parse("rtx zone define overwrite", 0, 0, 0)));
+    }
+
+    @Test
+    void noPriorZoneFilesCreatesNoStateOrDirectories(@TempDir Path root) {
+        assertEquals(null, ZonePersistentState.recoverPriorState(root));
+        assertFalse(Files.exists(root.resolve("data")));
+    }
+
+    private static void writePrior(Path file, ZoneDefinition... zones) throws Exception {
+        ZonePersistentState state = new ZonePersistentState();
+        for (ZoneDefinition zone : zones) state.put(zone);
+        CompoundTag envelope = new CompoundTag();
+        envelope.put("data", state.toNbt());
+        envelope.putInt("DataVersion", 3955);
+        Files.createDirectories(file.getParent());
+        NbtIo.writeCompressed(envelope, file);
+    }
 
     @Test
     void sphereRoundTripsThroughNbt() {

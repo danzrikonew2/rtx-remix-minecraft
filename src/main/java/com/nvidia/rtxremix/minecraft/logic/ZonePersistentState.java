@@ -7,12 +7,15 @@ package com.nvidia.rtxremix.minecraft.logic;
 import com.nvidia.rtxremix.minecraft.RtxRemixCommonMod;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NumericTag;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
+import net.minecraft.world.level.storage.LevelResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,17 +26,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * World-save owner for zones authored with {@code /rtx zone define} in an
  * integrated single-player server. The renderer consumes a copied projection
  * in {@link ZoneRegistry}; it never reads this server-thread state directly.
  *
- * <p>The state is attached to the overworld's persistent-state manager so all
+ * <p>The state is attached to the server's save-wide storage so all
  * definitions live in one {@code data/rtx-remix-renderer/zones.dat} file, and a
- * zone is global to the save rather than scoped to a dimension. Saves written by
- * the 1.21.1 build used {@code data/rtx_remix_zones.dat}, which 26.x no longer
- * reads; re-define such zones or move the file.</p>
+ * zone is global to the save rather than scoped to a dimension. When that file
+ * is absent, definitions are imported from this port's earlier 26.3 overworld
+ * file, or from the 1.21.1 file, in that order. Original files stay untouched.</p>
  */
 public final class ZonePersistentState extends SavedData {
     private static final Logger LOGGER = LoggerFactory.getLogger(ZonePersistentState.class);
@@ -74,7 +80,8 @@ public final class ZonePersistentState extends SavedData {
      * object it does not need.</p>
      */
     public static ZonePersistentState getOrCreate(MinecraftServer server) {
-        return server.overworld().getDataStorage().computeIfAbsent(TYPE);
+        ZonePersistentState existing = getIfPresent(server);
+        return existing != null ? existing : server.getDataStorage().computeIfAbsent(TYPE);
     }
 
     /**
@@ -89,7 +96,40 @@ public final class ZonePersistentState extends SavedData {
      * depends on that behavior staying as it is.</p>
      */
     public static ZonePersistentState getIfPresent(MinecraftServer server) {
-        return server.overworld().getDataStorage().get(TYPE);
+        ZonePersistentState state = server.getDataStorage().get(TYPE);
+        if (state != null) return state;
+        ZonePersistentState recovered = recoverPriorState(server.getWorldPath(LevelResource.ROOT));
+        if (recovered == null) return null;
+        server.getDataStorage().set(TYPE, recovered);
+        // SavedDataStorage.set dirties even a read-only state. A failed/future
+        // file must remain protected rather than being serialized as empty.
+        if (!recovered.writable) recovered.setDirty(false);
+        return recovered;
+    }
+
+    /** Called only after save-wide lookup returned null; never merges or overwrites a current file. */
+    static ZonePersistentState recoverPriorState(Path saveRoot) {
+        Path current = saveRoot.resolve("data").resolve(RtxRemixCommonMod.MOD_ID).resolve("zones.dat");
+        if (Files.exists(current)) {
+            LOGGER.warn("Could not load current RTX zone file {}; preserving it and blocking edits", current);
+            return new ZonePersistentState(false);
+        }
+        Path previous = saveRoot.resolve("dimensions/minecraft/overworld/data")
+                .resolve(RtxRemixCommonMod.MOD_ID).resolve("zones.dat");
+        Path legacy = saveRoot.resolve("data/rtx_remix_zones.dat");
+        Path source = Files.exists(previous) ? previous : Files.exists(legacy) ? legacy : null;
+        if (source == null) return null;
+        try {
+            CompoundTag envelope = NbtIo.readCompressed(source, NbtAccounter.unlimitedHeap());
+            ZonePersistentState state = fromNbt(envelope.getCompoundOrEmpty("data"));
+            if (state.writable) LOGGER.info("Imported {} RTX zone(s) from {}; original file preserved",
+                    state.zonesByName.size(), source);
+            return state;
+        } catch (IOException | RuntimeException e) {
+            LOGGER.warn("Could not read prior RTX zone file {}; preserving it and blocking edits: {}",
+                    source, e.getMessage());
+            return new ZonePersistentState(false);
+        }
     }
 
     /** Immutable, name-sorted copy safe to publish to the client/render registry. */
@@ -169,7 +209,7 @@ public final class ZonePersistentState extends SavedData {
     private void requireWritable() {
         if (!writable) {
             throw new IllegalStateException(
-                    "saved zone data uses an unsupported schema; refusing to overwrite it");
+                    "saved zone data is unreadable or uses an unsupported schema; refusing to overwrite it");
         }
     }
 

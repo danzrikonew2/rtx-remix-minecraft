@@ -14,7 +14,8 @@ from pathlib import Path
 from ._diag_win32 import ProcessInfo, Win32, WindowInfo
 from .benchmark import util
 
-_GAME_TITLE = re.compile(r"^Minecraft\*? 1\.")
+# Support the 26.x client while retaining diagnostics for older Minecraft installs.
+_GAME_TITLE = re.compile(r"^Minecraft\*? \d+\.\d")
 # A full dump holds all of the game's memory, which includes the session token of the account it plays as.
 DUMP_PRIVACY_NOTE = (
     "  native.dmp holds the game's memory, including your signed-in Minecraft session: do not share it publicly."

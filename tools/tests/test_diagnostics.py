@@ -62,6 +62,13 @@ def test_window_title_is_case_sensitive_and_last_matching_window_wins(native):
     assert diagnostics.find_game_window(native) == WindowInfo(2, 20, "Minecraft* 1.21.1")
 
 
+@pytest.mark.parametrize("title", ["Minecraft 26.3", "Minecraft* 26.3 - Singleplayer", "Minecraft 1.21.1"])
+def test_window_discovery_supports_263_and_existing_older_clients(native, title):
+    window = WindowInfo(1, 10, title)
+    native.visible_windows.return_value = [WindowInfo(2, 20, "Minecraft Launcher"), window]
+    assert diagnostics.find_game_window(native) == window
+
+
 def test_focus_window_requires_java_owner(native):
     native.visible_windows.return_value = [
         WindowInfo(1, 10, "Minecraft 1.21.1"),
