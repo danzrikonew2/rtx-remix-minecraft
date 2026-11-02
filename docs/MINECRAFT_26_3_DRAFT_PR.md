@@ -1,48 +1,57 @@
-# Proposed draft PR: isolate and validate community 26.3 development
+# Proposed draft PR: entity texture lifetime and 26.3 zone-save preservation
 
-This description is prepared for review only. No PR has been opened. Coordinate
-with [existing PR #79](https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/pull/79)
-first; its renderer port should be credited and reviewed in its existing venue.
-Prefer a focused follow-up after #79 lands, or offer these changes to its author.
+Prepared for review only; no PR has been opened. Coordinate with
+[PR #79](https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/pull/79) and its
+author before proposing a follow-up. Its newer installer/tooling commit
+[`600a95f`](https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/commit/600a95f6ef63cbdbe566419ff5f1ce25cc1d5f42)
+already covers version selection, save-wide storage and diagnostic titles;
+those changes should not be presented as a new independent port.
 
 ## Proposed description
 
-The existing experimental Minecraft 26.3 port compiles the renderer, but its
-launcher and installer still select 1.21.1 and Java 21. This follow-up selects
-26.3, Fabric Loader 0.20.1, Fabric API 0.165.0+26.3, and Java 25 consistently,
-and gives development and installation profiles separate game directories.
-Working 1.21.1 instances, worlds, runtime files, and configurations are preserved.
+Dynamic entity textures can outlive the maps and players that used them:
+retiring retained instances and cold rigid meshes does not release their
+texture/material caches until a full world or material reload. This follow-up
+tracks the existing once-per-layer texture-use stamp and retires cold owned
+dynamic texture sets after a grace period, under a four-set sweep budget.
+Dependent instances and meshes retire before materials and textures. Current
+shared use protects a texture, borrowed atlas/static materials stay outside
+this policy, and downloaded CPU snapshots remain available for recreation.
+Failed native destruction preserves its owner/cache entry so cleanup can retry.
 
-This is a community-maintained experimental compatibility effort, not an
-official NVIDIA release. The source branch incorporates Alex Melan's #77, #78,
-and #79 with original attribution and sign-offs. Its renderer migration covers
-SectionCompiler terrain capture, extract/submit entity rendering, renderpearl
-OpenGL presentation, SDL3 input, and GPU-side sprite animation. This follow-up
-adds Windows path handling, profile isolation, tooling consistency, restores an
-access-widener SPDX header lost during migration, and narrows Minecraft metadata
-to the exact tested version. The JNI ABI and runtime pin are unchanged.
+The save-wide zone-storage correction in #79 also needs to preserve worlds
+opened with the earlier 26.3 port. Those versions wrote
+`dimensions/minecraft/overworld/data/rtx-remix-renderer/zones.dat` rather than
+the save-wide `data/rtx-remix-renderer/zones.dat`. When the canonical file is
+absent, import the prior 26.3 file before the 1.21.1 legacy file. Keep originals,
+honor intentionally empty states, and block fallback overwrite/editing of
+unreadable or future-schema data. Existing canonical definitions always win.
 
-Executed local validation: the 1.21.1 baseline passed 800 JVM tests after the
-Windows path fix; the integrated 26.3 port passed Java/native compilation, 767
-JVM tests, Windows x64 package inventory checks, and the native compatibility
-probe (return code 0). The locked tooling suite passes 1,135 tests and 178
-subtests with one skip. Local startup logs confirm runtime initialization;
-the user confirmed basic terrain/hands/demo-scene rendering, world reopening,
-and RTX toggling, and supplied an initialized `/rtx status` screenshot. Detailed
-runtime acceptance and stability testing remain incomplete. See the status document for
-the latest validation results rather than interpreting compile success as
-runtime proof.
+This is an unofficial community-maintained experimental follow-up. Original
+NVIDIA licensing, attribution and notices are preserved. Alex Melan's #77,
+#78, #79 and the follow-up commit above are credited. Coordinate the exact
+patch selection with that work. The fork's MFG/provider experiments are a
+separate development effort, not a request to include them in this focused PR.
+The JNI ABI, copied C API header and official runtime pin remain unchanged.
 
-Known gaps include missing burning-entity flame, leash and moving-piston block
-submits, custom Fabric submit phases, and unverified weather parity. Stability,
-8 GB VRAM behavior, full transparency/material coverage, and installer execution
-remain under test. Weak stained-glass tint is a user-reported deferred visual
-issue. ARM64 is untested here. No request is made to treat the port
-as release-ready.
+Executed local validation: 830 Java tests pass, including shared-use, grace,
+sweep-budget, cleanup-retry and save-file priority/preservation cases. Required
+tooling checks pass with 1,147 tests and 178 subtests; one test is skipped.
+Windows x64 JAR/installer verification checks scripts, documentation, licenses
+and matching embedded mod contents. JVM tests do not prove native visual
+correctness or measure a VRAM/FPS improvement; returning dynamic textures and
+real play-session behavior still require manual acceptance.
+
+Separate runtime research also tested native DLSS-NR option acceptance without
+MFG/OptiScaler. Renderer smoke completed, but the stock provider reported
+FeatureNotSupported and one community-provider experiment reported
+FeatureNotFound. Neither establishes working neural rendering on the 3070 Ti.
+Ghosting/held-item shimmer remain unresolved. These experiments do not justify
+changing the upstream runtime pin or claiming the compatibility port complete.
 
 - [Development branch](https://github.com/danzrikonew2/rtx-remix-minecraft/tree/feat/minecraft-26.3)
-- [Current status, build instructions and known issues](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/docs/MINECRAFT_26_3_PORT.md)
+- [Current status and build/testing instructions](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/docs/MINECRAFT_26_3_PORT.md)
+- [Audit, evidence and remaining visual checks](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/docs/PERFORMANCE_26_3.md#code-and-upstream-research-audit-2026-11-03)
 
-Please review the launcher isolation, version consistency, and package checks
-as a focused follow-up to #79. Runtime reports and missing submit implementations
-are welcome through the community fork while the port remains experimental.
+Please initially review this as a Draft PR. No claim of release readiness,
+measured performance improvement or resolved temporal artifacts is made.
