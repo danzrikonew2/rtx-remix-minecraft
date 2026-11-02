@@ -11,6 +11,12 @@ also part of every mod file name.
 
 ## Unreleased
 
+- Restore candidate blindness/darkness distance fog from native projected
+  primary depth, using vanilla effect ranges without changing saved lighting.
+  Retain vanilla's glowing-entity outline submission for composition after
+  Remix. Synthetic shader checks pass; in-game acceptance remains pending.
+  Document incomplete night vision/conduit brightening, darkness pulse and
+  nausea/world-projection effects in the status-effect guide.
 - Retire unused owned dynamic entity textures and their dependent meshes/materials
   after a capture-frame grace period, with four texture sets per sweep. Keep
   downloaded skin/map snapshots for recreation and preserve native owners when

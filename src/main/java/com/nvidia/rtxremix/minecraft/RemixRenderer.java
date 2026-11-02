@@ -1220,8 +1220,8 @@ public class RemixRenderer {
                 .right(rightX, rightY, rightZ)
                 .fovYInDegrees(worldFov)
                 .aspect(aspect)
-                .nearPlane(0.05f)
-                .farPlane(1000.0f)
+                .nearPlane(RemixCameraProjection.NEAR)
+                .farPlane(RemixCameraProjection.FAR)
                 .build();
     
             CameraInfo worldCameraInfo = CameraInfo.builder()

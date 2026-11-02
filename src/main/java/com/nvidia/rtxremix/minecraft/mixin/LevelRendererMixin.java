@@ -138,10 +138,11 @@ public abstract class LevelRendererMixin
      *
      * <p>Replacing this submit keeps Minecraft in charge of extraction, animation,
      * feature layers and modded entity support, but evaluates the submits into the
-     * Remix capture instead of vanilla's feature renderers, so the model is
-     * evaluated once. Extraction is frustum culled, so entities the camera cannot
+     * Remix capture instead of vanilla's feature renderers, so ordinary models
+     * are evaluated once. Extraction is frustum culled, so entities the camera cannot
      * see are picked up afterwards by the Remix pass, which needs them for shadows
-     * and reflections. A captured entity's glowing outline is not drawn.
+     * and reflections. Glowing entities also reach vanilla's outline target,
+     * which Minecraft composites after Remix replaces the main colour image.
      */
     @WrapOperation(
             method = "submitEntities",
@@ -161,6 +162,9 @@ public abstract class LevelRendererMixin
             float tickDelta = client.getDeltaTracker().getGameTimeDeltaPartialTick(
                     !client.level.tickRateManager().isEntityFrozen(entity));
             if (mod.getRenderer().renderEntityInPlace(entity, state, tickDelta)) {
+                if (state.appearsGlowing()) {
+                    original.call(dispatcher, state, camera, x, y, z, poseStack, collector);
+                }
                 return;
             }
         }

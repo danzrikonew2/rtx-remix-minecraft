@@ -447,6 +447,31 @@ Required tooling checks pass with 1,147 tests and 178 subtests; one test is
 skipped. No native runtime, API header or provider in the game installation
 was changed by the neural experiments.
 
+### Status-effect follow-up: 2026-11-03
+
+The visual-path audit found that vanilla's blindness/darkness fog and night
+vision/conduit lightmap brightening did not reach Remix. Captured entities
+also skipped vanilla's glowing outline submission. The candidate now uses
+native primary depth to apply the vanilla blindness/darkness distance bands
+after native tonemapping, and replays vanilla submission only for glowing
+entities so its later outline compositor can draw them over the Remix image.
+
+All 833 Java tests pass with the opt-in hidden SDL/OpenGL test enabled. The
+GPU test exercises actual fog pixels in both RGBA8 and sRGB, reduced-resolution
+depth, row alignment, resizing, deletion and binding restoration. It caught an
+sRGB image-access problem before installation; the pass now uses a compatible
+raw copy and output view. Full-screen storage is released when the effect or
+capture ends; framebuffer attachments do not retain it after the copy.
+
+The additional full-screen work runs only for active blindness/darkness.
+Glowing entities incur an extra vanilla model submission/draw. Neither cost
+has been measured in game. This change does not address stationary temporal
+shimmer, enable night vision/conduit brightening, reproduce the separate
+darkness lightmap pulse, or transmit nausea's projection deformation. Coverage,
+exact limits and a combined manual check are in
+[the status-effect guide](STATUS_EFFECTS_26_3.md). No saved exposure or native
+lighting setting is changed by an effect.
+
 ### Latest temporal-quality candidate: 2026-11-02
 
 The user reports renewed stationary held-item shimmer and strong motion blur/

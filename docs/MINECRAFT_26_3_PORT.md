@@ -46,6 +46,12 @@ discovery. Its 830 Java tests pass. Native DLSS-NR was checked independently of
 MFG and with one alternative provider; feature initialization remains blocked
 in those configurations. See [the audit and remaining validation](PERFORMANCE_26_3.md#code-and-upstream-research-audit-2026-11-03).
 
+The status-effect follow-up adds candidate blindness/darkness distance fog and
+restores vanilla's glowing outline submission. A hidden GPU test verifies the
+fog shader; in-game acceptance is pending. Night vision/conduit brightening,
+the darkness lightmap pulse, and nausea projection remain incomplete. See
+[coverage, limits and test commands](STATUS_EFFECTS_26_3.md).
+
 The next temporal-quality candidate restores sparse quality 0.5, adds a saved
 Sparse Tracing toggle and `/rtx temporal` diagnostics, and caps minimized windows
 at 1 FPS. The latest user video/adapter logs show artifacts even with FG off;
@@ -69,6 +75,7 @@ together. F8 remains the RTX rendering toggle. No long-running capture is needed
 | Exit | Leave/reopen the world once, then quit the game and Prism normally. Report any crash/freeze and roughly when it occurred. Logs are reviewed after exit. |
 | Returning dynamic textures | During normal play, move between areas with different players/maps, then return. Their textures should reappear correctly. Cleanup summaries are available after world leave/exit; no long profiler capture is needed. |
 | Existing authored zones | If the test save uses authored zones, confirm its definitions remain after leaving/reopening. Current files win over old files; migration must preserve the old files. |
+| Status effects | Follow the [short effect check](STATUS_EFFECTS_26_3.md#one-combined-manual-check): blindness/darkness range and removal, glowing in front/behind a wall, then RTX off/on. Night vision/nausea remain known gaps. |
 
 This test validates the combined candidate, not an unsupported DLSS 5 rendering
 claim or a measured MFG multiplier. Public beta assets remain separate until

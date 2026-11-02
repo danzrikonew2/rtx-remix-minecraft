@@ -1,0 +1,27 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+#version 450 core
+layout(local_size_x = 8, local_size_y = 8) in;
+layout(rgba8, binding = 0) uniform readonly image2D sourceColor;
+layout(r32f, binding = 1) uniform readonly image2D primaryDepth;
+layout(rgba8, binding = 2) uniform writeonly image2D foggedColor;
+layout(location = 0) uniform vec2 planes;
+layout(location = 1) uniform vec2 rayScale;
+layout(location = 2) uniform vec2 fogRange;
+
+void main() {
+    ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(sourceColor);
+    if (any(greaterThanEqual(pixel, size))) return;
+    vec2 uv = (vec2(pixel) + 0.5) / vec2(size);
+    ivec2 depthPixel = min(ivec2(uv * vec2(imageSize(primaryDepth))), imageSize(primaryDepth) - 1);
+    float d = imageLoad(primaryDepth, depthPixel).r;
+    float z = planes.x * planes.y / (planes.y - d * (planes.y - planes.x));
+    vec2 ray = (uv * 2.0 - 1.0) * rayScale;
+    float distance = z * sqrt(1.0 + dot(ray, ray));
+    float fog = clamp((distance - fogRange.x) / (fogRange.y - fogRange.x), 0.0, 1.0);
+    vec4 color = imageLoad(sourceColor, pixel);
+    imageStore(foggedColor, pixel, vec4(color.rgb * (1.0 - fog), color.a));
+}

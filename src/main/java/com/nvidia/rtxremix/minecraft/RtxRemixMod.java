@@ -505,6 +505,9 @@ public class RtxRemixMod implements ClientModInitializer {
         
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             releaseRemixMenuCapture();
+            client.execute(() -> {
+                if (textureOverlay != null) textureOverlay.clearEffects();
+            });
             if (renderer != null) {
                 ZoneRegistry zoneRegistry = renderer.getZoneRegistry();
                 // Clear first so definitions from another save or remote server
@@ -518,7 +521,10 @@ public class RtxRemixMod implements ClientModInitializer {
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             Object leavingWorld = client.level;
-            client.execute(() -> terrainRecapture.clearFor(leavingWorld));
+            client.execute(() -> {
+                terrainRecapture.clearFor(leavingWorld);
+                if (textureOverlay != null) textureOverlay.clearEffects();
+            });
             LOGGER.info("Disconnected from world, clearing Remix resources...");
             releaseRemixMenuCapture();
             closeOpenProfileScopes();
@@ -668,6 +674,7 @@ public class RtxRemixMod implements ClientModInitializer {
                 renderer.renderAndSubmitFrame();
                 remixTexture = renderer.blitVkImageToGL();
             } catch (RuntimeException e) {
+                if (mod.textureOverlay != null) mod.textureOverlay.clearEffects();
                 // Compositing is skipped, so this frame presents whatever GL drew, which
                 // with RTX on holds neither terrain nor entities: both are captured for
                 // Remix instead of drawn. The renderer stays enabled because a failure here
@@ -682,7 +689,9 @@ public class RtxRemixMod implements ClientModInitializer {
             if (remixTexture > 0 && mod.textureOverlay != null && isRtxEnabled()) {
                 // The rain and snow overlay drawn over this image is not ported to
                 // 26.x render pipelines yet (port notes: weather).
-                mod.textureOverlay.render(remixTexture);
+                mod.textureOverlay.render(remixTexture, renderer.getInteropDepthTexture());
+            } else if (mod.textureOverlay != null) {
+                mod.textureOverlay.clearEffects();
             }
         }
     }
@@ -2485,6 +2494,9 @@ public class RtxRemixMod implements ClientModInitializer {
             ClientLightSnapshots.publishRealSnapshots(client.level);
         }
         rtxEnabled = enabled;
+        if (!enabled && instance != null && instance.textureOverlay != null) {
+            instance.textureOverlay.clearEffects();
+        }
         LOGGER.info("RTX Rendering {}", enabled ? "ENABLED" : "DISABLED");
 
         // Pause/resume atlas animation forwarding alongside the toggle. Without
