@@ -347,9 +347,6 @@ and [JVM Arguments](../docs/TUNING.md#jvm-arguments).
     "prism": {
         "executable": "<path to prismlauncher.exe>",
         "account": "<profile name>"
-    },
-    "launch": {
-        "jvmArgs": ["-Drtxremix.logVisibleSet=true"]
     }
 }
 ```

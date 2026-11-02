@@ -10,7 +10,9 @@ extract the whole ZIP. The standalone JAR download has no batch installer; see
 GitHub's automatic source-code ZIP is not an installation bundle.
 
 For automatic experimental MFG setup, double-click `install-mfg.bat` instead.
-The native menu and FG/DLSS 5 are blocked in the recorded RTX 3070 Ti session;
+That public-beta script installs the standalone MFG route, whose native menu
+and FG/DLSS 5 were blocked in the recorded RTX 3070 Ti session. The separate
+development OptiScaler adapter has different controls and validation status;
 see [status and recovery](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/docs/MFG_UNLOCKER.md).
 
 This archive installs a Fabric mod that renders Minecraft Java Edition 26.3

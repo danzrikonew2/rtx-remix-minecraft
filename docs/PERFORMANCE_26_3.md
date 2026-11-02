@@ -395,6 +395,58 @@ java --enable-native-access=ALL-UNNAMED -Xcheck:jni -cp "build/classes/java/main
 
 ## Hand jitter investigation
 
+### Code and upstream research audit: 2026-11-03
+
+The audit traced startup, configuration, camera/presentation, retained entity
+identity, texture ownership, save migration, diagnostic discovery and packaging.
+It did not establish a new Java transform/history defect or a complete ghosting
+fix. Review of the retained registry, block-damage owners and transient-mesh
+normal paths found consistent reuse/retirement ordering. The camera/present
+path remains on the matching pinned C API; no speculative native ABI changes
+or unverified denoiser-key overrides were introduced.
+
+A concrete residency problem was found: dynamic map/skin textures and their
+materials were only released on full world/material cleanup. Cold pooled mesh
+eviction did not release their texture sets. `EntityTextureResidency` reuses the
+once-per-layer refresh stamp to retire owned dynamic IDs unused for more than
+600 capture frames, checking every 60 frames with at most four sets per sweep.
+The existing invalidation path destroys dependent instances and meshes before
+materials and textures. Shared/current-frame use protects a texture. CPU
+snapshots remain available so a returning downloaded skin can be recreated;
+borrowed atlas and static resource materials are not part of this retirement.
+Refresh stamps are also cleared on reload. Destroy failures now preserve the
+owner/cache entry for retry rather than forgetting an allocated native handle.
+These are lifecycle fixes, not measured VRAM/FPS gains or a shimmer diagnosis.
+Returning cold assets are recreated from retained CPU snapshots. A summary of
+cold sets retired and cached dynamic sets is logged during material/world
+cleanup, so the next normal session can be checked after exit without a
+continuous profiler or a long recording.
+
+The audit also found diagnostic window matching restricted to `Minecraft 1.*`;
+26.3 titles now match without dropping 1.x support. Tests cover the new titles.
+The follow-up to upstream port PR #79 revealed a save-wide zone-path correction;
+this fork's migration also imports its previously used 26.3 dimension file
+before falling back to 1.21.1, preserving source and current/future-schema data.
+
+Two superficially related runtime reports were researched:
+[eye adaptation/DLSS ghosting #391](https://github.com/NVIDIAGameWorks/rtx-remix/issues/391)
+was closed by its reporter in 2025, and
+[Preserve Path jitter #1058](https://github.com/NVIDIAGameWorks/rtx-remix/issues/1058)
+was closed following runtime hash improvements in 2026. Neither establishes
+the cause of this Minecraft report or proves the pinned private-source build
+contains a particular fix. A regression cannot be inferred from title similarity.
+
+The audit's 830 Java tests pass, including shared-use/grace/budget/failure-retry
+coverage and zone-file priority/preservation tests. The separate native neural
+probe and its alternative-provider trial are documented in
+[MFG research](MFG_UNLOCKER.md#native-remix-dlss-nr-and-autopilot-research-2026-11-03).
+Both renderer smoke runs completed; neither established neural feature success.
+Manual acceptance remains necessary for visual stability, returning dynamic
+textures and the memory/performance tradeoff in a real play session.
+Required tooling checks pass with 1,147 tests and 178 subtests; one test is
+skipped. No native runtime, API header or provider in the game installation
+was changed by the neural experiments.
+
 ### Latest temporal-quality candidate: 2026-11-02
 
 The user reports renewed stationary held-item shimmer and strong motion blur/

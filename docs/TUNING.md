@@ -46,8 +46,6 @@ long a worker may wait.
 | `rtxremix.chunk.neighbourReflagFilter` | Drop vanilla's chunk-load and light-data neighbour rebuild flags when the neighbour's last build already saw the loading column. Set to false to restore those flags. Block updates and the loading column itself stay vanilla | `NeighbourReflagFilter` |
 | `rtxremix.light.vanillaSnapshot` | Set to true to make the client light engine clone its section map every pass as vanilla does. With false, while capture is on, the live map is published as the snapshot, which rests on nothing but the render thread reading client light | `ClientLightSnapshotPolicy` |
 | `rtxremix.light.vanillaSurfaceScan` | Set to true to start each column's sky-light surface walk at the top of the chunk as vanilla does. With false the walk is seeded at the packet's `WORLD_SURFACE` height, which skips the air-over-air pairs that were most of the render thread's chunk-apply cost; the remedy for a sender whose heightmaps do not match its blocks | `SkyLightSurfaceScanPolicy` |
-| `rtxremix.vanillaVisibilityWalk` | Set to true to leave the chunk visibility walk to vanilla with RTX on instead of the mod's allocation-free port, which must produce the same visible set | `ChunkRenderingDataPreparerMixin` |
-| `rtxremix.logVisibleSet` | Log the size and a position hash of every full visibility walk's result whenever it changes, to compare the port against vanilla over one camera | `ChunkRenderingDataPreparerMixin` |
 | `rtxremix.joinHold` | Keep vanilla's terrain-download screen up until frame times settle after a world join, with a short bounded hold, so the first-sight mesh, pipeline, and BLAS costs land behind the screen. Set to false to disable the hold | `JoinBurstHold` |
 
 `BlockDataQueue.acquireCapacity` is authoritative for waiting: a worker
@@ -214,7 +212,7 @@ game's heap. To add your own arguments, such as an
 ```json
 {
     "launch": {
-        "jvmArgs": ["-Drtxremix.vanillaVisibilityWalk=true", "-Drtxremix.logVisibleSet=true"]
+        "jvmArgs": ["-Drtxremix.joinHold=false"]
     }
 }
 ```

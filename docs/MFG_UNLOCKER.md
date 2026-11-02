@@ -161,16 +161,22 @@ For the **RTX Remix Community 26.3 FG Adapter (Development)** profile:
    (expected `false`) as well as route instructions. Startup also clears the
    conflicting saved native request before initializing the renderer.
 
-A 140-present hidden test against the pinned runtime verified shared-menu
-open/close from Backspace, adapter FG disabled/enabled from End, and recovery of
+A historical 140-present hidden test, before the Insert-default change, used
+the then-configured Backspace binding for the shared menu. It verified adapter
+FG disabled/enabled from End and recovery of
 a seeded native FG request to `false`. Logs show two FG features across the
 off/on cycle and zero failed batches. It was unfocused, so it recorded zero FG
 evaluations; this control test does not establish Minecraft input handling,
 visible overlay correctness, displayed interpolation or a performance gain.
-The next game check should exercise those four steps and compare motion with
+The current probe and instructions use Insert; Backspace in that older test
+is not the current default. The next game check should exercise the four steps and compare motion with
 End off/on. Minecraft's F3 FPS alone does not count generated presentation frames.
 
 ### Neural controls and current provider limitation
+
+These controls belong to the **MFG provider route**. They do not configure
+Remix's separate built-in DLSS-NR pass. The page title and description identify
+that distinction; neither control is a frame-generation multiplier.
 
 `/rtx dlss5` or **RTX Remix Settings → DLSS 5 (Experimental)**
 opens a Minecraft settings page. It exposes the enable request and Vulkan
@@ -191,6 +197,59 @@ A second native-menu chaining experiment hung at startup on a later run and was
 removed. The candidate retains the established OptiScaler presentation path and
 uses the Minecraft page for neural controls. The standalone ResetMenu action now
 targets `RTXMFG-UI.ini`, rather than obsolete `RTX40MFG-UI.ini`.
+
+### Native Remix DLSS-NR and Autopilot research (2026-11-03)
+
+The official runtime also has its own neural pass, using renderer-owned color,
+depth, motion vectors, jitter and a control mask before tone mapping. Its
+source-defined key is `rtx.dlssNeuralRendering.enable`; see the
+[official implementation](https://github.com/NVIDIAGameWorks/dxvk-remix/blob/5ee5dc35571075c684ec50e1b28c32fe04065537/src/dxvk/rtx_render/rtx_dlss_neural_rendering.cpp).
+This is distinct from MFG's feature-creation probe.
+
+A new stock-runtime probe loads no MFG/OptiScaler, renders 60 hidden-window
+frames, and verifies this key resolves false → true → false on the actual
+`minecraft-rtx2-71a581da` runtime. The runtime itself reports `Available: 0`
+and `0xBAD00001 / FeatureNotSupported` for DLSS-NR on the tested 3070 Ti/driver
+configuration. Accepting the option is not successful neural rendering.
+
+[DLSS5-Autopilot](https://github.com/Kizzuwatnaa/DLSS5-Autopilot/blob/d9afad186bb6751807bd98ec4a09455a8a0b9a9d/core/installer.py)
+can stage a separate provider and optionally swap a `.trex` runtime for a
+community fork plus its NGX bridge. Its RTX 30 mapping selects an SM86-capable
+community provider; that does not prove compatibility with this Minecraft
+runtime. Its discovery/layout and fork-specific option prefixes differ from
+this mod's `remix-sdk` and the official native option.
+
+The published Lunks `dlssnr-v1` runtime also has a concrete C API mismatch:
+its [header](https://github.com/lunks/dxvk-remix-plus-dlssnr/blob/dlssnr-v1/public/include/remix/remix_c.h)
+advertises 0.6.4, while this mod requires 0.16.0 and retained
+`SceneInstanceAdd/Update/Remove` calls that the old interface lacks. Its
+[version gate](https://github.com/lunks/dxvk-remix-plus-dlssnr/blob/dlssnr-v1/src/dxvk/rtx_render/rtx_remix_api.cpp)
+rejects a mismatching 0.x minor version. It is not a compatible replacement
+for this mod's runtime; lowering the copied header's version would not supply
+the missing functions. That runtime was not installed or executed here.
+
+One alternative was tested locally, without swapping the official runtime:
+the RHI `310.8.SF-v2` provider from the publisher's
+[release](https://github.com/RankFTW/rhi-repo/releases/tag/dlssnr-310.8.SF-v2).
+The archive matched GitHub's SHA-256
+`1da35941894994eb087e017577829e492454e9bae3a6a9397027069ceb74955c`;
+the extracted DLL was
+`6eb209e764f39872625debd6abaf45e2bb6322f6f270f781f70c059ae30b3927`.
+It was placed beside a disposable copy of the unchanged pinned runtime, the
+search location used by the official NGX wrapper. The renderer again completed
+60 frames and restored its option, but feature initialization reported
+`0xBAD00004 / FeatureNotFound`, `Available: 0`. There is no verified neural
+evaluation or visual output. No provider module remained visible at the two
+module checks; that does not establish it was never transiently loaded.
+Provider/core compatibility remains unresolved, rather than proving all RTX 30
+neural rendering impossible.
+
+The community provider is not included in the mod, installer or public release;
+Autopilot describes it as proprietary with no public license. No game profile,
+official runtime payload or installed provider was replaced by this experiment.
+A compatible, validated provider/NGX route is required before integration can
+be advertised. Merely enabling a checkbox or replacing `d3d9.dll` without a
+matching C API package is not a completed implementation.
 
 ### Game controls and multiplier evidence (2026-11-02)
 

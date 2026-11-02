@@ -264,17 +264,13 @@ listing shows:
 
 ```bash
 uv run --project tools python -m rtx_tools.profiler.jfr_events profile.jfr --type jdk.GCPhaseConcurrent
-uv run --project tools python -m rtx_tools.profiler.jfr_events profile.jfr --type jdk.GCPhaseConcurrent --field "name=Concurrent Mark From Roots"
 ```
 
-On JDK 21 the phases include `Concurrent Mark From Roots` and
-`Concurrent Rebuild Remembered Sets and Scrub Regions`; `--field` matches the
-whole value. Each pause is a `jdk.GCPhasePause` event, named `GC Pause` for a
-young or mixed collection and `Pause Remark` or `Pause Cleanup` within a
-marking cycle. Each young or mixed collection is also a `jdk.GarbageCollection`
-event named `G1New`, with `sumOfPauses` and `longestPause`, and a
-`jdk.G1GarbageCollection` event with the same `gcId` whose `type` is `Normal`,
-`Concurrent Start`, `Prepare Mixed`, or `Mixed`:
+GC phase and collection names vary by JDK release and collector. List the
+events and inspect the names in the recording before filtering; `--field`
+matches the whole value. For G1 recordings, `jdk.GCPhasePause`,
+`jdk.GarbageCollection`, and `jdk.G1GarbageCollection` expose pause and
+collection details. Join their intervals to frame timestamps with `--json`:
 
 ```bash
 uv run --project tools python -m rtx_tools.profiler.jfr_events profile.jfr --type jdk.GarbageCollection --field name=G1New --json

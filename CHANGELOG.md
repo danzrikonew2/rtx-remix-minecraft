@@ -11,6 +11,16 @@ also part of every mod file name.
 
 ## Unreleased
 
+- Retire unused owned dynamic entity textures and their dependent meshes/materials
+  after a capture-frame grace period, with four texture sets per sweep. Keep
+  downloaded skin/map snapshots for recreation and preserve native owners when
+  destruction fails so cleanup can retry. VRAM/FPS benefit remains unmeasured.
+- Store authored zones in 26.3's save-wide storage. Import this port's prior
+  dimension-scoped file before the 1.21.1 legacy file, preserving originals and
+  protecting existing, unreadable and future-schema data from fallback overwrite.
+  Incorporates the save-path correction identified in upstream PR #79's follow-up.
+- Fix diagnostic window discovery for Minecraft 26.3 while retaining 1.x support.
+  Correct stale menu, installer, visibility-switch and profiling documentation.
 - Restore sparse-sampling quality from 0.3 to the runtime's recommended 0.5
   balance. Add a saved Sparse Tracing control and `/rtx temporal sparse off|on`
   comparison commands. This is a temporal-quality candidate, not a verified

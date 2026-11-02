@@ -299,3 +299,21 @@ returns to its original MFG loading route. No shared Java installation is modifi
 An enabled OptiScaler FG route supplies its own inputs; leave Remix's separate
 native FG toggle off. Minecraft's GL/Vulkan synchronization, GUI, world reload,
 image quality and real presentation pacing still require a game test.
+
+## Stock-runtime neural option probe
+
+`RemixNeuralProbe` tests the runtime's own neural path independently of MFG and
+OptiScaler. Build that target with the configured native CMake project, then run
+`RemixNeuralProbe.exe ABSOLUTE_RUNTIME_DLL` from a fresh disposable working
+directory containing a copy of the shipped `rtx.conf`. It loads only the runtime
+and its dependencies, owns a hidden window, submits a triangle for 60 presents,
+and requests/restores `rtx.dlssNeuralRendering.enable`. It prints exact C API
+failures and the provider path if a provider is loaded at its module checks.
+Never interpret option acceptance as feature creation or evaluation success.
+
+The 2026-11-03 stock test completed and restored False after requesting True;
+the actual NGX support result was Available 0 / FeatureNotSupported. A disposable
+same-runtime trial with the checksum-verified community SF-v2 provider instead
+reported FeatureNotFound. Neither produced verified neural evaluations. See
+[research, exact hashes and limitations](../../docs/MFG_UNLOCKER.md#native-remix-dlss-nr-and-autopilot-research-2026-11-03).
+The alternate provider is not a tracked or redistributed build dependency.

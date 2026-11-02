@@ -338,16 +338,23 @@ replaces the active entry.
 
 | Defined by | Single-player | On a server |
 |---|---|---|
-| `/rtx zone define` | Saved into `<world>/data/rtx_remix_zones.dat` and restored on join | Local to your client for that session, not saved and not shared |
+| `/rtx zone define` | Saved into `<world>/data/rtx-remix-renderer/zones.dat` and restored on join | Local to your client for that session, not saved and not shared |
 | A marker command block | Read as chunks load, and on `/rtx zone rescan`. Stays in the block, not in the saved file | Unavailable |
 | A map profile under `<world>/rtx-remix/confs/` | Loaded on join, dropped on leave | Unavailable |
 
-`rtx_remix_zones.dat` is optional. A map whose zones are all command blocks
+The saved file is optional. A map whose zones are all command blocks
 never creates one. `/rtx zone remove` deletes the saved definition in
 single-player, but a marker block can register the same name again on a later
 chunk load or rescan, so remove the block as well. Zone coordinates are not
 scoped to a dimension: the same coordinates in another dimension are inside the
 zone too. Opening a world to LAN does not send zones to guests.
+
+On first lookup without a current save-wide file, this port imports the earlier
+26.3 file at `dimensions/minecraft/overworld/data/rtx-remix-renderer/zones.dat`,
+or otherwise the 1.21.1 file at `data/rtx_remix_zones.dat`. Original files stay
+untouched. An existing current file always wins, including an intentionally
+empty state. Unreadable or unsupported states block edits rather than reviving
+older definitions or overwriting the original data.
 
 A marker whose radius extends beyond its chunk's load distance is first
 discovered from inside the zone. Its look then pops in on the first approach,

@@ -24,7 +24,7 @@ public final class MfgNeuralSettingsScreen extends Screen {
     private int ticks;
 
     public MfgNeuralSettingsScreen(Screen parent, MfgNeuralSettings settings) {
-        super(Component.literal("DLSS 5 Neural Rendering (Experimental)"));
+        super(Component.literal("MFG Neural Rendering (Experimental)"));
         this.parent = parent;
         this.settings = settings;
     }
@@ -35,9 +35,9 @@ public final class MfgNeuralSettingsScreen extends Screen {
         var snapshot = settings.read();
         LinearLayout contents = LinearLayout.vertical().spacing(10);
         contents.addChild(new MultiLineTextWidget(Component.literal(
-                "Separate from frame generation. Enabling requests the provider; support and successful "
-                + "evaluations are reported below. Default: off."), font).setMaxWidth(Math.min(330, width - 30)));
-        contents.addChild(Button.builder(Component.literal("DLSS 5: " + (snapshot.enabled() ? "Requested on" : "Off")),
+                "MFG provider controls, separate from Remix's built-in DLSS-NR and frame generation. "
+                + "Requests and evaluations are shown below. Default: off."), font).setMaxWidth(Math.min(330, width - 30)));
+        contents.addChild(Button.builder(Component.literal("MFG neural: " + (snapshot.enabled() ? "Requested on" : "Off")),
                 button -> change(() -> settings.setEnabled(!settings.read().enabled()))).width(220).build());
         contents.addChild(Button.builder(Component.literal("Hook: " + (snapshot.stage() == 2 ? "After upscaling" : "Auto")),
                 button -> change(() -> settings.setStage(settings.read().stage() == 2 ? 0 : 2))).width(220).build());

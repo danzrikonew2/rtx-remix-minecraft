@@ -40,6 +40,12 @@ installation. Compilation is not proof of correct rendering.
 
 ## Combined candidate acceptance
 
+The 2026-11-03 audit adds bounded retirement of cold dynamic entity textures,
+cleanup failure retries, safe save-wide zone migration and 26.3 window
+discovery. Its 830 Java tests pass. Native DLSS-NR was checked independently of
+MFG and with one alternative provider; feature initialization remains blocked
+in those configurations. See [the audit and remaining validation](PERFORMANCE_26_3.md#code-and-upstream-research-audit-2026-11-03).
+
 The next temporal-quality candidate restores sparse quality 0.5, adds a saved
 Sparse Tracing toggle and `/rtx temporal` diagnostics, and caps minimized windows
 at 1 FPS. The latest user video/adapter logs show artifacts even with FG off;
@@ -61,6 +67,8 @@ together. F8 remains the RTX rendering toggle. No long-running capture is needed
 | Reset | Change one mod option, run `/rtx settings reset`, then click Delete All User Settings in the opened native menu. Confirm mod defaults and native graphics defaults, with worlds/packs and the saved Insert shortcut preserved. |
 | Neural page | `/rtx dlss5` opens the Minecraft page. Default is off. The isolated 3070 Ti provider reports unsupported if enabled, not Running. Restore off after any check. Report stale status, save errors, or an unexpected result. |
 | Exit | Leave/reopen the world once, then quit the game and Prism normally. Report any crash/freeze and roughly when it occurred. Logs are reviewed after exit. |
+| Returning dynamic textures | During normal play, move between areas with different players/maps, then return. Their textures should reappear correctly. Cleanup summaries are available after world leave/exit; no long profiler capture is needed. |
+| Existing authored zones | If the test save uses authored zones, confirm its definitions remain after leaving/reopening. Current files win over old files; migration must preserve the old files. |
 
 This test validates the combined candidate, not an unsupported DLSS 5 rendering
 claim or a measured MFG multiplier. Public beta assets remain separate until
@@ -77,12 +85,20 @@ the development candidate receives visual/stability acceptance.
   licensing, and copyright notices are retained. The imported port head was
   `8ac3530c1a230ab8e6f2b876ea0219a4bd4c2c37`.
 
+The 2026-11-03 review also checked upstream follow-up
+[`600a95f`](https://github.com/NVIDIAGameWorks/rtx-remix-minecraft/commit/600a95f6ef63cbdbe566419ff5f1ce25cc1d5f42).
+This branch adopts the save-wide zone-storage correction and 26.3 diagnostic
+window matching. Its migration additionally preserves this fork's existing
+dimension-scoped 26.3 zones, prioritizes them over 1.21.1 legacy definitions,
+and protects unreadable/future-schema files. Original files are retained.
+
 Work here builds on that effort: Windows paths with spaces, isolated 26.3
 installation and developer profiles, Java 25 launch selection, consistency
 checks, licensing repair, packaging validation, and public development guidance.
 Coordinate with #79 rather than opening a competing full-port PR. A proposed
 follow-up description is in [the draft PR document](MINECRAFT_26_3_DRAFT_PR.md).
-No PR, issue, or comment has been submitted by this development session.
+No new upstream PR, issue or comment is submitted by this audit. The previously
+approved hand-jitter report is linked in the performance investigation.
 
 ## Verified target dependencies
 
