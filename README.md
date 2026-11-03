@@ -38,6 +38,11 @@ We hope the community helps fill it out. If something breaks,
 Download the **Windows x64 installer ZIP** (not GitHub's automatic source-code ZIP) from the
 [Releases page](https://github.com/danzrikonew2/rtx-remix-minecraft/releases).
 
+**Beta 2** combines the 26.3 updates, including experimental weak Night Vision,
+status-effect rendering, exposure and sparse-tracing controls, a minimized-window
+frame cap, and resource-lifetime fixes. See the [release summary and limits](docs/RELEASE_0_2_0_BETA_2.md).
+Visual and performance acceptance is still pending for the new effects.
+
 ## Install in three steps
 
 1. Extract the release archive.

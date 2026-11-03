@@ -9,6 +9,12 @@ extract the whole ZIP. The standalone JAR download has no batch installer; see
 [manual installation](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/docs/PLAYING.md#installing-without-the-installer).
 GitHub's automatic source-code ZIP is not an installation bundle.
 
+Beta 2 includes experimental weak Night Vision, status-effect rendering,
+exposure/sparse controls and resource-lifetime fixes. Read
+`docs/RELEASE_0_2_0_BETA_2.md` in this archive for the changelog summary,
+testing status and remaining limits. These are experimental changes, not a
+certification of visual quality or frame-rate gains.
+
 For automatic experimental MFG setup, double-click `install-mfg.bat` instead.
 That public-beta script installs the standalone MFG route, whose native menu
 and FG/DLSS 5 were blocked in the recorded RTX 3070 Ti session. The separate

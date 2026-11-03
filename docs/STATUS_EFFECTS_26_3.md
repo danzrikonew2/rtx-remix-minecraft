@@ -65,7 +65,7 @@ light or global brightness override is introduced. Game cost is unmeasured.
 
 ## Experimental emissive Night Vision
 
-The local candidate uses physical emission rather than camera-only illumination.
+Beta 2 uses physical emission rather than camera-only illumination.
 It detects the local player's Night Vision potion, adds a weak albedo-colored
 floor to non-emissive diffuse block-atlas texels, and restores the original
 material descriptors/texture handles on removal, RTX off, world leave or reload.
@@ -125,8 +125,8 @@ HDR creation/patches, same-handle material updates/restoration and 60 submits/
 presents against the pinned runtime. It does not verify the pixels' appearance.
 The harness also emits the pre-existing device-object cleanup diagnostic at
 DLL unload; that is not an in-game stability pass. Build/test results and visual
-acceptance must be reported separately. No public release or installed profile
-is updated by this local candidate.
+acceptance must be reported separately. Beta 2 includes this approximation;
+existing installed profiles change only after installation/update.
 
 ## Night Vision renderer audit (2026-11-03)
 

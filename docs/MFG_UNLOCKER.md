@@ -6,7 +6,7 @@ It is not an NVIDIA feature or a confirmed compatibility release.
 
 ## Automatic installation
 
-Beta 1 includes `install-mfg.bat`: double-click it for Prism setup with the addon
+The installer includes `install-mfg.bat`: double-click it for Prism setup with the addon
 selected automatically. It creates **RTX Remix Community 26.3 Beta (Experimental)**,
 separate from earlier installer profiles. The standalone JAR does not install
 the addon or its private Java runtime.

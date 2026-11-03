@@ -1,9 +1,9 @@
 # Minecraft 26.3 community port
 
 This is an **unofficial, experimental community port**, not an NVIDIA release.
-The current installer release is `v0.2.0-beta.1` in the community fork;
+The current installer release is `v0.2.0-beta.2` in the community fork;
 alpha 1 provided only a standalone JAR.
-Beta 1 includes automatic optional MFG setup and `/rtx mfg` diagnostics.
+The installer includes optional standalone MFG setup and `/rtx mfg` diagnostics.
 The recorded RTX 3070 Ti session could not display the addon's native menu and
 reported no active frame generation or DLSS 5 evaluations. This is an open
 compatibility blocker, not a verified feature; see [MFG details](MFG_UNLOCKER.md).
@@ -55,11 +55,12 @@ The follow-up captures burning-mob flames with reusable model parts and adds
 the status fog's strength transition. It preserves off-screen pose reuse and
 borrows the existing fire material; game appearance/cost remain unverified.
 
-The local Night Vision branch adds an [experimental emissive approximation](STATUS_EFFECTS_26_3.md#experimental-emissive-night-vision),
+Beta 2 combines the [experimental emissive Night Vision approximation](STATUS_EFFECTS_26_3.md#experimental-emissive-night-vision)
+into `feat/minecraft-26.3`,
 with a weak 0.10 default, protected authored glow and a session strength control.
 It accepts real emission/bounce and is not the camera-only mode, which still
 needs matching native renderer support. Appearance and performance remain
-unverified. The local branch does not update the installed candidate.
+unverified. Existing profiles receive it only after installing/updating the mod.
 
 The next temporal-quality candidate restores sparse quality 0.5, adds a saved
 Sparse Tracing toggle and `/rtx temporal` diagnostics, and caps minimized windows
@@ -84,11 +85,13 @@ together. F8 remains the RTX rendering toggle. No long-running capture is needed
 | Exit | Leave/reopen the world once, then quit the game and Prism normally. Report any crash/freeze and roughly when it occurred. Logs are reviewed after exit. |
 | Returning dynamic textures | During normal play, move between areas with different players/maps, then return. Their textures should reappear correctly. Cleanup summaries are available after world leave/exit; no long profiler capture is needed. |
 | Existing authored zones | If the test save uses authored zones, confirm its definitions remain after leaving/reopening. Current files win over old files; migration must preserve the old files. |
-| Status effects | Follow the [short effect check](STATUS_EFFECTS_26_3.md#one-combined-manual-check): blindness/darkness range, fade and removal; glowing in front/behind a wall; burning-mob flames and extinguishing; then RTX off/on. The separate Night Vision candidate has its own strength 0/0.10 comparison; nausea remains incomplete. |
+| Status effects | Follow the [short effect check](STATUS_EFFECTS_26_3.md#one-combined-manual-check): blindness/darkness range, fade and removal; glowing in front/behind a wall; burning-mob flames and extinguishing; then RTX off/on. Night Vision has its own strength 0/0.10 comparison; nausea remains incomplete. |
 
 This test validates the combined candidate, not an unsupported DLSS 5 rendering
-claim or a measured MFG multiplier. Public beta assets remain separate until
-the development candidate receives visual/stability acceptance.
+claim or a measured MFG multiplier. Beta 2 is an experimental prerelease with
+the new effects' visual/stability acceptance still pending. The public installer
+does not include the private OptiScaler development adapter. See the
+[release summary](RELEASE_0_2_0_BETA_2.md) for the packaged scope and limitations.
 
 ## Source and collaboration
 

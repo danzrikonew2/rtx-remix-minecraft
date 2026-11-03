@@ -11,115 +11,58 @@ also part of every mod file name.
 
 ## Unreleased
 
-- Add experimental emissive Night Vision for opaque/cutout block-atlas
-  materials, with a 0.10 default and a capped session-only `/rtx nightvision
-  strength` control. Protect authored glow texels and retain PBR descriptors,
-  animation and original material restoration. This accepts physical emission
-  and bounce; it is not camera-only or adaptive illumination. Appearance and
-  performance remain unverified; public release assets are unchanged.
-- Document the native-interface blocker for the stricter camera-only Night
-  Vision mode, the available Minecraft strength, and required renderer inputs.
-- Capture burning-entity flames using live fire atlas sprites and vanilla's
-  stacked shape. Reusable model-backed quads retain mesh sharing and the
-  off-screen pose cache. Fade status distance-fog strength with vanilla's
-  effect darkening curve. Geometry/pooling and GPU fade tests pass; real-game
-  flame appearance and performance remain unverified.
-- Restore candidate blindness/darkness distance fog from native projected
-  primary depth, using vanilla effect ranges without changing saved lighting.
-  Retain vanilla's glowing-entity outline submission for composition after
-  Remix. Synthetic shader checks pass; in-game acceptance remains pending.
-  Document incomplete night vision/conduit brightening, darkness pulse and
-  nausea/world-projection effects in the status-effect guide.
-- Retire unused owned dynamic entity textures and their dependent meshes/materials
-  after a capture-frame grace period, with four texture sets per sweep. Keep
-  downloaded skin/map snapshots for recreation and preserve native owners when
-  destruction fails so cleanup can retry. VRAM/FPS benefit remains unmeasured.
-- Store authored zones in 26.3's save-wide storage. Import this port's prior
-  dimension-scoped file before the 1.21.1 legacy file, preserving originals and
-  protecting existing, unreadable and future-schema data from fallback overwrite.
-  Incorporates the save-path correction identified in upstream PR #79's follow-up.
-- Fix diagnostic window discovery for Minecraft 26.3 while retaining 1.x support.
-  Correct stale menu, installer, visibility-switch and profiling documentation.
-- Restore sparse-sampling quality from 0.3 to the runtime's recommended 0.5
-  balance. Add a saved Sparse Tracing control and `/rtx temporal sparse off|on`
-  comparison commands. This is a temporal-quality candidate, not a verified
-  ghosting fix; full sampling costs more GPU time.
-- Cap minimized Remix windows at 1 FPS, independently of the configurable
-  unfocused limit. Foreground caps and benchmark behavior are preserved.
-  This reduces background rendering; it does not unload GPU resources.
-- Use Insert as the adapter menu default and preserve explicit saved keys,
-  fixing the repeated Insert-to-Backspace reversion. Correct the standalone
-  menu-reset INI filename.
-- Add experimental `/rtx dlss5` controls with process-matched native status and
-  provider discovery beside the ASI. The tested provider rejects creation on
-  this setup; no working neural rendering is claimed.
-- Add eye-adaptation enable/speed controls; use a gentler speed 2 default without
-  changing manual brightness or EV bounds. Add `/rtx settings reset` for mod
-  defaults plus the native graphics-reset workflow.
-- Default primary thin-opaque SHaRC queries to off after the user's in-game
-  comparison removed bright grass following time changes. Other cache uses
-  remain enabled; this is a targeted workaround with unmeasured performance
-  impact. Record working shared FG controls, repeated-output rejection above
-  2x, and the incomplete DLSS 5 menu/provider integration.
-- Correct the development adapter's shared-menu shortcut from automatic Insert
-  to Backspace, with End as the independent adapter FG toggle. Preserve custom
-  shortcuts and back up migrated INIs. Clear conflicting native Remix FG at
-  startup and add `/rtx mfg reset` recovery plus route-specific help. A hidden
-  pinned-runtime test verifies menu open/close and FG off/on; game display and
-  performance acceptance remain pending.
-- Wait for MFG's actual early Vulkan startup prerequisites before loading Remix,
-  and stop renderer initialization if private-device admission fails. The first
-  Minecraft adapter run generated no frames and ended in device loss; a revised
-  private-JVM renderer probe passes admission and 60 hidden presents. Game
-  stability remains unverified.
-- Retain warm surface-lighting caches after abrupt Overworld clock or weather
-  changes. A short settling layer uses 8-frame SHaRC accumulation/stale age,
-  then restores the authored settings. It replaces the ineffective reset-pulse
-  experiment; visual confirmation remains pending. Add `/rtx lighting cache
-  off|on` and resolved status for an in-place foliage-cache comparison.
-- Record 26,794 successful FG evaluations in the experimental Minecraft session
-  with zero failed batches. Generated display quality and frame-rate gain remain
-  unverified. Sapling/resource-pack behavior is deferred and unchanged.
+## 0.2.0-beta.2 - 2026-11-03
 
-- Verify 785 successful FG provider evaluations and 785 submitted batches on
-  RTX 3070 Ti in the focused native Remix probe, with zero failed batches.
-  Add an opt-in, manifest-pinned OptiScaler/MFG development loader and local
-  staging helper. Private-Java loading/status checks pass; Minecraft display
-  behavior and any frame-rate multiplier remain unverified.
+Combined Minecraft 26.3 update; see the [release summary](docs/RELEASE_0_2_0_BETA_2.md)
+for installation, test status and remaining limits.
 
-- Add guarded private Streamline Vulkan startup for the experimental MFG adapter.
-  An isolated 3070 Ti probe passes startup/program/buffer checks and creates a
-  real NVIDIA FG feature. Streamline suppresses interpolation while the probe
-  is unfocused; the public installer
-  and working game profiles are unchanged.
+### Added
 
-- Add source-only native MFG build-input recovery and a runtime-bound Vulkan
-  menu adapter, with explicit registration and retirement through the JNI bridge.
-  Isolated tests against the pinned runtime verify menu drawing, Backspace and
-  shutdown. FG/DLSS 5 remains unverified and the native FG adapter is incomplete;
-  this candidate is not substituted into the public beta installer.
+- Experimental weak emissive Night Vision for opaque/cutout block-atlas
+  materials. Default strength 0.10, capped at 0.20; authored glow texels are
+  protected. `/rtx nightvision strength` adjusts or disables it for the session.
+  PBR descriptors/animation remain attached and original materials restore
+  after removal. This accepts physical emission and bounce, not camera-only
+  or adaptive illumination; appearance and performance remain unverified.
+- Candidate blindness/darkness distance fog with effect fades, vanilla glowing
+  outline submission and animated burning-entity flames using shared model parts.
+- Eye-adaptation enable/speed controls, sparse tracing controls and `/rtx temporal`
+  diagnostics. Add `/rtx settings reset`, `/rtx mfg reset` recovery and experimental
+  `/rtx dlss5` controls with process-matched provider status.
 
-- Include abrupt Overworld clock changes in the short volumetric-history
-  settling window. Ordinary ticks and midnight wraparound keep normal history.
-  This is a volumetric mitigation; surface sparkle and delayed ground-lighting
-  convergence after time commands remain pending native/visual validation.
+### Changed
 
-- Track shipped lighting-profile hashes so unchanged recorded defaults receive
-  updates without replacing edited or unrecognized legacy files (#20).
-- Remove an unused intermediate full-atlas GPU upload and avoid creating
-  per-sprite SSS buffers for specular maps with no SSS data (#82 investigation).
-  Actual GPU-memory impact still needs measurement with the reported pack.
-- Classify both vanilla beacon beam surface pipelines as emissive (#29, partial).
-  Dynamic beam lights and radiance tuning remain unimplemented.
+- Use eye-adaptation speed 2 and sparse quality 0.5 defaults; cap minimized
+  rendering at 1 FPS independently of the visible-unfocused limit.
+- Default primary thin-opaque SHaRC queries off after the user's grass comparison;
+  other cache uses remain enabled. Handle abrupt clock/weather changes with a
+  short settling layer. No universal ghosting or stutter fix is claimed.
+- Retire cold dynamic entity textures in bounded sweeps while retaining CPU
+  skin/map snapshots. Remove a redundant atlas upload and unneeded SSS buffers.
+  Resource failures retain native owners for cleanup retries; gains are unmeasured.
+- Preserve explicit development-adapter menu shortcuts with Insert/End defaults,
+  and clear conflicting native FG requests. Extend guarded, pinned OptiScaler/
+  MFG development integration and native diagnostics without bundling the private
+  adapter in the public installer.
 
-- Fix upstream #69: skylight snapshots capture each publication's current
-  minimum section height, including removed columns and immutable older views.
-- Mitigate upstream #54: failed renderer initialization disables RTX capture,
-  keeps SDK file availability distinct from startup success and rejects
-  re-enabling an unavailable renderer instead of hiding vanilla terrain.
-- Mitigate upstream #65/#80: skip standalone GLINT-blended overlay geometry.
-  Base item surfaces remain captured; standalone enchantment glint is omitted
-  until its decal semantics are supported. Visual acceptance remains pending.
+### Fixed
+
+- Preserve save-wide authored zones and migrate older 26.3/1.21.1 files without
+  overwriting existing, unreadable or future-schema data.
+- Discover Minecraft 26.3 windows, update unchanged recorded lighting profiles
+  while preserving edits, correct beacon surface emission, and harden startup,
+  skylight snapshots and glint capture.
+- Isolate installer tests from a real running Prism process without weakening
+  the installer's live-process guard. Refresh installation and control guides.
+
+### Known limitations
+
+- New status effects and Night Vision still need in-game visual/performance
+  acceptance. Complete conduit/darkness/nausea parity remains unfinished.
+- The public optional standalone MFG route remains unverified/blocked on the
+  recorded setup. Private-adapter provider evaluations do not prove displayed
+  interpolation or FPS gain; requests above 2x fall back to 2x. Tested neural
+  providers reject DLSS 5 feature creation. See [MFG scope](docs/MFG_UNLOCKER.md).
 
 ## 0.2.0-beta.1 - 2026-11-01
 
