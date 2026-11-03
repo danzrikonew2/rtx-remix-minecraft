@@ -97,6 +97,7 @@ public class BlockTextureManager {
     private final RemixMaterial[] atlasMaterialsSSS = new RemixMaterial[LAYER_COUNT];
     private final List<RemixTexture> managedTextures = new ArrayList<>();
     private final List<RemixMaterial> managedMaterials = new ArrayList<>();
+    private final NightVisionEmission nightVisionEmission = new NightVisionEmission();
     private RemixMaterial waterSurfaceMaterial;
     private RemixMaterial waterCameraMediumMaterial;
     private long waterNormalHandle;
@@ -519,6 +520,8 @@ public class BlockTextureManager {
         atlasMetallicTex = metallicTex;
         atlasSssTex = sssTex;
         atlasSssAlbedoTex = sssAlbedoTex;
+        nightVisionEmission.configure(albedoRGBA, emissiveAtlas, metallicAtlas,
+                atlasW, atlasH, terrainEmissionIntensity());
 
         for (int lt = 0; lt < LAYER_COUNT; lt++) {
             if (lt == L_TRANS) {
@@ -557,9 +560,12 @@ public class BlockTextureManager {
                                                RemixTexture metallicTex, RemixTexture emissiveTex,
                                                RemixTexture sssTex,
                                                RemixTexture sssAlbedoTex) {
-        return createMaterialViaStore(buildAtlasOpaqueMaterialInfo(
+        MaterialInfo info = buildAtlasOpaqueMaterialInfo(
                 lt, normalTex, heightTex, roughnessTex, metallicTex, emissiveTex,
-                sssTex, sssAlbedoTex, terrainEmissionIntensity()));
+                sssTex, sssAlbedoTex, terrainEmissionIntensity());
+        RemixMaterial material = createMaterialViaStore(info);
+        nightVisionEmission.register(material, info);
+        return material;
     }
 
     private MaterialInfo buildAtlasOpaqueMaterialInfo(int lt, RemixTexture normalTex,
@@ -1301,6 +1307,19 @@ public class BlockTextureManager {
     // ====================================================================
 
     public boolean isInitialized() { return initialized && !sprites.isEmpty(); }
+    public NightVisionEmission nightVisionEmission() { return nightVisionEmission; }
+
+    /** Called on the render thread; Night Vision is intentionally a weak emissive approximation. */
+    public void updateNightVision(Minecraft client) {
+        var effect = client.player == null ? null
+                : client.player.getEffect(net.minecraft.world.effect.MobEffects.NIGHT_VISION);
+        float target = effect == null ? 0
+                : NightVisionEmission.targetStrength(effect.getDuration(), effect.isInfiniteDuration());
+        nightVisionEmission.update(renderer.getRemixApi(), target,
+                client.getDeltaTracker().getRealtimeDeltaTicks());
+    }
+
+    public void clearNightVision() { nightVisionEmission.clear(); }
     public RemixTexture getBlockAtlasTexture() { ensureInit(); return atlasAlbedo; }
     public RemixTexture getEmissiveAtlasTexture() { ensureInit(); return atlasEmissive; }
     public RemixTexture getRoughnessAtlasTexture() { ensureInit(); return atlasRoughnessTex; }
@@ -1311,6 +1330,7 @@ public class BlockTextureManager {
     public void reload() { cleanup(); initialized = initFailed = false; initialize(); }
 
     public void cleanup() {
+        nightVisionEmission.dispose();
         for (RemixMaterial mat : managedMaterials)
             if (!mat.isDeleted()) mat.destroy();
         managedMaterials.clear();

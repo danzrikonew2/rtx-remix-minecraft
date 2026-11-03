@@ -816,6 +816,26 @@ public class RtxRemixMod implements ClientModInitializer {
                                 lightingCacheDiagnostic(context.getSource(), false)))
                         .then(ClientCommands.literal("on").executes(context ->
                                 lightingCacheDiagnostic(context.getSource(), true)))))
+                .then(ClientCommands.literal("nightvision")
+                    .executes(context -> {
+                        if (renderer == null || renderer.getTextureManager() == null) return 0;
+                        var vision = renderer.getTextureManager().nightVisionEmission();
+                        context.getSource().sendFeedback(Component.literal(
+                                "Night Vision emission: " + vision.configuredStrength()
+                                + " (active " + vision.activeStrength()
+                                + "). Session-only strength 0..0.2; 0 disables the approximation."));
+                        return 1;
+                    })
+                    .then(ClientCommands.literal("strength")
+                        .then(ClientCommands.argument("value", FloatArgumentType.floatArg(0, 0.2f))
+                            .executes(context -> {
+                                if (renderer == null || renderer.getTextureManager() == null) return 0;
+                                float value = FloatArgumentType.getFloat(context, "value");
+                                renderer.getTextureManager().nightVisionEmission().setStrength(value);
+                                context.getSource().sendFeedback(Component.literal(
+                                        "Night Vision artificial emission set to " + value + " for this session."));
+                                return 1;
+                            }))))
                 .then(ClientCommands.literal("temporal")
                     .executes(context -> temporalSamplingDiagnostic(context.getSource(), null))
                     .then(ClientCommands.literal("sparse")

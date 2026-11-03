@@ -287,6 +287,10 @@ public final class AtlasAnimationForwarder {
             List<TexturePatch> metallicPatches = new ArrayList<>();
             List<TexturePatch> emissivePatches = new ArrayList<>();
             List<TexturePatch> sssPatches = new ArrayList<>();
+            List<TexturePatch> nightVisionPatches = new ArrayList<>();
+            BlockTextureManager manager = BlockTextureManager.get();
+            NightVisionEmission nightVision = manager == null ? null : manager.nightVisionEmission();
+            if (nightVision != null && !nightVision.isConfigured()) nightVision = null;
 
             for (int i = 0; i < count; i++) {
                 PatchRecord p = pendingPatches.get(i);
@@ -356,6 +360,8 @@ public final class AtlasAnimationForwarder {
                     metallicDst.flip();
                     ownedBuffers.add(metallicDst);
                     metallicPatches.add(createPatch(p, metallicDst, p.width, TextureFormat.R8_UNORM));
+                    if (nightVision != null) nightVision.animatedMetallic(
+                            p.dstX, p.dstY, p.width, p.height, metallicDst);
                 }
 
                 if (pbr != null && pbr.hasSss && pbr.sSssTable != null && sssHandle != 0) {
@@ -374,13 +380,13 @@ public final class AtlasAnimationForwarder {
                 }
 
                 // --- Emissive patch (authored _s alpha, else a built-in mask) ---
-                if (emissiveHandle == 0) continue;
+                if (emissiveHandle == 0 && nightVision == null) continue;
                 final boolean hasLabPBREmissive = pbr != null && pbr.hasPerPixelEmissive;
                 BuiltinEmission.Mask builtinMask = hasLabPBREmissive ? null : BuiltinEmission.mask(p.id);
 
                 // Skip sprites with neither. Vanilla block luminance affects
                 // cast light, not surface emission.
-                if (!hasLabPBREmissive && builtinMask == null) continue;
+                if (!hasLabPBREmissive && builtinMask == null && nightVision == null) continue;
 
                 if (hasLabPBREmissive) {
                     LabPBRConverter.buildEmissivePatch(
@@ -392,20 +398,34 @@ public final class AtlasAnimationForwarder {
                         labPbrSampling.nextBlend,
                         p.width, p.height,
                         0f);
-                } else {
+                } else if (builtinMask != null) {
                     // The mask is over the sprite's own UV space, which every animation frame shares.
                     LabPBRConverter.buildEmissiveMaskPatch(
                         scratch, patchRowBytes,
                         srcBuf, p.rowPitch,
                         p.width, p.height, builtinMask);
+                } else {
+                    java.util.Arrays.fill(scratch, 0, patchBytes, (byte) 0);
                 }
 
-                ByteBuffer emissiveDst = DirectBufferPool.acquire(patchBytes);
-                emissiveDst.put(scratch, 0, patchBytes);
-                emissiveDst.flip();
-                ownedBuffers.add(emissiveDst);
-
-                emissivePatches.add(createPatch(p, emissiveDst, patchRowBytes, TextureFormat.RGBA8_UNORM));
+                if (emissiveHandle != 0 && (hasLabPBREmissive || builtinMask != null)) {
+                    ByteBuffer emissiveDst = DirectBufferPool.acquire(patchBytes);
+                    emissiveDst.put(scratch, 0, patchBytes);
+                    emissiveDst.flip();
+                    ownedBuffers.add(emissiveDst);
+                    emissivePatches.add(createPatch(p, emissiveDst, patchRowBytes, TextureFormat.RGBA8_UNORM));
+                }
+                if (nightVision != null) {
+                    BlockTextureManager.SpriteEntry sprite = manager.getSpriteById(p.id);
+                    int padding = sprite != null && sprite.pixX == p.dstX && sprite.pixY == p.dstY
+                            && sprite.pixW == p.width && sprite.pixH == p.height ? sprite.pad : 0;
+                    TexturePatch visionPatch = nightVision.animatedPatch(
+                            p.dstX, p.dstY, p.width, p.height, padding, albedoDst, scratch);
+                    if (visionPatch != null) {
+                        ownedBuffers.add(visionPatch.pixelData);
+                        nightVisionPatches.add(visionPatch);
+                    }
+                }
             }
 
             // One batch per frame: the runtime handles each entry's texture
@@ -416,6 +436,7 @@ public final class AtlasAnimationForwarder {
             addBatchEntry(entries, metallicHandle, metallicPatches);
             addBatchEntry(entries, emissiveHandle, emissivePatches);
             addBatchEntry(entries, sssHandle, sssPatches);
+            if (nightVision != null) addBatchEntry(entries, nightVision.textureHandle(), nightVisionPatches);
 
             TexturePatchInfo info = new TexturePatchInfo();
             info.entries = entries.toArray(new TextureBatchEntry[0]);

@@ -748,6 +748,7 @@ public class RemixRenderer {
             ClientLevel world = client.level;
             
             if (world == null || client.gameRenderer == null) {
+                if (textureManager != null) textureManager.clearNightVision();
                 if (chunkManager != null) chunkManager.hideRetainedInstances();
                 discardPendingParticleFrame();
                 // Closed by the finally, like the RTX-disabled branch below. endFrame is not
@@ -765,6 +766,7 @@ public class RemixRenderer {
             // benchmark). VK<->GL semaphore signaling lives in the present path and is
             // intentionally left untouched so off<->on transitions don't desync.
             if (!RtxRemixMod.isRtxEnabled()) {
+                if (textureManager != null) textureManager.clearNightVision();
                 if (chunkManager != null) chunkManager.hideRetainedInstances();
                 // A payload prepared before the toggle holds world-space vertices from the
                 // old camera position; publishing it on re-enable would draw stale geometry.
@@ -784,6 +786,7 @@ public class RemixRenderer {
             submitPendingParticleFrame();
 
             Camera camera = client.gameRenderer.mainCamera();
+            textureManager.updateNightVision(client);
             float tickDelta = client.getDeltaTracker().getGameTimeDeltaPartialTick(true);
             particleFuture = startParticleRenderTask(tickDelta, ProfileScope.currentFrameIndex());
             
@@ -1449,6 +1452,7 @@ public class RemixRenderer {
      */
     private void doClearWorld() {
         LOGGER.info("Clearing world resources...");
+        if (textureManager != null) textureManager.clearNightVision();
         joinInFlightParticleRenderTask();
         discardPendingParticleFrame();
         

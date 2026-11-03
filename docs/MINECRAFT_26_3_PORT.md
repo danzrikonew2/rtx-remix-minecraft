@@ -48,18 +48,18 @@ in those configurations. See [the audit and remaining validation](PERFORMANCE_26
 
 The status-effect follow-up adds candidate blindness/darkness distance fog and
 restores vanilla's glowing outline submission. A hidden GPU test verifies the
-fog shader; in-game acceptance is pending. Night vision/conduit brightening,
+fog shader; in-game acceptance is pending. Complete night vision/conduit parity,
 the darkness lightmap pulse, and nausea projection remain incomplete. See
 [coverage, limits and test commands](STATUS_EFFECTS_26_3.md).
 The follow-up captures burning-mob flames with reusable model parts and adds
 the status fog's strength transition. It preserves off-screen pose reuse and
 borrows the existing fire material; game appearance/cost remain unverified.
 
-The [camera-only Night Vision audit](STATUS_EFFECTS_26_3.md#night-vision-renderer-audit-2026-11-03)
-confirms that the pinned native API lacks exported diffuse albedo/HDR lighting
-and a pre-tonemap compositing hook. This feature remains blocked on matching
-native renderer support; no ambient-light, emission or exposure substitute is
-included. The local audit branch does not update the installed candidate.
+The local Night Vision branch adds an [experimental emissive approximation](STATUS_EFFECTS_26_3.md#experimental-emissive-night-vision),
+with a weak 0.10 default, protected authored glow and a session strength control.
+It accepts real emission/bounce and is not the camera-only mode, which still
+needs matching native renderer support. Appearance and performance remain
+unverified. The local branch does not update the installed candidate.
 
 The next temporal-quality candidate restores sparse quality 0.5, adds a saved
 Sparse Tracing toggle and `/rtx temporal` diagnostics, and caps minimized windows
@@ -84,7 +84,7 @@ together. F8 remains the RTX rendering toggle. No long-running capture is needed
 | Exit | Leave/reopen the world once, then quit the game and Prism normally. Report any crash/freeze and roughly when it occurred. Logs are reviewed after exit. |
 | Returning dynamic textures | During normal play, move between areas with different players/maps, then return. Their textures should reappear correctly. Cleanup summaries are available after world leave/exit; no long profiler capture is needed. |
 | Existing authored zones | If the test save uses authored zones, confirm its definitions remain after leaving/reopening. Current files win over old files; migration must preserve the old files. |
-| Status effects | Follow the [short effect check](STATUS_EFFECTS_26_3.md#one-combined-manual-check): blindness/darkness range, fade and removal; glowing in front/behind a wall; burning-mob flames and extinguishing; then RTX off/on. Night vision/nausea remain known gaps. |
+| Status effects | Follow the [short effect check](STATUS_EFFECTS_26_3.md#one-combined-manual-check): blindness/darkness range, fade and removal; glowing in front/behind a wall; burning-mob flames and extinguishing; then RTX off/on. The separate Night Vision candidate has its own strength 0/0.10 comparison; nausea remains incomplete. |
 
 This test validates the combined candidate, not an unsupported DLSS 5 rendering
 claim or a measured MFG multiplier. Public beta assets remain separate until

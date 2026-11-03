@@ -11,10 +11,14 @@ also part of every mod file name.
 
 ## Unreleased
 
-- Document the verified native-interface blocker for camera-only Night Vision,
-  the available Minecraft effect strength, and the required renderer inputs.
-  Night Vision brightening remains unimplemented; this audit changes no
-  rendering, saved settings or release package.
+- Add experimental emissive Night Vision for opaque/cutout block-atlas
+  materials, with a 0.10 default and a capped session-only `/rtx nightvision
+  strength` control. Protect authored glow texels and retain PBR descriptors,
+  animation and original material restoration. This accepts physical emission
+  and bounce; it is not camera-only or adaptive illumination. Appearance and
+  performance remain unverified; public release assets are unchanged.
+- Document the native-interface blocker for the stricter camera-only Night
+  Vision mode, the available Minecraft strength, and required renderer inputs.
 - Capture burning-entity flames using live fire atlas sprites and vanilla's
   stacked shape. Reusable model-backed quads retain mesh sharing and the
   off-screen pose cache. Fade status distance-fog strength with vanilla's
