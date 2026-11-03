@@ -22,11 +22,14 @@ import net.minecraft.client.renderer.feature.submit.SubmitNode;
 import net.minecraft.client.renderer.gizmos.DrawableGizmoPrimitives;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.state.level.QuadParticleRenderState;
 import net.minecraft.client.renderer.texture.UvMapping;
 import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.client.resources.model.geometry.ItemQuads;
+import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.ARGB;
@@ -56,7 +59,7 @@ import java.util.List;
  *
  * <p>Not captured: shadows (Remix traces real ones), crumbling overlays (the
  * block damage pass draws the crack), shape outlines, particles drawn as
- * submits, debug gizmos, and for now the burning-entity flame, the lead and
+ * submits, debug gizmos, and for now the lead and
  * moving pistons' blocks (see port notes).
  */
 public final class RemixSubmitCollector implements SubmitNodeCollector {
@@ -68,6 +71,7 @@ public final class RemixSubmitCollector implements SubmitNodeCollector {
     // The capture's own stack type, so ModelPartMixin applies its pooled part transform.
     private final RecyclingMatrixStack modelPoseStack = new RecyclingMatrixStack();
     private final GlyphCapture glyphCapture = new GlyphCapture();
+    private RenderType flameLayer;
 
     public RemixSubmitCollector(RemixVertexConsumerProvider provider) {
         this.provider = provider;
@@ -124,6 +128,17 @@ public final class RemixSubmitCollector implements SubmitNodeCollector {
 
     @Override
     public void submitFlame(PoseStack poseStack, EntityRenderState renderState, Quaternionf rotation) {
+        if (flameLayer == null) {
+            // The block atlas already supplies fire emission through its LabPBR
+            // material; retain vanilla's cutout edges and shared atlas ownership.
+            flameLayer = RenderTypes.entityCutoutCull(TextureAtlas.LOCATION_BLOCKS);
+        }
+        var atlas = Minecraft.getInstance().getAtlasManager();
+        if (!(provider.getBuffer(flameLayer) instanceof RemixCapturingConsumer flameBuffer)) return;
+        modelPoseStack.last().set(poseStack.last());
+        BurningEntityFlame.emit(modelPoseStack, flameBuffer,
+                renderState.boundingBoxWidth, renderState.boundingBoxHeight, rotation,
+                atlas.get(ModelBakery.FIRE_0), atlas.get(ModelBakery.FIRE_1));
     }
 
     @Override

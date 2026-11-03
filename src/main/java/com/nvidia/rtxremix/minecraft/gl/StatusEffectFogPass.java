@@ -36,7 +36,7 @@ final class StatusEffectFogPass {
     private int height;
     private int format;
 
-    int apply(int color, int depth, float fovY, float aspect, float start, float end) {
+    int apply(int color, int depth, float fovY, float aspect, float start, float end, float opacity) {
         if (!(end > start)) throw new IllegalArgumentException("Fog end must exceed start");
         int w = GL45.glGetTextureLevelParameteri(color, 0, GL11.GL_TEXTURE_WIDTH);
         int h = GL45.glGetTextureLevelParameteri(color, 0, GL11.GL_TEXTURE_HEIGHT);
@@ -82,6 +82,7 @@ final class StatusEffectFogPass {
             float tanHalf = (float) Math.tan(Math.toRadians(fovY) * 0.5);
             GL20.glUniform2f(1, tanHalf * aspect, tanHalf);
             GL20.glUniform2f(2, start, end);
+            GL20.glUniform1f(3, opacity);
             GL43.glDispatchCompute((w + 7) / 8, (h + 7) / 8, 1);
             GL42.glMemoryBarrier(GL42.GL_FRAMEBUFFER_BARRIER_BIT
                     | GL42.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL42.GL_TEXTURE_UPDATE_BARRIER_BIT);

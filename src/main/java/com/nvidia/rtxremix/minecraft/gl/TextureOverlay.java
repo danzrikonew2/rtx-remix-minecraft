@@ -62,7 +62,7 @@ public class TextureOverlay {
                     textureId = statusFogPass.apply(textureId, depthTextureId,
                             client.gameRenderer.mainCamera().getFov(),
                             (float) client.getWindow().getWidth() / client.getWindow().getHeight(),
-                            statusFog.start(), statusFog.end());
+                            statusFog.start(), statusFog.end(), statusFog.opacity());
                     missingDepthLogged = false;
                     fogFailureLogged = false;
                 } else {

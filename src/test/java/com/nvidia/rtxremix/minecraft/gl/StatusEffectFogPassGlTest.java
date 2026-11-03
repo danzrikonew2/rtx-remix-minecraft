@@ -73,7 +73,7 @@ class StatusEffectFogPassGlTest {
             GL42.glBindImageTexture(0, depth, 0, false, 0, GL15.GL_READ_WRITE, GL30.GL_R32F);
             GL42.glBindImageTexture(1, color, 0, false, 0, GL15.GL_READ_ONLY, GL11.GL_RGBA8);
             assertEquals(GL11.GL_NO_ERROR, GL11.glGetError(), "Test texture setup format " + format);
-            int output = pass.apply(color, depth, 70, 3, 1.25f, 5);
+            int output = pass.apply(color, depth, 70, 3, 1.25f, 5, 1);
             assertEquals(GL11.GL_NO_ERROR, GL11.glGetError(), "Fog dispatch format " + format);
             assertEquals(sentinelProgram, GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM));
             assertEquals(depth, GL30.glGetIntegeri(GL42.GL_IMAGE_BINDING_NAME, 0));
@@ -91,9 +91,16 @@ class StatusEffectFogPassGlTest {
             assertEquals(0, pixels[8], .005);
             assertEquals(1, pixels[11], .005);
             assertEquals(GL11.GL_NO_ERROR, GL11.glGetError(), "OpenGL format/state validation");
+            for (float opacity : new float[]{0, .75f}) {
+                pass.apply(color, depth, 70, 3, 1.25f, 5, opacity);
+                GL42.glMemoryBarrier(GL42.GL_TEXTURE_UPDATE_BARRIER_BIT);
+                GL45.glGetTextureImage(output, 0, GL11.GL_RGBA, GL11.GL_FLOAT, pixels);
+                assertEquals(1, pixels[0], .005, "Near detail must remain visible during transition");
+                assertEquals(1 - opacity, pixels[8], .005, "Far color fades instead of snapping black");
+            }
             pass.releaseImage();
             assertFalse(GL11.glIsTexture(output));
-            int recreated = pass.apply(color, depth, 70, 3, 1.25f, 5);
+            int recreated = pass.apply(color, depth, 70, 3, 1.25f, 5, 1);
             assertTrue(GL11.glIsTexture(recreated));
             verifyReducedDepthAndResize(pass, format);
         } finally {
@@ -118,7 +125,7 @@ class StatusEffectFogPassGlTest {
                             1, .75f, .5f, 1, 1, .75f, .5f, 1, 1, .75f, .5f, 1});
             GL45.glTextureSubImage2D(depth, 0, 0, 0, 1, 2, GL11.GL_RED, GL11.GL_FLOAT,
                     new float[]{project(.25), 1});
-            int output = pass.apply(color, depth, 70, 1.5f, 1.25f, 5);
+            int output = pass.apply(color, depth, 70, 1.5f, 1.25f, 5, 1);
             GL42.glMemoryBarrier(GL42.GL_TEXTURE_UPDATE_BARRIER_BIT);
             float[] pixels = new float[24];
             GL45.glGetTextureImage(output, 0, GL11.GL_RGBA, GL11.GL_FLOAT, pixels);

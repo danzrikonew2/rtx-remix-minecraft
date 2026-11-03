@@ -11,6 +11,11 @@ also part of every mod file name.
 
 ## Unreleased
 
+- Capture burning-entity flames using live fire atlas sprites and vanilla's
+  stacked shape. Reusable model-backed quads retain mesh sharing and the
+  off-screen pose cache. Fade status distance-fog strength with vanilla's
+  effect darkening curve. Geometry/pooling and GPU fade tests pass; real-game
+  flame appearance and performance remain unverified.
 - Restore candidate blindness/darkness distance fog from native projected
   primary depth, using vanilla effect ranges without changing saved lighting.
   Retain vanilla's glowing-entity outline submission for composition after

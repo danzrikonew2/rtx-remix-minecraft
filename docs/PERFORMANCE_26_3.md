@@ -472,6 +472,31 @@ exact limits and a combined manual check are in
 [the status-effect guide](STATUS_EFFECTS_26_3.md). No saved exposure or native
 lighting setting is changed by an effect.
 
+### Effect continuation and the latest session
+
+The `11daee0` session on 2026-11-03 ran from approximately 02:01:54 to
+02:12:34 Asia/Jakarta and completed normal native shutdown. Its Minecraft log
+contains zero ERROR-level lines and no missing-depth/fog exception diagnostic.
+There are 51 complete 300-frame reports (15,300 reported frames); their mean
+reported frame time is 7.10 ms, with a largest reported frame of 1,688.58 ms.
+These mixed normal reports do not measure display FPS or percentiles and are
+not a controlled comparison. The long frame tail remains unresolved; a clean
+exit does not prove stutter or visual problems fixed. Dynamic texture cleanup
+reports zero cold retirements, so this run does not validate that retirement
+path's benefit. The private log and aggregate summary remain under ignored
+`build/captures/effects-11daee0-20261103/`.
+
+The follow-up candidate captures burning-mob flames and fades the distance-fog
+overlay with vanilla effect strength. Flame slices use immutable model-backed
+quads, preserving both native mesh sharing and the existing off-screen pose
+cache. Raw-vertex parts would disable that cache for burning mobs. The standard
+cutout layer borrows the atlas's existing LabPBR fire emission, with no extra
+atlas textures or analytic lights. Targeted tests check actual transformed
+geometry, UV alternation, pooled keys and snapshot eligibility; the hidden GPU
+test also checks zero/partial/full fog weights. Visual result and game cost
+remain unmeasured. Night vision/conduit, the darkness lightmap pulse, and
+nausea projection remain the documented gaps.
+
 ### Latest temporal-quality candidate: 2026-11-02
 
 The user reports renewed stationary held-item shimmer and strong motion blur/
