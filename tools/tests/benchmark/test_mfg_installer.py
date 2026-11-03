@@ -10,27 +10,57 @@ from rtx_tools.benchmark import util
 
 pytestmark = pytest.mark.skipif(os.name != "nt", reason="Windows addon installer")
 HELPER = util.PROJECT_DIR / "packaging" / "mfg-unlocker.ps1"
+WRAPPER = """[CmdletBinding()]
+param([string]$Helper, [string]$GameDir, [string]$Mode, [switch]$PrismRunning)
+function Get-Process {
+    [CmdletBinding()]
+    param([string]$Name)
+    if ($Name -ne 'prismlauncher') { throw "Unexpected process query: $Name" }
+    if ($PrismRunning) { [pscustomobject]@{ ProcessName = 'prismlauncher' } }
+}
+& $Helper -GameDir $GameDir -Mode $Mode
+"""
 
 
-def run_helper(game, mode):
+def run_helper(game, mode, *, prism_running=False):
+    # Process discovery belongs to the isolated child session. These file-operation
+    # fixtures must neither inspect nor depend on the developer's real launcher.
+    wrapper = game / "invoke-mfg-test.ps1"
+    wrapper.write_text(WRAPPER, encoding="utf-8")
+    args = [
+        "powershell",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        str(wrapper),
+        "-Helper",
+        str(HELPER),
+        "-GameDir",
+        str(game),
+        "-Mode",
+        mode,
+    ]
+    if prism_running:
+        args.append("-PrismRunning")
     return subprocess.run(
-        [
-            "powershell",
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-File",
-            str(HELPER),
-            "-GameDir",
-            str(game),
-            "-Mode",
-            mode,
-        ],
+        args,
         capture_output=True,
         text=True,
         timeout=30,
         env={key: value for key, value in os.environ.items() if key.upper() != "PSMODULEPATH"},
     )
+
+
+def test_running_prism_blocks_mutation_before_disable(tmp_path):
+    addon = tmp_path / "rtx-remix-addons" / "mfg-unlocker"
+    addon.mkdir(parents=True)
+    marker = addon / "enabled.txt"
+    marker.write_text("1.7.0")
+    result = run_helper(tmp_path, "Disable", prism_running=True)
+    assert result.returncode != 0
+    assert "Close Prism Launcher" in result.stderr
+    assert marker.read_text() == "1.7.0"
 
 
 def test_disable_preserves_payload_and_unrelated_runtime(tmp_path):
