@@ -70,7 +70,8 @@ tracing and any separately installed experimental adapter.
   cover emission bounds/precision, authored-glow protection, material descriptors,
   animation/padding and strength/duration behavior.
 - Installer archive verification checks scripts, guides, licenses and an
-  identical embedded mod JAR. Full tooling checks are part of the release gate.
+  identical embedded mod JAR. The tooling release gate passed lint/type checks
+  and **1,148 tests**, with 1 skipped and 178 subtests passed.
 - The pinned native runtime accepted HDR texture creation/patches, same-handle
   material changes/restoration and 60 hidden submits/presents. The harness
   emitted the existing device-object cleanup diagnostic at DLL unload.

@@ -136,7 +136,7 @@ param(
 $ErrorActionPreference = 'Continue'
 
 # --- Constants (kept in sync with build.gradle / rtxremix-java) ---
-$script:APP_VERSION          = '0.2.0-beta.1'
+$script:APP_VERSION          = '0.2.0-beta.2'
 $script:PRISM_INSTANCE_NAME  = 'RTX Remix Community 26.3 Beta (Experimental)'
 # Legacy instance names kept for backward detection only; prior installs
 # used shorter / differently-worded names. Ordered newest-to-oldest.
