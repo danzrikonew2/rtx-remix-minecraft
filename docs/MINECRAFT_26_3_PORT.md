@@ -55,6 +55,12 @@ The follow-up captures burning-mob flames with reusable model parts and adds
 the status fog's strength transition. It preserves off-screen pose reuse and
 borrows the existing fire material; game appearance/cost remain unverified.
 
+The [camera-only Night Vision audit](STATUS_EFFECTS_26_3.md#night-vision-renderer-audit-2026-11-03)
+confirms that the pinned native API lacks exported diffuse albedo/HDR lighting
+and a pre-tonemap compositing hook. This feature remains blocked on matching
+native renderer support; no ambient-light, emission or exposure substitute is
+included. The local audit branch does not update the installed candidate.
+
 The next temporal-quality candidate restores sparse quality 0.5, adds a saved
 Sparse Tracing toggle and `/rtx temporal` diagnostics, and caps minimized windows
 at 1 FPS. The latest user video/adapter logs show artifacts even with FG off;

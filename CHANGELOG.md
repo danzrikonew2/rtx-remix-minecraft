@@ -11,6 +11,10 @@ also part of every mod file name.
 
 ## Unreleased
 
+- Document the verified native-interface blocker for camera-only Night Vision,
+  the available Minecraft effect strength, and the required renderer inputs.
+  Night Vision brightening remains unimplemented; this audit changes no
+  rendering, saved settings or release package.
 - Capture burning-entity flames using live fire atlas sprites and vanilla's
   stacked shape. Reusable model-backed quads retain mesh sharing and the
   off-screen pose cache. Fade status distance-fog strength with vanilla's
