@@ -59,10 +59,10 @@ function Fetch-PinnedRepository([string]$url, [string]$sha, [string]$target, [st
         return
     }
     New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
-    Run-Git @('-C',$stagingDir,'init','-q')
-    Run-Git @('-C',$stagingDir,'remote','add','origin',$url)
-    Run-Git @('-C',$stagingDir,'-c','core.autocrlf=false','fetch','--depth','1','origin',$sha)
-    Run-Git @('-C',$stagingDir,'-c','core.autocrlf=false','checkout','--detach','FETCH_HEAD')
+    Run-Git -argsList @('-C',$stagingDir,'init','-q')
+    Run-Git -argsList @('-C',$stagingDir,'remote','add','origin',$url)
+    Run-Git -argsList @('-C',$stagingDir,'-c','core.autocrlf=false','fetch','--depth','1','origin',$sha)
+    Run-Git -argsList @('-C',$stagingDir,'-c','core.autocrlf=false','checkout','--detach','FETCH_HEAD')
     $actual = (& git.exe -C $stagingDir rev-parse HEAD)
     if ($LASTEXITCODE -ne 0 -or $actual.Trim() -ne $sha) {
         throw "Unexpected upstream commit for $url; expected $sha"
