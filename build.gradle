@@ -640,7 +640,8 @@ def stageReleaseArchiveTask = tasks.register('stageReleaseArchive', Sync) {
     }
     from 'packaging/install.bat', 'packaging/install-mfg.bat', 'packaging/installer.ps1',
             'packaging/migrate_resource_packs.ps1', 'packaging/INSTALLER_REFERENCE.md',
-            'packaging/mfg-unlocker.ps1'
+            'packaging/mfg-unlocker.ps1',
+            'packaging/install-sm86-trex.bat', 'packaging/install-sm86-trex.ps1'
     from('packaging/INSTALL.md') {
         rename { 'README.md' }
     }
@@ -685,7 +686,8 @@ tasks.register('verifyReleaseArchive') {
         try {
             def names = archive.entries().collect { it.name }.toSet()
             def required = ['install.bat', 'install-mfg.bat', 'installer.ps1', 'migrate_resource_packs.ps1',
-                    'mfg-unlocker.ps1', 'docs/MFG_UNLOCKER.md',
+                    'mfg-unlocker.ps1', 'install-sm86-trex.bat', 'install-sm86-trex.ps1',
+                    'docs/MFG_UNLOCKER.md', 'docs/SM86_TREX_EXPERIMENT.md',
                     'README.md', 'INSTALLER_REFERENCE.md', 'LICENSE', 'NOTICE',
                     'THIRD_PARTY_NOTICES.md', 'CHANGELOG.md', 'docs/MINECRAFT_26_3_PORT.md']
             def modPath = "mods/${packageJarArchive.get().asFile.name}".toString()
