@@ -25,10 +25,19 @@ bool Check(const wchar_t* path, remix_runtime_profile::Id expected) {
 
 int wmain(int argc, wchar_t** argv) {
     using remix_runtime_profile::Id;
-    if (argc != 3) return 2;
-    if (!Check(argv[1], Id::v0_1_0_71a581da) || !Check(argv[2], Id::v0_1_1_a00da12a)) return 1;
+    // Always validate the new runtime even when the old known-good runtime is
+    // unavailable. The optional legacy input adds a backward-compatibility
+    // regression without blocking v0.1.1-only CI/build environments.
+    if (argc != 2 && argc != 3) {
+        std::wcerr << L"Usage: MfgRuntimeProfileTests NEW_REMIX_DLL\n"
+                   << L"   or: MfgRuntimeProfileTests OLD_REMIX_DLL NEW_REMIX_DLL\n";
+        return 2;
+    }
+    const wchar_t* newRuntime = argv[argc - 1];
+    if (argc == 3 && !Check(argv[1], Id::v0_1_0_71a581da)) return 1;
+    if (!Check(newRuntime, Id::v0_1_1_a00da12a)) return 1;
 
-    std::ifstream input(std::filesystem::path(argv[2]), std::ios::binary);
+    std::ifstream input(std::filesystem::path(newRuntime), std::ios::binary);
     if (!input) return 1;
     std::vector<uint8_t> original((std::istreambuf_iterator<char>(input)), {});
     if (original.size() < sizeof(IMAGE_NT_HEADERS64)) return 1;
@@ -57,6 +66,8 @@ int wmain(int argc, wchar_t** argv) {
         std::cerr << "FAIL: truncated or null image accepted\n";
         return 1;
     }
-    std::cout << "PASS: old/new SHA-256 profiles, unknown hash, x86 image, truncation and null input\n";
+    std::cout << "PASS: v0.1.1 SHA-256 PE32+ profile"
+              << (argc == 3 ? ", old runtime profile" : "")
+              << ", unknown hash, x86 image, truncation and null input\n";
     return 0;
 }
