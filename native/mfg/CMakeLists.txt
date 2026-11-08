@@ -16,7 +16,7 @@ set_target_properties(MfgNoRemixApi PROPERTIES PREFIX "" OUTPUT_NAME "d3d9")
 # both fixtures intentionally use the Remix runtime's d3d9.dll basename.
 add_library(MfgUnknownRemixApi MODULE remix_no_api_test.cpp)
 set_target_properties(MfgUnknownRemixApi PROPERTIES PREFIX "" OUTPUT_NAME "d3d9"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/unknown-remix-api")
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/unknown-remix-api")
 target_compile_definitions(MfgUnknownRemixApi PRIVATE MFG_TEST_EXPORT_FAKE_REMIX_API=1)
 add_executable(MfgRuntimeProfileTests remix_runtime_profile_test.cpp)
 add_executable(MfgRemixPresentSmoke remix_present_smoke.cpp)
