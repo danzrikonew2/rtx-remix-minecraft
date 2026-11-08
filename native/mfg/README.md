@@ -74,7 +74,7 @@ must be available, or supply `-PythonExe` with an absolute path.
 Restore the remaining SDK dependencies with the separate pinned-fetch helper:
 
 ```powershell
-.\\native\\mfg\\prepare_pinned_sdks.ps1 -RepoRoot (Get-Location).Path -PythonExe "$env:LOCALAPPDATA\\Programs\\Python\\Python312\\python.exe"
+.\native\mfg\prepare_pinned_sdks.ps1 -RepoRoot (Get-Location).Path -PythonExe "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe"
 ```
 
 It verifies the GitHub-published SHA-256 of the official **Streamline 2.14.1
