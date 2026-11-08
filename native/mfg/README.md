@@ -56,11 +56,25 @@ frozen release toolchain and reconstructs manifest formatting. It does not claim
 byte-identical release reproduction. XeSS functionality is omitted with
 `MFG_UNLOCK_XESS=OFF`; its program set and CUDA compiler are not required.
 
-From the Minecraft repository root, substitute your extraction paths:
+From the Minecraft repository root, first recover the pinned 1.7.0
+resources without loading or executing the upstream DLL:
 
 ```powershell
-python native/mfg/recover_inputs.py --dll PATH/TO/MFGUnlocker.dll `
-    --source build/mfg-source --output build/mfg-inputs
+.\\native\\mfg\\recover_verified_release.ps1
+```
+
+This helper uses the exact upstream GitHub asset SHA-256 and inner DLL SHA-256,
+requires the existing pinned `build/mfg-source` checkout, generates kernel
+manifests and SPIR-V assets in `build/mfg-inputs`, and preserves existing
+outputs instead of overwriting an incomplete recovery. It does **not** install
+the addon, build the custom adapter, or modify Prism. The input DLL is local
+build data, not an approved installable MFG candidate. The `python` executable
+must be available, or supply `-PythonExe` with an absolute path.
+
+Once Streamline, ImGui and Vulkan headers have been staged under `build/`,
+continue the SDK verification and adapter build:
+
+```powershell
 python native/mfg/verify_headers.py --source build/mfg-source `
     --streamline build/streamline --imgui build/imgui --normalize-pinned-text
 ./native/mfg/build.ps1 -MfgSource build/mfg-source -Inputs build/mfg-inputs `
