@@ -10,13 +10,18 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$RepoRoot = (Join-Path $PSScriptRoot '..\..'),
+    [string]$RepoRoot,
     [string]$PythonExe = 'python'
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
+# $PSScriptRoot may not be populated while PowerShell binds parameter
+# default expressions. Resolve the script's directory after binding.
+if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
+    $RepoRoot = Join-Path $PSScriptRoot '..\..'
+}
 $root = [IO.Path]::GetFullPath($RepoRoot)
 $source = Join-Path $root 'build\mfg-source'
 $sourcePin = Join-Path $source 'source\native\generated_sha256.json'
