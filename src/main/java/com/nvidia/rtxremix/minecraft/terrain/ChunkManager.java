@@ -133,13 +133,13 @@ public class ChunkManager {
     private int lastLightsDrawn, lastLightsCulled, lastLightsBeyondReach;
 
     /** Compare two stationary snapshots to distinguish source churn from reservoir instability. */
-    public record LightSubmissionSnapshot(long frames, long creates, long updates, long removes,
+    public record LightSubmissionSnapshot(int worldEpoch, long frames, long creates, long updates, long removes,
                                           long retirementRequests, long pendingOps,
                                           int drawn, int culled, int beyondReach) {}
 
     /** Only query on the render thread, like lightStatsByRule(). */
     public LightSubmissionSnapshot lightSubmissionSnapshot() {
-        return new LightSubmissionSnapshot(lightFramesObserved, lightNativeCreates,
+        return new LightSubmissionSnapshot(epoch, lightFramesObserved, lightNativeCreates,
                 lightNativeUpdates, lightNativeRemoves, lightRetiresQueued, pendingLightOps,
                 lastLightsDrawn, lastLightsCulled, lastLightsBeyondReach);
     }
