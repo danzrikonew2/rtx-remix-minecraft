@@ -54,7 +54,10 @@ function Fetch-PinnedFile([string]$filename, [string]$url, [string]$sha256) {
     if (!(Test-Path -LiteralPath $path -PathType Leaf)) {
         $temporary = Join-Path $cache ($filename + '.' + [guid]::NewGuid().ToString('N') + '.download')
         try {
-            Write-Output "Downloading pinned asset: $filename"
+            # This helper returns exactly one pipeline object: the archive path.
+            # Write-Output here previously contaminated $nightly/$fork with a
+            # progress string and produced a malformed tar/7-Zip argument.
+            Write-Host "Downloading pinned asset: $filename"
             Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $temporary
             Assert-Hash $temporary $sha256
             [IO.File]::Move($temporary, $path)
@@ -65,7 +68,8 @@ function Fetch-PinnedFile([string]$filename, [string]$url, [string]$sha256) {
         }
     }
     Assert-Hash $path $sha256
-    return $path
+    # Never mix diagnostics with the returned path in the success stream.
+    return [string]$path
 }
 function Copy-Safe([string]$source, [string]$target) {
     if (!(Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing source: $source" }
@@ -113,6 +117,12 @@ try {
         'https://github.com/dashdogy/OptiScaler/releases/download/mfgunlocker-v1.7.0/SOURCE.txt' `
         'f80ae294870180eb4c733330b6bdcbd0f1d80a825ed20ca28f2640f2053f726d'
 
+    # Fail closed if a future change accidentally returns multiple objects.
+    foreach ($asset in @($nightly,$fork,$forkLicense,$forkSource)) {
+        if ($asset -isnot [string] -or !(Test-Path -LiteralPath $asset -PathType Leaf)) {
+            throw "Pinned asset helper returned a non-file or multiple values: $($asset -join ', ')"
+        }
+    }
     # Windows 11's libarchive tar.exe normally reads 7z archives. Fall back
     # to an existing local 7-Zip executable; never download an extractor.
     $extracted = $false
