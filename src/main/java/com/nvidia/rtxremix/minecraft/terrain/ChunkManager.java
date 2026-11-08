@@ -126,6 +126,23 @@ public class ChunkManager {
     private long pendingLightOps;
     private boolean lightWorkBackpressured;
     private long lastLightFailureLogNanos;
+    // Render-thread-only observability: count successful light mutations,
+    // not attempts. No per-frame allocations or logging.
+    private long lightNativeCreates, lightNativeUpdates, lightNativeRemoves, lightRetiresQueued;
+    private long lightFramesObserved;
+    private int lastLightsDrawn, lastLightsCulled, lastLightsBeyondReach;
+
+    /** Compare two stationary snapshots to distinguish source churn from reservoir instability. */
+    public record LightSubmissionSnapshot(long frames, long creates, long updates, long removes,
+                                          long retirementRequests, long pendingOps,
+                                          int drawn, int culled, int beyondReach) {}
+
+    /** Only query on the render thread, like lightStatsByRule(). */
+    public LightSubmissionSnapshot lightSubmissionSnapshot() {
+        return new LightSubmissionSnapshot(lightFramesObserved, lightNativeCreates,
+                lightNativeUpdates, lightNativeRemoves, lightRetiresQueued, pendingLightOps,
+                lastLightsDrawn, lastLightsCulled, lastLightsBeyondReach);
+    }
     private static final int MAX_LIGHT_OPS_PER_FRAME = Math.max(1,
             Integer.getInteger("rtxremix.chunk.maxLightOpsPerFrame", 32));
     private static final long LIGHT_TIME_BUDGET_NS = Math.max(100_000L,
@@ -269,6 +286,7 @@ public class ChunkManager {
             entry.lightFingerprints().put(mutation.key(), mutation.fingerprint());
             terrain.adjustSectionLightCount(
                     section.cx(), section.sy(), section.cz(), entry, 1);
+            lightNativeCreates++;
         }
 
         private void updateLight(LightMutation mutation) {
@@ -281,6 +299,7 @@ public class ChunkManager {
             record.place(incoming.x(), incoming.y(), incoming.z(),
                     LightPower.of(incoming, radiance.r(), radiance.g(), radiance.b()));
             entry.lightFingerprints().put(mutation.key(), mutation.fingerprint());
+            lightNativeUpdates++;
         }
 
         private void removeLight(LightMutation mutation) {
@@ -290,6 +309,7 @@ public class ChunkManager {
             if (entry.removeLight(mutation.key()) != null) {
                 terrain.adjustSectionLightCount(
                         section.cx(), section.sy(), section.cz(), entry, -1);
+                lightNativeRemoves++;
             }
         }
 
@@ -1065,7 +1085,10 @@ public class ChunkManager {
     }
 
     private void enqueueLightRetirement(List<RemixLight> lights) {
-        if (!lights.isEmpty()) enqueueLightTask(new LightRetireTask(lights));
+        if (!lights.isEmpty()) {
+            lightRetiresQueued += lights.size();
+            enqueueLightTask(new LightRetireTask(lights));
+        }
     }
 
     private void removeSectionDeferred(int cx, int sy, int cz) {
@@ -1819,6 +1842,10 @@ public class ChunkManager {
             traversalScope.drawCalls(drawCalls);
         }
 
+        lightFramesObserved++;
+        lastLightsDrawn = lightsDrawn;
+        lastLightsCulled = lightsCulled;
+        lastLightsBeyondReach = lightsBeyondReach;
         t.count(cntLightsCulled, lightsCulled);
         t.count(cntLightsDrawn, lightsDrawn);
         t.count(cntLightsBeyondReach, lightsBeyondReach);
@@ -1935,6 +1962,12 @@ public class ChunkManager {
         pendingColumnUnloads.clear();
         framesSinceAudit = 0;
         terrainFrame = 0;
+        lightNativeCreates = 0;
+        lightNativeUpdates = 0;
+        lightNativeRemoves = 0;
+        lightRetiresQueued = 0;
+        lightFramesObserved = 0;
+        lastLightsDrawn = lastLightsCulled = lastLightsBeyondReach = 0;
         zombieAuditColumns = null;
         zombieAuditCursor = 0;
         zombieAuditRemoved = 0;
