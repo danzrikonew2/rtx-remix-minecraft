@@ -93,7 +93,12 @@ ctest --test-dir build/mfg-checks -C Release --output-on-failure
 The contract executable uses upstream's unchanged `ValidateNativeContainer` to
 check all 387 recovered contracts. The host check loads the actual pinned
 runtime without starting its renderer, verifies registration and rejects null,
-system and addon modules. These tests do not execute FG kernels.
+system and addon modules. With a locally rebuilt adapter, it also checks that a
+loadable `d3d9.dll` fixture lacking the Remix export is rejected and that a
+separate impostor `d3d9.dll` **with** that export still fails the exact runtime
+identity gate. Both fixtures are generated only inside the native test build,
+not staged with the runtime or released as Remix DLLs. These tests do not
+execute FG kernels.
 
 **Current-runtime identity coverage:** The `remix_runtime_profiles` CTest is
 registered whenever `-DREMIX_DLL=ABSOLUTE_NEW_A00DA12A_D3D9_DLL` is supplied,
