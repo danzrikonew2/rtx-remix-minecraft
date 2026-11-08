@@ -95,6 +95,17 @@ check all 387 recovered contracts. The host check loads the actual pinned
 runtime without starting its renderer, verifies registration and rejects null,
 system and addon modules. These tests do not execute FG kernels.
 
+**Current-runtime identity coverage:** The `remix_runtime_profiles` CTest is
+registered whenever `-DREMIX_DLL=ABSOLUTE_NEW_A00DA12A_D3D9_DLL` is supplied,
+even if the old DLL is not available. It verifies the exact SHA-256 and AMD64
+PE32+ image and rejects one-byte modification, architecture substitution,
+truncation and null input. Optionally supply
+`-DOLD_REMIX_DLL=ABSOLUTE_71A581DA_D3D9_DLL` to add the previously validated
+runtime profile regression. Run `ctest --test-dir build/mfg-checks -C Release
+-R "^remix_runtime_profiles$" --output-on-failure`. A passing profile test
+means only runtime identity validation, **not** successful MFG registration,
+provider FG evaluation, unique output images, or displayed frame pacing.
+
 `MfgRemixPresentSmoke.exe` is an additional GPU test. Run from a new disposable
 directory containing a copy of `packaging/rtx.conf`; pass absolute candidate and
 runtime DLL paths. It creates its own hidden window, starts the actual Remix C
