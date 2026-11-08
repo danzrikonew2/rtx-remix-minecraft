@@ -24,6 +24,13 @@ for name, expected in PINS.items():
     ):
         raise SystemExit(f"Unrecognized MFG source input: {name}")
 
+profile_header = Path(__file__).with_name("remix_runtime_profile.h")
+profile_destination = native / profile_header.name
+profile_bytes = profile_header.read_bytes()
+if profile_destination.exists() and profile_destination.read_bytes() != profile_bytes:
+    raise SystemExit("Preserving edited remix_runtime_profile.h; use a fresh MFG copy")
+profile_destination.write_bytes(profile_bytes)
+
 s = (backup / "overlay_application_imports.cpp").read_text()
 
 
@@ -36,7 +43,7 @@ def replace(old, new):
 
 replace(
     '#include "overlay_platform.h"',
-    '#include "overlay_platform.h"\n#include "sha256_util.h"\nnamespace single_overlay::vulkan { void RetireRemixSwapchains(); }',
+    '#include "overlay_platform.h"\n#include "remix_runtime_profile.h"\nnamespace single_overlay::vulkan { void RetireRemixSwapchains(); }',
 )
 replace(
     "std::atomic_flag publishing = ATOMIC_FLAG_INIT;",
@@ -91,11 +98,15 @@ extern "C" __declspec(dllexport) BOOL WINAPI MfgUnlockRegisterRemixVulkanHost(HM
         nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (file == INVALID_HANDLE_VALUE) return FALSE;
     LARGE_INTEGER size{};
-    const bool bounded = GetFileSizeEx(file, &size) && size.QuadPart > 0 && size.QuadPart <= (512ll << 20);
+    const bool bounded = GetFileSizeEx(file, &size) && size.QuadPart >= sizeof(IMAGE_DOS_HEADER)
+        && size.QuadPart <= (512ll << 20);
     HANDLE mapping = bounded ? CreateFileMappingW(file, nullptr, PAGE_READONLY, 0, 0, nullptr) : nullptr;
     const auto* bytes = mapping ? static_cast<const uint8_t*>(MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, 0)) : nullptr;
-    const bool identity = bytes && sha256_util::EqualsUpperHex(bytes, static_cast<size_t>(size.QuadPart),
-        "44A313F6D2A6FFA3ECCAAB683C472D14F22080BE7C61D07342D8E199A039D1AD", 512ull << 20);
+    const auto profile = bytes
+        ? remix_runtime_profile::Identify(bytes, static_cast<size_t>(size.QuadPart))
+        : remix_runtime_profile::Id::unsupported;
+    // Exact image profiles pin the full executable and Vulkan import pattern.
+    const bool identity = profile != remix_runtime_profile::Id::unsupported;
     if (bytes) UnmapViewOfFile(bytes);
     if (mapping) CloseHandle(mapping);
     CloseHandle(file);
@@ -111,7 +122,9 @@ extern "C" __declspec(dllexport) BOOL WINAPI MfgUnlockRegisterRemixVulkanHost(HM
     struct Unlock { ~Unlock(){publishing.clear(std::memory_order_release);} } unlock;
     for (const auto& binding : bindings)
         if (binding.importer.load(std::memory_order_acquire) == module && binding.complete) {
-            single_module::Log(L"Remix Vulkan renderer imports registered before initialization; FG admission unchanged");
+            single_module::Log(profile == remix_runtime_profile::Id::v0_1_1_a00da12a
+                ? L"RTX Remix v0.1.1 (a00da12a) Vulkan host registered; FG admission unchanged"
+                : L"RTX Remix v0.1.0 (71a581da) Vulkan host registered; FG admission unchanged");
             return TRUE;
         }
     return FALSE;

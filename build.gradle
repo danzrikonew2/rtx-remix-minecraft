@@ -451,6 +451,13 @@ tasks.register('compileNativeWin64', Exec) {
                   file('build/native/win64/remixbridge.pdb')
 }
 
+tasks.register('testNativeWin64', Exec) {
+    description = 'Checks native startup/present marshalling without loading a runtime or GPU'
+    group = 'verification'
+    workingDir file('rtxremix-java/native')
+    commandLine 'cmd', '/c', file('rtxremix-java/native/build_native.bat').absolutePath, 'x64', 'test'
+}
+
 tasks.register('compileNativeArm64', Exec) {
     description = 'Compiles remixbridge.dll for arm64 (Windows ARM64, cross-compiled)'
     group = 'build'

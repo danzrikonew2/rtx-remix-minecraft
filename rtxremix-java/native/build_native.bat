@@ -6,7 +6,7 @@ setlocal enabledelayedexpansion
 
 REM ═══════════════════════════════════════════════════════════════════════
 REM  build_native.bat: Compile remixbridge.dll using MSVC
-REM  Usage: build_native.bat [x64|arm64]   (default: x64)
+REM  Usage: build_native.bat [x64|arm64] [test]   (default: x64)
 REM  Requires: Visual Studio with C++ workload, JAVA_HOME set
 REM
 REM  Output goes to build/native/{win64|arm64}/ under the repository root.
@@ -83,6 +83,8 @@ if /I "%ARCH%"=="x64" (
 set "OUT_DIR=%~dp0..\..\build\native\%OUT_ARCH%"
 if not exist "%OUT_DIR%" mkdir "%OUT_DIR%"
 
+if /I "%~2"=="test" goto :TEST_NATIVE
+
 echo Compiling remixbridge.dll for %OUT_ARCH% ...
 cl /nologo /O2 /Zi /LD /EHsc /std:c++17 ^
    /I"%JAVA_HOME%\include" /I"%JAVA_HOME%\include\win32" /I"%REMIX_INCLUDE%" ^
@@ -99,3 +101,19 @@ if errorlevel 1 (
 
 echo remixbridge.dll built successfully: %OUT_DIR%\remixbridge.dll
 endlocal
+exit /b 0
+
+:TEST_NATIVE
+if /I not "%ARCH%"=="x64" (
+    echo ERROR: Native contract tests must run on Windows x64.
+    exit /b 1
+)
+cl /nologo /O2 /EHsc /std:c++17 ^
+   /I"%JAVA_HOME%\include" /I"%JAVA_HOME%\include\win32" /I"%REMIX_INCLUDE%" ^
+   "%~dp0tests\presentation_contract.cpp" ^
+   /Fe"%OUT_DIR%\presentation_contract.exe" ^
+   /Fo"%OUT_DIR%\presentation_contract.obj" ^
+   /link /nologo dbghelp.lib
+if errorlevel 1 exit /b 1
+"%OUT_DIR%\presentation_contract.exe"
+exit /b %errorlevel%

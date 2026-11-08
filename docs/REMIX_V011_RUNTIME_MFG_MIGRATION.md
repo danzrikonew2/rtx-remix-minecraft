@@ -1,6 +1,6 @@
-# RTX Remix v0.1.1 / MFG adapter migration — 26.3 development branch
+# RTX Remix v0.1.1 / MFG adapter migration  -  26.3 development branch
 
-Status: **v0.1.1 ABI staged; read-only RTXDI source-light diagnostics committed; native build, RTXDI root-cause repair, GPU acceptance and MFG adapter re-pin remain NOT RUN.**
+Status: **v0.1.1 x64 bridge/build/tests/archive and runtime ABI probe PASS. Exact new runtime hash verified. MFG native revalidation is in progress; GPU acceptance is deferred at user request. Native RTXDI repair is BLOCKED on matching unpublished runtime source and a controlled reproduction.**
 This is a developer-only branch. Do **not** merge or ship it until every required gate passes. The original `feat/minecraft-26.3` branch and known-working MFG development profile are intentionally untouched.
 
 ## Identified upstream delta (NVIDIA 2026-11-06)
@@ -16,7 +16,7 @@ This is a developer-only branch. Do **not** merge or ship it until every require
 
 - Updated `packman/remix-sdk.packman.xml`, Remix C API header, `RemixAPI`, `RemixBridge`, `StartupInfo`, and native JNI startup/present implementation.
 - Added stricter GL/Vulkan semaphore-handle and timeline validation. Preserved old presentation to avoid exposing the overlapped host default framebuffer as a child-window source.
-- Updated renderer initialization for the 0.16.1 ABI. This is a **candidate**, not a compile/GPU acceptance claim.
+- Updated renderer initialization for the 0.16.1 ABI. The Windows x64 native bridge and Java build pass; rendering remains a **candidate** pending manual GPU acceptance.
 - No public installer, production MFG addon, or 1.21.1 profile was modified.
 
 ## Gate A: rebuild & verify stock renderer FIRST
@@ -43,7 +43,7 @@ Child HWND should be optional only for testing until it passes. **Do not claim P
 
 ## Gate C: rebuild/re-pin MFG private Vulkan adapter
 
-The existing `native/mfg/patch_remix.py` is deliberately **hard-bound** to the old `d3d9.dll` SHA-256 (`44A313F6D2A6FFA3ECCAAB683C472D14F22080BE7C61D07342D8E199A039D1AD`). The new runtime's hash has not been verified in this branch. Thus the new runtime will NOT pass old host registration, by design.
+The existing known-working adapter remains **hard-bound** to the old `d3d9.dll` SHA-256 (`44A313F6D2A6FFA3ECCAAB683C472D14F22080BE7C61D07342D8E199A039D1AD`). The new extracted runtime hash is `A8365272734CF5541E3600AEACB445C0FD102187DC3A167495A56809CE5891D9`. The development adapter source has a separate AMD64/PE32+ profile for this exact image; old installed adapters still reject it. Hash admission alone is not FG or presentation acceptance.
 
 - Validate the exact `a00da12a` binary, exported C API, image identity, and Vulkan interception timing. Audit whether the existing OptiScaler and MFG hook assumptions still hold in the new DLL.
 - Make a narrowly scoped, tested **version-specific host-registration profile** for the new runtime with its actual hash; keep the prior `71a581da` profile intact. Reject any unknown hash, architecture or unsupported binary pattern. Do not weaken `MfgUnlockRegisterRemixVulkanHost` / `MfgUnlockPrivateVulkanStartupReady` / device admission merely to start FG.

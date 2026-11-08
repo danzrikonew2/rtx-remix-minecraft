@@ -14,9 +14,14 @@ upstream MFG 1.7.0 DLL. These sources build a separate local candidate.
 - Native build with XeSS disabled, retaining existing kernel, shader, adapter,
   feature-lifetime and FG admission checks.
 - `MfgUnlockRegisterRemixVulkanHost` registration after loading the Remix DLL
-  and before renderer initialization. Only the exact pinned runtime hash is
-  admitted, including outside the private Java directory. Its Vulkan imports
-  and resolvers use the addon's existing gateways.
+  and before renderer initialization. Exact x64 image identity and SHA-256
+  profiles admit the previously validated `minecraft-rtx2-71a581da` runtime
+  (`44A313F6D2A6FFA3ECCAAB683C472D14F22080BE7C61D07342D8E199A039D1AD`) and
+  the verified v0.1.1 `minecraft-rtx2-a00da12a` runtime
+  (`A8365272734CF5541E3600AEACB445C0FD102187DC3A167495A56809CE5891D9`).
+  Unknown images and non-x64 binaries remain rejected. The runtime DLL may be
+  outside the private Java directory; its Vulkan imports and resolvers use the
+  addon's existing gateways.
 - `MfgUnlockRetireRemixVulkanHost` before Remix shutdown. The native probe
   originally hung during shutdown; retiring the menu first resolves that hang.
 

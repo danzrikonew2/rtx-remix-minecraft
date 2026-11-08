@@ -1,4 +1,4 @@
-# RTXDI temporal light pulsing — 26.3 source investigation and repair gate
+# RTXDI temporal light pulsing - 26.3 source investigation and repair gate
 
 **Status: instrumented; native root cause NOT established; actual visual fix pending RTX 3070 Ti/runtime reproduction.**
 Part of [REMIX_V011_RUNTIME_MFG_MIGRATION](REMIX_V011_RUNTIME_MFG_MIGRATION.md). This is an explicit requirement of the combined development build, not a separate release.
@@ -21,13 +21,60 @@ Part of [REMIX_V011_RUNTIME_MFG_MIGRATION](REMIX_V011_RUNTIME_MFG_MIGRATION.md).
 6. The public `dxvk-remix/main` source may not match the binary used by `minecraft-rtx2-a00da12a`. **Do not patch a public source revision and assume the distributed DLL implements it.** Identify the new runtime's corresponding source/commit, shader bundle and build provenance first.
 7. The existing foliage SHaRC workaround addresses a distinct daylight/foliage defect. Do not conflate its root cause with RTXDI source pulsing.
 
+### Exact runtime source availability
+
+The migration branch pins both architectures to Packman package names
+`minecraft-rtx2-a00da12a-{win64,arm64}-release`. The public Minecraft v0.1.1
+tag records that runtime was updated, but the package pin itself does not
+identify a source repository revision. As checked during this investigation,
+`a00da12a` does not resolve as a commit in the public
+[`NVIDIAGameWorks/dxvk-remix`](https://github.com/NVIDIAGameWorks/dxvk-remix)
+repository. Therefore the exact runtime source/shader provenance is still
+unverified. Record the extracted binary's SHA-256 and ABI probe result for the
+binary identity, but do not treat either as a substitute for its source commit
+or shader bundle. Until NVIDIA publishes or supplies that matching source
+revision, a native source-level root-cause repair cannot be safely authored
+against this package from this checkout.
+
+### Fixed-ROI luminance measurement
+
+Capture 30 seconds after shader compilation and scene settling. Keep the camera,
+window size, display HDR mode, weather, world time, exposure setting, and Remix
+quality settings fixed. Disable HUD/chat overlays for the capture and select a
+small ROI wholly inside one stationary lit surface; use the same rectangle in
+every run. Capture the same scene once with RTXDI temporal reuse enabled and
+once with it temporarily disabled only as a diagnostic; restore the original
+setting after the comparison. Keep FG/MFG off for this isolation pass.
+
+Record a lossless desktop video, then extract uniformly spaced PNGs. For
+example, with ffmpeg installed and a 5 Hz sample rate:
+
+```powershell
+ffmpeg -i capture.mkv -vf fps=5 -fps_mode passthrough frames\frame_%05d.png
+uv run python -m rtx_tools.profiler.luminance_stability frames --fps 5 --roi 900 500 940 540
+```
+
+The ROI uses pixel coordinates with exclusive right and bottom edges. The tool
+writes `luminance.csv` (per-frame relative luminance and linear-detrended
+values) and `luminance-summary.json` (raw and detrended variation, detrended
+peak-to-peak variation, and strongest non-DC frequency). Only floating-point
+roundoff residuals are omitted from the frequency report; the variation
+metrics retain all measured variation. It decodes sRGB and computes Rec. 709
+relative display luminance. This lets matched captures be
+compared numerically; it is not absolute scene radiance and cannot identify
+which GPU pass introduced the change. Video compression, exposure drift, UI
+overlays, camera motion, and inconsistent frame sampling can invalidate the
+comparison. Retain the original video, frame rate, ROI coordinates, runtime
+SHA-256, resolved RTXDI settings, and matching light-stability command output
+with each result.
+
 ## New nonintrusive diagnostic in this branch
 
 `ChunkManager.lightSubmissionSnapshot()` collects cumulative successful native light CREATE/UPDATE/REMOVE requests, retirement requests, completed draw frames and the most recent number of drawn/culled/beyond-reach lights. Counters are updated at existing successful operation sites, without per-frame allocations or logging. The command stores a snapshot only when explicitly invoked:
 
 ```text
 /rtx lighting stability
-# Hold the same viewpoint for ~20–30 seconds while the glow pumps.
+# Hold the same viewpoint for ~20-30 seconds while the glow pumps.
 /rtx lighting stability compare
 ```
 
@@ -48,7 +95,7 @@ Use an unmodified fixed camera and pinned weather/time for each scene in a dispo
 | G | same scene old runtime vs v0.1.1 new runtime | isolates regression/fix, provided both have correct C API + rendering |
 | H | unchanged static light vs one legitimately changed dynamic light | verifies history invalidation occurs only when needed |
 
-Prioritize **A–F** without rewriting algorithms. Test GI, reflection, tonemapping and DLSS modes only if the above leaves the source ambiguous.
+Prioritize **A-F** without rewriting algorithms. Test GI, reflection, tonemapping and DLSS modes only if the above leaves the source ambiguous.
 
 ### Native instrumentation and root-cause decision tree
 
