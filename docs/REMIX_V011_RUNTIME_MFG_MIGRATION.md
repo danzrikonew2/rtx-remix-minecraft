@@ -1,6 +1,6 @@
 # RTX Remix v0.1.1 / MFG adapter migration — 26.3 development branch
 
-Status: **code migration staged; native build and RTX 3070 Ti validation NOT RUN; FG adapter NOT RE-PINNED.**
+Status: **v0.1.1 ABI staged; read-only RTXDI source-light diagnostics committed; native build, RTXDI root-cause repair, GPU acceptance and MFG adapter re-pin remain NOT RUN.**
 This is a developer-only branch. Do **not** merge or ship it until every required gate passes. The original `feat/minecraft-26.3` branch and known-working MFG development profile are intentionally untouched.
 
 ## Identified upstream delta (NVIDIA 2026-11-06)
@@ -61,6 +61,18 @@ Use RTX 3070 Ti 8 GB, the new runtime, a focused visible window and a fixed Mine
 - Confirm distinct `VkImage` identities and GPU-completed image availability within each generated batch before enabling >2×. The old log's `count=5` output reuse must stay guarded; **never** disable duplicate-output rejection as a shortcut.
 - Verify resize/swapchain generation changes, window focus, world transitions, render toggling, VRAM pressure, minimize/restore and normal termination. Watch for `VK_ERROR_DEVICE_LOST` and long-session degradation.
 - Do not market 3×–6× or DLSS 5 as working without unique displayed frames and genuine provider success. DLSS 5 currently returns `0xBAD00001` on this RTX 3070 Ti route; keep it independent of FG.
+
+## Gate E: preserve RTXDI temporal reuse and repair stationary light pulsing
+
+This is part of the **same 26.3 v0.1.1 + MFG development build**, with the same runtime verification and rollback gates. The detailed source evidence, test matrix, root-cause decision tree and acceptance criteria are in [RTXDI_TEMPORAL_STABILITY.md](RTXDI_TEMPORAL_STABILITY.md).
+
+**Non-negotiable: keep `rtx.di.enableTemporalReuse=true` and spatial reuse on for the shipping fix.** A previous experimental default of temporal reuse OFF was reverted at user request. Do not reintroduce it or disable denoising/sparse rendering/SHaRC as a proxy "fix." Diagnostic temporary A/B comparisons are permitted only with restoration; measured brightness needs a real native repair.
+
+- The source now instruments successful static block light CREATE/UPDATE/REMOVE, light retirement requests and submitted/culled counts. `/rtx lighting stability` captures an in-game baseline; after 20–30 s of stationary pulsing use `/rtx lighting stability compare` to show CPU-side light churn. Counters are only the first diagnostic layer; 0 churn does not certify GPU reservoir correctness.
+- Once the exact a00da12a runtime source/shaders are identified, trace the active light-list/index mapping, temporal reservoir pages, reprojection/motion, history validity, weight/PDF normalization and the denoiser/exposure stages to find **the first stage where the fixed-scene lighting begins oscillating**.
+- Fix the identified cause with stable light identities/generations and narrow invalidation/remapping where appropriate, or the specific correct reprojection/bias/weight/sparse-page logic. Do not freeze temporal sampling or clamp arbitrary brightness as a visual cover-up.
+- Re-run a fixed-world luminance test, original vs v0.1.1, temporal reuse ON, FG OFF then verified 2x. Record luminance variance/frequency, frame time, VRAM, light-counter deltas and relevant native reservoir evidence.
+- If the precise runtime source or a Windows GPU session is not available, leave Gate E **BLOCKED**, submit the instrumentation/reproducible test assets and exact commands, and do **not** claim the pulsing defect fixed.
 
 ## Required handoff report
 
