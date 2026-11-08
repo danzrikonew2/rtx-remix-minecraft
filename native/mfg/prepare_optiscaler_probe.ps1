@@ -119,22 +119,21 @@ try {
     $tar = Get-Command tar.exe -ErrorAction SilentlyContinue
     if ($tar) {
         Write-Output 'Extracting verified nightly with Windows tar.exe...'
-        & $tar.Source -xf $nightly -C $extract
-        $extracted = ($LASTEXITCODE -eq 0)
+        try {
+            & $tar.Source -xf $nightly -C $extract 2>$null
+            $extracted = ($LASTEXITCODE -eq 0)
+        } catch {
+            $extracted = $false
+        }
     }
     if (!$extracted) {
         $seven = Get-Command 7z.exe -ErrorAction SilentlyContinue
-        if (!$seven) {
-            $sevenPath = 'C:\Program Files\7-Zip\7z.exe'
-            if (Test-Path -LiteralPath $sevenPath -PathType Leaf) {
-                $seven = Get-Item -LiteralPath $sevenPath
-            }
-        }
-        if (!$seven) {
-            throw 'Windows tar could not extract this 7z file. Install the official 7-Zip app, then rerun; downloaded files are cached.'
+        $sevenPath = if ($seven) { $seven.Source } else { 'C:\Program Files\7-Zip\7z.exe' }
+        if (!(Test-Path -LiteralPath $sevenPath -PathType Leaf)) {
+            throw 'Windows tar could not extract this 7z file. Install the official 7-Zip app, then rerun; verified downloads are cached.'
         }
         Write-Output 'Extracting verified nightly with installed 7-Zip...'
-        & $seven.FullName x "-o$extract" '-y' $nightly
+        & $sevenPath x "-o$extract" '-y' $nightly
         if ($LASTEXITCODE -ne 0) { throw "7-Zip extraction failed with code $LASTEXITCODE" }
     }
 
