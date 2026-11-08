@@ -48,9 +48,9 @@ function Run-Step([string]$label, [string]$program, [string[]]$parameters) {
 function Add-ArchiveFile($zip, [string]$entryName, [string]$sourceFile) {
     $item = $zip.CreateEntry($entryName, [IO.Compression.CompressionLevel]::Optimal)
     $stream = $item.Open()
-    $input = [IO.File]::OpenRead($sourceFile)
-    try { $input.CopyTo($stream) }
-    finally { $input.Dispose(); $stream.Dispose() }
+    $sourceStream = [IO.File]::OpenRead($sourceFile)
+    try { $sourceStream.CopyTo($stream) }
+    finally { $sourceStream.Dispose(); $stream.Dispose() }
 }
 function Add-ArchiveText($zip, [string]$entryName, [string]$body) {
     $item = $zip.CreateEntry($entryName, [IO.Compression.CompressionLevel]::Optimal)
