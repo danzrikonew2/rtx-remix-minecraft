@@ -2323,7 +2323,8 @@ public class RtxRemixMod implements ClientModInitializer {
                     + ", beyondReach=" + current.beyondReach()
                     + ", pending=" + current.pendingOps() + "; " + settings
                     + ". Hold camera still, then /rtx lighting stability compare.";
-        } else if (lightingStabilityOwner != manager || lightingStabilityBaseline == null) {
+        } else if (lightingStabilityOwner != manager || lightingStabilityBaseline == null
+                || lightingStabilityBaseline.worldEpoch() != current.worldEpoch()) {
             message = "No valid lighting baseline for this world. Use /rtx lighting stability first.";
         } else {
             var baseline = lightingStabilityBaseline;
