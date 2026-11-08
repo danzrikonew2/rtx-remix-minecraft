@@ -52,6 +52,12 @@ The existing known-working adapter remains **hard-bound** to the old `d3d9.dll` 
 - Verify private Java loader/registration and `OptiRemixProbe.exe` with the new runtime first. Fail closed on missing/mismatched files or unexpected hooks.
 - Keep Remix's native `rtx.dlfg.enable=false` for the OptiScaler route; independently test FG disabled vs enabled, native feature creation, status heartbeat, foreground evaluation counts and clean shutdown.
 
+## Optional independent comparison: direct-.trex sm86 Vulkan proxy
+
+A Reddit-suggested RTX 20/30-series method stages the author's `dlssg_for_sm86` sm86-7 `version.dll` and `dlssg_sm86.ini` in the native renderer's `.trex` folder. The release ZIP now includes **manual opt-in** scripts `install-sm86-trex.ps1` and `install-sm86-trex.bat` and the full [SM86_TREX_EXPERIMENT.md](SM86_TREX_EXPERIMENT.md) contract. The helper downloads a pinned SHA-256-checked upstream ZIP only when invoked and refuses unknown/missing runtime layouts or existing files.
+
+**This is not a proven Minecraft 26.3 solution.** Our mod explicitly loads `remix-sdk/d3d9.dll` from Java, and mere placement of a `version.dll` in `.trex` does not guarantee the Java/Vulkan rendering process loads that proxy. Never advertise working FG without module-load, NGX feature, unique-image and presentation evidence. Do **not** automatically invoke this in the ordinary installer or combine it with the existing development OptiScaler/MFG route. The pinned rebuilt adapter remains the primary engineering path.
+
 ## Gate D: actual presentation & resource acceptance
 
 Use RTX 3070 Ti 8 GB, the new runtime, a focused visible window and a fixed Minecraft camera path.
