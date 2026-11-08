@@ -315,6 +315,12 @@ MICROSOFT. Minecraft is a trademark of Mojang Synergies AB.
 NVIDIA, GeForce, and RTX are trademarks and/or registered trademarks of NVIDIA
 Corporation in the U.S. and other countries.
 
+## Optional RTX 20/30-series Vulkan proxy test (developer build only)
+
+This development archive includes `install-sm86-trex.ps1` and `install-sm86-trex.bat` as **optional manual test helpers** for the author's pinned `dlssg_for_sm86` Vulkan release. They are **not invoked** by the normal `install.bat` or `install-mfg.bat`. No third-party proxy DLL is bundled: the helper downloads it after explicit opt-in, verifies the publisher's exact archive SHA-256, and copies only `version.dll` and `dlssg_sm86.ini` to an existing `remix-sdk/.trex` directory in a separate disposable test instance. The .trex method is unverified for Minecraft 26.3's Java/Vulkan renderer and may be rejected if the new runtime layout lacks .trex. **Do not treat a clickable FG checkbox as proof of functional frame generation.**
+
+After installing the game normally and launching it once to extract the native runtime, close Minecraft and Prism, then use `install-sm86-trex.ps1 -Action Inspect -GameDir "ABSOLUTE_GAME_DIRECTORY"` and `-Action Install` for the optional test. `-Action Remove` removes only unchanged script-owned files. See [the detailed experiment guide](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/remix-v0.1.1-runtime-mfg-revalidation/docs/SM86_TREX_EXPERIMENT.md) for prerequisites, safety, and acceptance. Keep it separate from the primary native OptiScaler/MFG development adapter.
+
 ## Optional experimental MFG addon
 
 Installer builds containing `mfg-unlocker.ps1` offer an opt-in Prism integration.
