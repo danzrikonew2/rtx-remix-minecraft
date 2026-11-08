@@ -229,6 +229,14 @@ try {
         } finally { $digest.Dispose() }
         if ($computed -ne $expected) { throw 'Packaged MFG candidate hash mismatch.' }
     } finally { $opened.Dispose() }
+    # Final full-archive verification: original installer bytes must be
+    # unchanged and exactly the expected experimental payload may be added.
+    $verifier = Join-Path $PSScriptRoot 'verify_experimental_archive.ps1'
+    if (!(Test-Path -LiteralPath $verifier -PathType Leaf)) {
+        throw "Archive verifier missing: $verifier"
+    }
+    & $verifier -BaseArchive $release.FullName -ExperimentalArchive $tempFile -ExpectedCandidateSha256 $expected -ExpectedRuntimeSha256 $runtimePin
+    if (!$?) { throw 'Full experimental archive verification failed' }
     [IO.File]::Move($tempFile, $outFile)
 } finally {
     if (Test-Path -LiteralPath $tempFile) { Remove-Item -LiteralPath $tempFile -Force }
