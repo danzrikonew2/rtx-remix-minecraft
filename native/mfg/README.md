@@ -253,7 +253,35 @@ requested 2x value is configuration, not a measured frame-rate multiplier.
 
 ### Reproduce the adapter probe
 
-Use a new ignored test directory. Follow MFG's
+For a disposable local probe package, use the pinned staging helper from the
+repository root, after compiling `OptiRemixProbe` and `MfgJavaHostProbe`:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\native\mfg\prepare_optiscaler_probe.ps1 -RepoRoot (Get-Location).Path -PythonExe "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe"
+```
+
+This downloads the exact nightly (SHA-256 `74f20189...`) and the MFG
+OptiScaler fork (SHA-256 `0b70d723...`), verifying the official fork's GPL
+license and source notice. It extracts to a disposable staging directory,
+combines the exact previously pinned local MFG candidate with Streamline 2.14.1
+`bin/x64` and any Remix runtime `nvngx_dlss*.dll` providers, copies the
+native probes, and configures **only** its local `OptiScaler.ini`. It refuses
+an existing test folder and does not invoke the GPU, install a game, touch
+Prism, or deploy a proxy in `.trex`.
+
+The prepared root is `build/mfg-optiscaler-probe/Package`. The fork's
+`LICENSE` and `SOURCE.txt` stay in its parent for later use by
+`stage_optiscaler.py`. The helper prefers Windows `tar.exe` to extract
+the official 7z archive; if that fails, install the ordinary 7-Zip application
+and retry. Its downloads are cached and always re-hashed.
+
+**The next stage must be a foreground visible GPU probe with a hard process
+timeout, followed by checks for FG feature creation, successful evaluation,
+actual presentation batches, unique displayed frames, and device-loss-free
+shutdown.** A configured x2 mode, an on-screen menu or a passing CPU native
+test alone does not demonstrate real frame generation.
+
+If you need to prepare the same package manually, use a new ignored test directory. Follow MFG's
 [documented adapter installation](https://github.com/dashdogy/MFG-Unlocker#optiscaler-support)
 there, with these exact inputs:
 
