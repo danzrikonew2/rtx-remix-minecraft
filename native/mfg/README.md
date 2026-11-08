@@ -71,8 +71,21 @@ the addon, build the custom adapter, or modify Prism. The input DLL is local
 build data, not an approved installable MFG candidate. The `python` executable
 must be available, or supply `-PythonExe` with an absolute path.
 
-Once Streamline, ImGui and Vulkan headers have been staged under `build/`,
-continue the SDK verification and adapter build:
+Restore the remaining SDK dependencies with the separate pinned-fetch helper:
+
+```powershell
+.\\native\\mfg\\prepare_pinned_sdks.ps1 -RepoRoot (Get-Location).Path -PythonExe "$env:LOCALAPPDATA\\Programs\\Python\\Python312\\python.exe"
+```
+
+It verifies the GitHub-published SHA-256 of the official **Streamline 2.14.1
+Windows ZIP (~276 MB)**, then checks out the exact ImGui commit
+`3912b3d9a9c1b3f17431aebafd86d2f40ee6e59c` and Vulkan-Headers
+v1.2.176 commit `074fa3055cfee530992bcbfa0fcb23106a82c1ab` into
+ignored `build/` directories. Streamline and ImGui's 36 source file pins
+are verified against the upstream build script. Existing vendor directories
+are **not replaced**. The helper never starts the game or installs any DLL.
+
+After SDK restoration, continue the native adapter build:
 
 ```powershell
 python native/mfg/verify_headers.py --source build/mfg-source `
