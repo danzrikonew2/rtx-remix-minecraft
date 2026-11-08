@@ -127,7 +127,19 @@ $version = (& git.exe -C $root rev-parse --short=9 HEAD)
 if ($LASTEXITCODE -ne 0 -or !$version) { throw 'Unable to read Git commit identity.' }
 $outFile = Join-Path $distributions ($release.BaseName + '-mfg-experimental-' + $version.Trim() + '.zip')
 if (Test-Path -LiteralPath $outFile) {
-    throw "Existing experimental artifact preserved. No overwrite: $outFile"
+    # Idempotent when a previous packaging run already produced this file.
+    # Verify each original installer's content plus the candidate hash and
+    # manifest before declaring success. Any mismatch fails closed and leaves
+    # the existing ZIP untouched; never overwrite it silently.
+    Write-Output "Existing experimental archive found; verifying instead of overwriting: $outFile"
+    $verifier = Join-Path $PSScriptRoot 'verify_experimental_archive.ps1'
+    if (!(Test-Path -LiteralPath $verifier -PathType Leaf)) {
+        throw "Archive verifier missing: $verifier"
+    }
+    & $verifier -BaseArchive $release.FullName -ExperimentalArchive $outFile -ExpectedCandidateSha256 $expected -ExpectedRuntimeSha256 $runtimePin
+    if (!$?) { throw "Existing experimental archive could not be verified: $outFile" }
+    Write-Output "PASS: validated existing experimental ZIP; no file changes or duplicate builds."
+    exit 0
 }
 $tempFile = $outFile + '.' + [guid]::NewGuid().ToString('N') + '.tmp'
 $license = Join-Path $root 'native\mfg\LICENSE-MFG'
