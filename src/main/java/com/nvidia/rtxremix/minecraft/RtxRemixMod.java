@@ -810,6 +810,10 @@ public class RtxRemixMod implements ClientModInitializer {
                         return 1;
                     })))
                 .then(ClientCommands.literal("lighting")
+                    .then(ClientCommands.literal("stability")
+                        .executes(context -> lightingStabilityDiagnostic(context.getSource(), false))
+                        .then(ClientCommands.literal("compare").executes(context ->
+                                lightingStabilityDiagnostic(context.getSource(), true))))
                     .then(ClientCommands.literal("cache")
                         .executes(context -> lightingCacheDiagnostic(context.getSource(), null))
                         .then(ClientCommands.literal("off").executes(context ->
@@ -2289,6 +2293,64 @@ public class RtxRemixMod implements ClientModInitializer {
             source.sendFeedback(Component.literal(message));
             LOGGER.info("{}", message);
         }
+        return 1;
+    }
+
+    // Diagnostic snapshots only; do not modify RTXDI temporal reuse or the light budget.
+    // Owner identity also invalidates comparisons across renderer/world replacement.
+    private static com.nvidia.rtxremix.minecraft.terrain.ChunkManager lightingStabilityOwner;
+    private static com.nvidia.rtxremix.minecraft.terrain.ChunkManager.LightSubmissionSnapshot
+            lightingStabilityBaseline;
+
+    private static int lightingStabilityDiagnostic(FabricClientCommandSource source, boolean compare) {
+        if (renderer == null || !renderer.isInitialized() || renderer.getChunkManager() == null) {
+            source.sendFeedback(Component.literal("Lighting stability requires an initialized RTX world."));
+            return 0;
+        }
+        var manager = renderer.getChunkManager();
+        var current = manager.lightSubmissionSnapshot();
+        var api = renderer.getRemixApi();
+        String settings = "RTXDI temporal=" + api.getConfigVariableResolved("rtx.di.enableTemporalReuse")
+                + ", RTXDI spatial=" + api.getConfigVariableResolved("rtx.di.enableSpatialReuse")
+                + ", sparse=" + api.getConfigVariableResolved("rtx.sparseRendering.enableSparseRendering")
+                + ", auto exposure=" + api.getConfigVariableResolved("rtx.autoExposure.enabled");
+        String message;
+        if (!compare) {
+            lightingStabilityOwner = manager;
+            lightingStabilityBaseline = current;
+            message = "Lighting baseline captured: frames=" + current.frames()
+                    + ", drawn=" + current.drawn() + ", culled=" + current.culled()
+                    + ", beyondReach=" + current.beyondReach()
+                    + ", pending=" + current.pendingOps() + "; " + settings
+                    + ". Hold camera still, then /rtx lighting stability compare.";
+        } else if (lightingStabilityOwner != manager || lightingStabilityBaseline == null) {
+            message = "No valid lighting baseline for this world. Use /rtx lighting stability first.";
+        } else {
+            var baseline = lightingStabilityBaseline;
+            long frames = current.frames() - baseline.frames();
+            long creates = current.creates() - baseline.creates();
+            long updates = current.updates() - baseline.updates();
+            long removes = current.removes() - baseline.removes();
+            long retires = current.retirementRequests() - baseline.retirementRequests();
+            if (frames <= 0 || creates < 0 || updates < 0 || removes < 0 || retires < 0) {
+                message = "Lighting counters reset or no completed frame. Capture a new baseline.";
+            } else {
+                message = "Lighting stability over " + frames + " frames: native created=" + creates
+                        + ", updated=" + updates + ", removed=" + removes
+                        + ", retire requests=" + retires
+                        + ", currently drawn=" + current.drawn()
+                        + " (baseline " + baseline.drawn() + ")"
+                        + ", culled=" + current.culled()
+                        + " (baseline " + baseline.culled() + ")"
+                        + ", beyondReach=" + current.beyondReach()
+                        + " (baseline " + baseline.beyondReach() + ")"
+                        + ", pending=" + current.pendingOps()
+                        + "; " + settings
+                        + ". This diagnoses CPU-side light churn; it cannot prove reservoir correctness.";
+            }
+        }
+        source.sendFeedback(Component.literal(message));
+        LOGGER.info("{}", message);
         return 1;
     }
 
