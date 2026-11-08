@@ -298,7 +298,11 @@ public class RemixRenderer {
 
                 StartupInfo startupInfo = StartupInfo.builder()
                     .hwnd(windowHandle)
+                    .forceNoVkSwapchain(false)
                     .interopImage(true)
+                    // v0.1.1 child-HWND mode requires an offscreen RenderPearl source FBO.
+                    // Keep legacy presentation until that GL copy path passes live validation.
+                    .useRemixOwnedChildWindow(false)
                     .build();
                 MfgUnlockerBootstrap.prepareRemixStartup(remixApi::setConfigVariable);
                 remixApi.startup(startupInfo);
@@ -1327,8 +1331,9 @@ public class RemixRenderer {
     public void presentFrameVk() {
         boolean failed = false;
         try {
+            GlInterop interop = requireInterop();
             try (ProfileScope ignored = ProfileScope.begin("Interop.GLToVK")) {
-                blitGlToRemix();
+                blitGlToRemix(interop);
             } catch (RuntimeException e) {
                 failed = true;
                 logPresentFailureOnce("Error copying GL frame to Remix", e);
@@ -1338,7 +1343,7 @@ public class RemixRenderer {
             presentInfo.skipVulkanSwapchain = 0;
             presentInfo.interopFlipY = 1;
             presentInfo.clientDoneSemaphore_ValueToWait =
-                    interopGlVk.getClientDoneSemaphoreValue();
+                    interop.getClientDoneSemaphoreValue();
             presentInfo.disableCpuWaitForExternalSemaphores = 0;
             try (ProfileScope ignored = ProfileScope.begin("Remix.Present")) {
                 remixApi.present(presentInfo);
@@ -1380,7 +1385,14 @@ public class RemixRenderer {
         }
     }
 
-    private void blitGlToRemix() {
+    private GlInterop requireInterop() {
+        if (interopGlVk == null) {
+            throw new IllegalStateException("Initialized renderer has no GL/Vulkan interop");
+        }
+        return interopGlVk;
+    }
+
+    private void blitGlToRemix(GlInterop interop) {
         if (!submitFrameCalled) {
             // if there was no submitFrame, then interop image might not be allocated yet
             // we must have a image to blit into (e.g. UI if there's no world)
@@ -1389,13 +1401,18 @@ public class RemixRenderer {
 
         // must be called after Submit(), which allocates the image
         InteropInfo interopInfo = remixApi.dxvkGetInteropInfo();
-        interopGlVk.recreateImagesIf(interopInfo);
+        interop.recreateImagesIf(interopInfo);
+        // Submit hands the shared image from Vulkan to GL. This can already
+        // have been waited on by blitVkImageToGL in the same frame.
+        interop.waitForVk(interopInfo);
 
-        int srcFbo = 0; // 0 is a default framebuffer
-        interopGlVk.copyFromFramebuffer(srcFbo);
+        // The legacy presentation path uses the host default framebuffer.
+        // Do not enable a Remix-owned child window until the RenderPearl
+        // offscreen main-target FBO is supplied here instead.
+        interop.copyFromFramebuffer(0);
 
-        // signal that GL is done copying, so VK can read the image and present
-        interopGlVk.signalDone();
+        // Signal only after the GL copy has completed its submission.
+        interop.signalDone();
     }
 
     public int getInteropDepthTexture() {
