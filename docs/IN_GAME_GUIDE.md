@@ -24,6 +24,8 @@ renderer is not initialized, run `/rtx status` first.
 | `/rtx particles` | Toggle path-traced particles |
 | `/rtx sky` | Toggle the path-traced sky |
 | `/rtx sky status` | Report clock, sun angle, rain/thunder, intensity settings and the last submitted sunlight |
+| `/rtx lighting stability` | Capture a read-only RTXDI/block-light submission baseline without changing any renderer settings |
+| `/rtx lighting stability compare` | Compare native block-light create/update/remove and visibility counts against that baseline after observing stationary light pulsing |
 | `/rtx heldlights` | Put out or relight all lights held by the local player, like Toggle Held Lights (default `G`) |
 | `/rtx heldlights underwater` | Toggle whether held open flames stay lit when the holder's eyes are under water; they go out by default |
 
