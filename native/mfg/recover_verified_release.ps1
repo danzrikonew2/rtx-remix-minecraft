@@ -48,9 +48,129 @@ if (!(Test-Path -LiteralPath $sourcePin -PathType Leaf)) {
 if (!(Test-Path -LiteralPath $recoveryScript -PathType Leaf)) {
     throw "Missing trusted recovery script: $recoveryScript"
 }
-if (!(Get-Command $PythonExe -ErrorAction SilentlyContinue)) {
-    throw "Python is unavailable as '$PythonExe'; use -PythonExe ABSOLUTE_PYTHON_EXE"
+# WindowsApps python.exe is an app-execution alias; Get-Command alone is
+# insufficient. Probe the interpreter and try the Python launcher before
+# downloading any inputs. No Python installation is performed here.
+$pythonCandidates = [System.Collections.Generic.List[string]]::new()
+if ($PythonExe -ne 'python') {
+    $pythonCandidates.Add($PythonExe)
+} else {
+    $launcher = Get-Command py -ErrorAction SilentlyContinue
+    if ($launcher) {
+        foreach ($version in @('-3.12', '-3')) {
+            try {
+                $located = & $launcher.Source $version -c 'import sys;print(sys.executable)' 2>$null
+                if ($LASTEXITCODE -eq 0 -and $located) {
+                    $pythonCandidates.Add(([string]($located | Select-Object -Last 1)).Trim())
+                }
+            } catch { }
+        }
+    }
+    foreach ($name in @('python','python3')) {
+        $command = Get-Command $name -ErrorAction SilentlyContinue
+        if ($command) { $pythonCandidates.Add($command.Source) }
+    }
+    foreach ($name in @('Python312','Python313','Python311','Python310','Python314','Python315')) {
+        $pythonCandidates.Add((Join-Path $env:LOCALAPPDATA "Programs\Python\$name\python.exe"))
+    }
 }
+$resolvedPython = $null
+foreach ($candidate in $pythonCandidates) {
+    if ([string]::IsNullOrWhiteSpace($candidate) -or
+            $candidate -match '(?i)[\\/]WindowsApps[\\/]python(?:3)?\.exe
+if (Test-Path -LiteralPath $output) {
+    $required = @('ampere_native_manifest.inc',
+                  'ampere_native_manifest_3109.inc',
+                  'ampere_native_manifest_additional.inc',
+                  'additional-resources.json', 'validate_recovered.cpp',
+                  'inventory.json', 'dlss5_vk_spirv.h', 'overlay_color_spv.h')
+    $missing = @($required | Where-Object {
+        !(Test-Path -LiteralPath (Join-Path $output $_) -PathType Leaf)
+    })
+    if ($missing.Count -eq 0) {
+        Write-Output 'Recovered MFG inputs already exist. Keeping them unchanged.'
+        Write-Output "Inputs: $output"
+        exit 0
+    }
+    throw "Existing incomplete MFG inputs at $output; refusing overwrite. Missing: $($missing -join ', ')"
+}
+
+New-Item -ItemType Directory -Path $downloadDirectory -Force | Out-Null
+if (!(Test-Path -LiteralPath $archive -PathType Leaf)) {
+    $temporary = Join-Path $downloadDirectory ('download-' + [guid]::NewGuid().ToString('N') + '.zip')
+    try {
+        Invoke-WebRequest -Uri $archiveUrl -UseBasicParsing -OutFile $temporary
+        Assert-Hash $temporary $archiveHash
+        [IO.File]::Move($temporary, $archive)
+    }
+    finally {
+        if (Test-Path -LiteralPath $temporary) {
+            Remove-Item -LiteralPath $temporary -Force
+        }
+    }
+}
+Assert-Hash $archive $archiveHash
+
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$zip = [IO.Compression.ZipFile]::OpenRead($archive)
+try {
+    $entry = $zip.GetEntry('MFGUnlocker.dll')
+    if ($null -eq $entry) {
+        throw 'Verified release archive is missing its expected MFGUnlocker.dll entry.'
+    }
+    if (!(Test-Path -LiteralPath $dll -PathType Leaf)) {
+        [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $dll)
+    }
+}
+finally {
+    $zip.Dispose()
+}
+Assert-Hash $dll $dllHash
+
+New-Item -ItemType Directory -Path $staging -Force | Out-Null
+try {
+    & $resolvedPython $recoveryScript --dll $dll --source $source --output $staging
+    if ($LASTEXITCODE -ne 0) {
+        throw "MFG input recovery failed: Python exit $LASTEXITCODE"
+    }
+    $required = @('ampere_native_manifest.inc',
+                  'ampere_native_manifest_3109.inc',
+                  'ampere_native_manifest_additional.inc',
+                  'additional-resources.json', 'validate_recovered.cpp',
+                  'inventory.json', 'dlss5_vk_spirv.h', 'overlay_color_spv.h')
+    foreach ($filename in $required) {
+        if (!(Test-Path -LiteralPath (Join-Path $staging $filename) -PathType Leaf)) {
+            throw "Recovery did not generate $filename"
+        }
+    }
+    if (Test-Path -LiteralPath $output) {
+        throw "Another process created $output; preserving it."
+    }
+    [IO.Directory]::Move($staging, $output)
+}
+finally {
+    if (Test-Path -LiteralPath $staging) {
+        Remove-Item -LiteralPath $staging -Recurse -Force
+    }
+}
+
+Write-Output "PASS: pinned MFG 1.7.0 archive and DLL SHA-256; recovered native inputs."
+Write-Output "Downloaded DLL (build-only input): $dll"
+Write-Output "Recovered manifests, shaders, and validator: $output"
+Write-Output 'Remaining SDK inputs: Streamline 2.14.1, pinned ImGui, Vulkan-Headers 1.2.176.'
+Write-Warning 'MFGUnlocker.dll was not rebuilt. FG presentation remains unverified.'
+) { continue }
+    $command = Get-Command $candidate -ErrorAction SilentlyContinue
+    if (!$command) { continue }
+    try {
+        & $command.Source -c 'import sys;sys.exit(0 if sys.version_info >= (3,10) else 1)' 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) { $resolvedPython = $command.Source; break }
+    } catch { }
+}
+if (!$resolvedPython) {
+    throw 'No real Python 3.10+ interpreter found. Install Python 3.12 with winget or pass -PythonExe ABSOLUTE_PYTHON_EXE.'
+}
+Write-Output "Using Python: $resolvedPython"
 if (Test-Path -LiteralPath $output) {
     $required = @('ampere_native_manifest.inc',
                   'ampere_native_manifest_3109.inc',
