@@ -176,7 +176,7 @@ try {
         $digest = [Security.Cryptography.SHA256]::Create()
         try {
             $stream = $item.Open()
-            try { $computed = [Convert]::ToHexString($digest.ComputeHash($stream)).ToLowerInvariant() }
+            try { $computed = [BitConverter]::ToString($digest.ComputeHash($stream)).Replace('-', '').ToLowerInvariant() }
             finally { $stream.Dispose() }
         } finally { $digest.Dispose() }
         if ($computed -ne $expected) { throw 'Packaged MFG candidate hash mismatch.' }
