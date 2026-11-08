@@ -13,6 +13,7 @@
 [CmdletBinding()]
 param(
     [string]$RepoRoot,
+    [string]$BaseArchive,
     [string]$CmakeExe = 'C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe',
     [string]$CtestExe = 'C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\ctest.exe',
     [string]$ExpectedCandidateSha256 = '017a80c6e82bf275eb6ef6c852a4cc8fb38c933647f6546b1fc231f8c87409cd'
@@ -92,13 +93,36 @@ Run-Step 'Pinned runtime, recovered contracts and native host registration' $Cte
     '--output-on-failure','--no-tests=error'
 )
 
-$archives = @(Get-ChildItem -LiteralPath $distributions -File -Filter '*.zip' |
-    Where-Object { $_.Name -notmatch '(?i)mfg-experimental' } |
-    Sort-Object LastWriteTime -Descending)
-if ($archives.Count -ne 1) {
-    throw "Expected one ordinary release ZIP in $distributions, found $($archives.Count). Preserve the existing files and select an unambiguous release."
+# More than one old release ZIP is expected after multiple builds. Accept an
+# explicit file path, but never silently choose one by modification time.
+if (![string]::IsNullOrWhiteSpace($BaseArchive)) {
+    $releasePath = if ([IO.Path]::IsPathRooted($BaseArchive)) {
+        [IO.Path]::GetFullPath($BaseArchive)
+    } else {
+        [IO.Path]::GetFullPath((Join-Path $root $BaseArchive))
+    }
+    if (!(Test-Path -LiteralPath $releasePath -PathType Leaf) -or
+            ![string]::Equals([IO.Path]::GetExtension($releasePath), '.zip', [StringComparison]::OrdinalIgnoreCase)) {
+        throw "BaseArchive is not an existing ZIP file: $releasePath"
+    }
+    $release = Get-Item -LiteralPath $releasePath
+} else {
+    $archives = @(Get-ChildItem -LiteralPath $distributions -File -Filter '*.zip' |
+        Where-Object { $_.Name -notmatch '(?i)mfg-experimental' } |
+        Sort-Object LastWriteTime -Descending)
+    if ($archives.Count -ne 1) {
+        $available = ($archives | ForEach-Object { $_.Name }) -join ', '
+        throw "Found $($archives.Count) ordinary installer ZIPs. Choose one explicitly with -BaseArchive. Available: $available"
+    }
+    $release = $archives[0]
 }
-$release = $archives[0]
+if ($release.Name -match '(?i)mfg-experimental') {
+    throw 'BaseArchive must be the original installer ZIP, not an experimental package.'
+}
+if ($release.Name -notmatch '(?i)^rtx-remix-renderer-.*-win64\.zip$') {
+    throw "BaseArchive must be an original Windows x64 RTX Remix installer ZIP: $($release.Name)"
+}
+Write-Output "Selected base installer: $($release.FullName)"
 $version = (& git.exe -C $root rev-parse --short=9 HEAD)
 if ($LASTEXITCODE -ne 0 -or !$version) { throw 'Unable to read Git commit identity.' }
 $outFile = Join-Path $distributions ($release.BaseName + '-mfg-experimental-' + $version.Trim() + '.zip')
@@ -117,6 +141,18 @@ try {
     $reader = [IO.Compression.ZipFile]::OpenRead($release.FullName)
     $existing = @($reader.Entries | Where-Object { $_.FullName.StartsWith('experimental/mfg/', [StringComparison]::OrdinalIgnoreCase) })
     if ($existing.Count) { throw 'Base release already has experimental/mfg payload; refusing duplication.' }
+    # Refuse source archives/unrelated ZIPs even if the filename resembles a
+    # release. Every candidate must be built on the real Minecraft installer.
+    $entryNames = @($reader.Entries | ForEach-Object { $_.FullName })
+    foreach ($required in @('install.bat', 'installer.ps1', 'install-mfg.bat', 'README.md')) {
+        if ($required -notin $entryNames) {
+            throw "Base ZIP missing installer component: $required"
+        }
+    }
+    $modFiles = @($entryNames | Where-Object { $_ -match '^mods/[^/]+\.jar$' })
+    if ($modFiles.Count -ne 1) {
+        throw "Base ZIP must contain exactly one mod JAR, found $($modFiles.Count)."
+    }
     $writer = [IO.Compression.ZipFile]::Open($tempFile, [IO.Compression.ZipArchiveMode]::Create)
     foreach ($entry in $reader.Entries) {
         $copy = $writer.CreateEntry($entry.FullName, [IO.Compression.CompressionLevel]::Optimal)
