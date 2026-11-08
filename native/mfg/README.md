@@ -107,6 +107,43 @@ Local testing requires that hash in the instance JVM option
 downloads retain their fixed release pin. Keep this option out of shared Java
 and working 1.21.1/26.3 profiles.
 
+## Local experimental installer ZIP (after the native build)
+
+A successful `native/mfg/build.ps1` produces the locally compiled adapter at
+`build/mfg-native/Release/MFGUnlocker.dll`. The native host-registration test
+is still required; compilation alone is not compatibility certification.
+
+From the repo root, **after** `verifyReleaseArchive -Parch=win64` and native
+candidate compilation, run:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\native\\mfg\\package_validated_candidate.ps1 -RepoRoot (Get-Location).Path
+```
+
+The helper checks the expected v0.1.1 runtime SHA, local MFG candidate hash,
+rebuilds and runs the recovered-contract, runtime-profile and
+`remix_host_registration` tests including fake runtime negative controls,
+then creates **a separate ZIP under `build/distributions/`** containing the
+existing, unmodified verified Minecraft installation files plus:
+
+```text
+experimental/mfg/MFGUnlocker.dll
+experimental/mfg/LICENSE-MFG
+experimental/mfg/stage_optiscaler.py
+experimental/mfg/manifest.json
+experimental/mfg/README.txt
+```
+
+The candidate is not committed, uploaded to GitHub, automatically deployed,
+or treated as a proven working FG implementation. The normal `install.bat`
+and `install-mfg.bat` still install the stock, pinned path. The experimental
+ZIP's README documents how to stage into a disposable Prism test instance
+with the separately pinned OptiScaler package and private Java. The private
+loader requires an explicit candidate pin and a separately hash-pinned
+OptiScaler payload manifest. Do not copy the adapter into `.trex` or
+overwrite `remix-sdk/d3d9.dll`. GPU evaluation, unique output frames and
+Minecraft integration are **still pending** after a passing test.
+
 ## Automated native checks
 
 ```powershell
