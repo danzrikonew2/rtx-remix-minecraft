@@ -24,6 +24,7 @@ constexpr UINT kStride = 4;
 struct TargetWindow {
     DWORD pid = 0;
     HWND hwnd = nullptr;
+    bool allowGenericWindow = false;
 };
 
 BOOL CALLBACK FindWindowByPid(HWND candidate, LPARAM parameter) {
@@ -37,6 +38,10 @@ BOOL CALLBACK FindWindowByPid(HWND candidate, LPARAM parameter) {
     GetWindowTextW(candidate, title, 128);
     if (wcscmp(className, L"MfgRemixSmoke") == 0 &&
         wcscmp(title, L"Isolated Remix native test") == 0) {
+        target->hwnd = candidate;
+        return FALSE;
+    }
+    if (target->allowGenericWindow && IsWindowVisible(candidate) && !IsIconic(candidate) && title[0] != L'\0') {
         target->hwnd = candidate;
         return FALSE;
     }
@@ -225,8 +230,13 @@ bool OwnWindowCrop(HWND window, const RECT& desktop, D3D11_BOX& box) {
 } // namespace
 
 int wmain(int argc, wchar_t** argv) {
-    if (argc != 4) {
-        puts("Usage: MfgDisplayFrameObserver.exe PROBE_PID CSV_PATH MAX_SECONDS");
+    if (argc != 4 && argc != 5) {
+        puts("Usage: MfgDisplayFrameObserver.exe PROBE_PID CSV_PATH MAX_SECONDS [--generic-window]");
+        return 2;
+    }
+    const bool allowGenericWindow = argc == 5 && wcscmp(argv[4], L"--generic-window") == 0;
+    if (argc == 5 && !allowGenericWindow) {
+        puts("Unknown observer option; expected --generic-window");
         return 2;
     }
     wchar_t* end = nullptr;
@@ -247,14 +257,16 @@ int wmain(int argc, wchar_t** argv) {
     printf("Observer PID=%lu clockHz=%lld ROI=256x256 foreground-only; DWM duplication is not physical scanout\n",
            pid, static_cast<long long>(frequency.QuadPart));
     const ULONGLONG deadline = GetTickCount64() + static_cast<ULONGLONG>(seconds) * 1000;
-    TargetWindow target{pid};
+    TargetWindow target{pid, nullptr, allowGenericWindow};
     while (!target.hwnd && GetTickCount64() < deadline && WaitForSingleObject(process, 0) == WAIT_TIMEOUT) {
         EnumWindows(FindWindowByPid, reinterpret_cast<LPARAM>(&target));
         if (!target.hwnd) Sleep(50);
     }
     if (!target.hwnd) {
         CloseHandle(process);
-        puts("No owned test window found; no desktop data sampled");
+        puts(allowGenericWindow
+                 ? "No visible top-level window owned by the target PID found; no desktop data sampled"
+                 : "No owned test window found; no desktop data sampled");
         return 3;
     }
     Capture capture;

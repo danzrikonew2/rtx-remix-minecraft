@@ -1,5 +1,29 @@
 # Minecraft 26.3 stability and performance baseline
 
+## v0.1.1 NVIDIA DLSS-G revalidation: 2026-11-11
+
+The disposable 26.3 v0.1.1 profile previously showed `SR None / FG Off` because
+its saved `user.conf` contained `rtx.dlssPreset = 0`. The known-working profile
+did not contain that override. Adding `rtx.qualityDLSS = 4` and
+`rtx.rayreconstruction.preset = 6` while leaving `rtx.dlssPreset = 0` still
+produced zero NGX feature calls. Removing only `rtx.dlssPreset = 0` restored
+the game DLSSD feature, accepted DLSS-G options and created the NVIDIA FG
+feature on the RTX 3070 Ti. The existing `rtx.dlfg.enable = false` native Remix
+FG setting remained unchanged.
+
+With the Minecraft window focused, the live status recorded 607 successful
+NVIDIA evaluations and 607 submitted batches with zero failed batches, then
+continued increasing. A matched foreground diagnostic later measured +362
+evaluations / +362 batches over 12 seconds with FG enabled and exactly zero
+counter change over 12 seconds after the End-key FG-off control. Re-enabling
+FG resumed evaluations (+156 in two seconds). This establishes successful
+official NVIDIA DLSS-G provider execution in the actual v0.1.1 Minecraft
+process. The separate deterministic native probe remains the proof that those
+NVIDIA evaluations can produce correctly ordered DWM-composited intermediate
+pixels; the gameplay ROI itself was not deterministic enough for midpoint
+identity analysis. Physical monitor scanout, gameplay input latency, long-run
+stability, >2x Dynamic MFG and DLSS 5 neural rendering remain unverified.
+
 ## Combined settings candidate: 2026-11-02
 
 - Insert is the default OptiScaler menu key. The old migration replaced explicit

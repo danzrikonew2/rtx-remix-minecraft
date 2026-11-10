@@ -114,6 +114,38 @@ remain unverified. Source, exact dependencies, test
 results and reproduction are in the
 [native adapter guide](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/native/mfg/README.md#private-streamline-vulkan-startup).
 
+### 2026-11-11 Minecraft 26.3 v0.1.1 NVIDIA FG revalidation
+
+The disposable official-launcher profile at
+`C:\Users\vijja\AppData\Roaming\.minecraft-rtx-remix-26.3` reproduced the
+earlier `SR None / FG Off` state while `user.conf` contained
+`rtx.dlssPreset = 0`. Adding the known-working `rtx.qualityDLSS = 4` and
+`rtx.rayreconstruction.preset = 6` values alone did not create a game NGX
+DLSS/DLSSD feature. Removing only the saved `rtx.dlssPreset = 0` override,
+with a profile-local backup first, restored the expected lifecycle on the
+v0.1.1 runtime: OptiScaler observed game handle 1000000, created a DLSSD
+feature successfully, accepted DLSS-G options and created NVIDIA FG feature
+11. The native Remix FG flag remained disabled.
+
+Streamline initially suppressed interpolation because the Minecraft window was
+not foreground. Once the disposable Minecraft window was focused, the same
+session accumulated 607 NVIDIA DLSS-G Vulkan evaluations and 607 submitted
+batches with zero failed batches; later counters continued increasing. A
+controlled 12-second FG-ON DWM trace recorded +362 evaluations / +362 batches,
+while its 12-second FG-OFF control recorded exactly 0 / 0. Re-enabling FG then
+resumed evaluations immediately (+156 in the following two seconds). The
+provider therefore executes successfully from actual Minecraft 26.3 v0.1.1
+frames on the RTX 3070 Ti.
+
+The generic-window observer mode used for this diagnostic samples only the
+target PID's focused window and records no image bytes. Its raw Minecraft ROI
+hash-change count is deliberately **not** treated as interpolation proof because
+the gameplay scene is not a deterministic OFF/ON stimulus. The isolated moving
+target midpoint test above remains the compositor-level proof of generated
+intermediate pixels. Physical monitor scanout, Minecraft-specific midpoint
+presentation, input latency, long-session stability, >2x Dynamic MFG and DLSS 5
+neural rendering remain separate acceptance items.
+
 The isolated adapter probe above uses DLSS FG output. OptiScaler also documents
 a Vulkan XeFG output route, which has not been tested here. These are separate
 backends; XeFG results would not establish DLSS FG compatibility. Neither

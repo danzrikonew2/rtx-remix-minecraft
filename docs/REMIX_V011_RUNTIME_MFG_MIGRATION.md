@@ -1,6 +1,6 @@
 # RTX Remix v0.1.1 / MFG adapter migration  -  26.3 development branch
 
-Status (2026-11-11): **v0.1.1 x64 bridge/build/tests/archive and runtime ABI probe PASS; exact new runtime hash verified. Isolated NVIDIA MFG OFF/ON packages remain staged and hash-verified. The native MFG Python suite now runs 92 tests: 89 passed and 3 skipped; the earlier native NGX CTests passed. A matched foreground RTX 3070 Ti comparison now verifies NVIDIA DLSS-G interpolation at the DWM-compositor level: after source frame 30 the FG-OFF trace contains 150 changed orange-target states at 59.394 Hz and FG-ON contains 300 at 119.202 Hz (2.000x state count, 2.007x state rate). All 150 OFF endpoint centroids reappear in ON within 0.01 px (maximum error 0.002 px); every one of the 149 adjacent endpoint intervals contains exactly one additional ON state; 144 intervals have enough motion for normalized midpoint measurement, and 143/144 (99.31%) land within 0.5 +/- 0.15, with 0.063 px median and 0.300 px p95 midpoint error. The same proof remains PASS when the analysis starts at source frame 40 or 60. Bound source/DWM/provider/observer SHA-256 identities pass, the measured provider window records 112 evaluations / 112 successes / 112 batches / 0 failures, and the matching OptiScaler log loads `nvngx_dlssg.dll`, creates DLSS-G successfully, reports max supported interpolations=5, and records 165/165 successful DLSS-G Vulkan evaluations. This establishes correctly ordered intermediate pixels in DWM composition for the isolated deterministic probe. Physical monitor scanout, Minecraft gameplay presentation, input latency, long-session stability, >2x MFG and DLSS 5 neural rendering remain unverified. The OFF run was manually stopped after complete render evidence and the ON run timed out during Remix shutdown, so shutdown remains a separate unresolved issue. Gate H remains BLOCKED because it requires physical scanout/game acceptance; Gate E RTXDI repair remains BLOCKED pending matching runtime source and controlled reproduction.**
+Status (2026-11-11): **v0.1.1 x64 bridge/build/tests/archive and runtime ABI probe PASS; exact new runtime hash verified. Isolated NVIDIA MFG OFF/ON packages remain staged and hash-verified. The native MFG Python suite now runs 92 tests: 89 passed and 3 skipped; the earlier native NGX CTests passed. A matched foreground RTX 3070 Ti comparison verifies NVIDIA DLSS-G interpolation at the DWM-compositor level: after source frame 30 the FG-OFF trace contains 150 changed orange-target states at 59.394 Hz and FG-ON contains 300 at 119.202 Hz (2.000x state count, 2.007x state rate). All 150 OFF endpoint centroids reappear in ON within 0.01 px (maximum error 0.002 px); every one of the 149 adjacent endpoint intervals contains exactly one additional ON state; 144 intervals have enough motion for normalized midpoint measurement, and 143/144 (99.31%) land within 0.5 +/- 0.15, with 0.063 px median and 0.300 px p95 midpoint error. The same proof remains PASS when the analysis starts at source frame 40 or 60. Bound source/DWM/provider/observer SHA-256 identities pass, the measured provider window records 112 evaluations / 112 successes / 112 batches / 0 failures, and the matching OptiScaler log loads `nvngx_dlssg.dll`, creates DLSS-G successfully, reports max supported interpolations=5, and records 165/165 successful DLSS-G Vulkan evaluations. Actual Minecraft 26.3 v0.1.1 integration is now also verified at the provider-execution layer: removing a stale `rtx.dlssPreset = 0` override restores the DLSSD lifecycle, accepted FG options and an NVIDIA FG feature; a focused game session recorded 607 evaluations / 607 submitted batches / 0 failed batches, a later 12-second FG-ON interval added 362 / 362, and the matched FG-OFF interval added 0 / 0. Re-enabling FG resumed evaluations. The deterministic isolated probe remains the compositor-pixel proof because the Minecraft scene was not deterministic enough for midpoint identity analysis. Physical monitor scanout, Minecraft-specific midpoint presentation, input latency, long-session stability, >2x MFG and DLSS 5 neural rendering remain unverified. The isolated OFF run was manually stopped after complete render evidence and the ON run timed out during Remix shutdown, so shutdown remains a separate unresolved issue. Gate H remains BLOCKED because it still requires physical scanout/game acceptance; Gate E RTXDI repair remains BLOCKED pending matching runtime source and controlled reproduction.**
 This is a developer-only branch. Do **not** merge or ship it until every required gate passes. The original `feat/minecraft-26.3` branch and known-working MFG development profile are intentionally untouched.
 
 ## 2026-11-11 NVIDIA DLSS-G DWM compositor midpoint proof
@@ -41,6 +41,36 @@ This is a major Gate D milestone but is deliberately narrower than physical
 display certification. Desktop Duplication observes DWM-composited pixels; it
 does not prove panel scanout, motion-to-photon latency, VRR behavior or Minecraft
 integration. Those remain separate acceptance work.
+
+## 2026-11-11 Minecraft v0.1.1 NVIDIA FG provider revalidation
+
+The disposable official-launcher profile reproduced `SR None / FG Off` while
+`user.conf` contained `rtx.dlssPreset = 0`. The old working profile instead
+saved `rtx.qualityDLSS = 4`, `rtx.rayreconstruction.preset = 6` and
+`rtx.graphicsPreset = 3` without that combined-preset override. Copying the two
+DLSS/RR settings into the disposable profile while retaining
+`rtx.dlssPreset = 0` still produced zero game NGX feature calls. Removing only
+that one override restored `NVSDK_NGX_VULKAN_CreateFeature1 HandleId: 1000000`,
+OptiScaler's DLSSD feature creation, accepted `slDLSSGSetOptions` and NVIDIA FG
+feature creation. This means the earlier v0.1.1 failure was configuration state,
+not evidence that the new runtime removed or bypassed the NGX interception path.
+
+Streamline then reported `DLSS-G disabled: window not focused`. Focusing the
+Minecraft window immediately started provider handle-1 evaluations. The live
+MFG status reached 607 NVIDIA evaluations / 607 submitted batches / zero failed
+batches with `gameFrameGenerationOn=true`, `appliedFrameGenerationOn=true` and
+`activeFrameGeneration=dlss`. A later 12-second foreground DWM capture added
+362 evaluations / 362 batches. Toggling FG off with the documented End control
+produced a 12-second control with zero evaluation or batch increase; toggling it
+back on resumed evaluations (+156 in two seconds).
+
+`MfgDisplayFrameObserver` now has an explicit `--generic-window` diagnostic
+mode that selects a visible top-level window owned by the requested PID. Its
+original exact `MfgRemixSmoke` window matching remains the default. The generic
+mode was used only on the disposable Minecraft PID and records hashes/features,
+not image bytes. Minecraft's uncontrolled scene produced non-comparable raw ROI
+hash-change counts, so those counts are not used as interpolation proof. The
+isolated deterministic midpoint test remains the generated-pixel evidence.
 
 ## 2026-11-10 Vulkan synchronization2 diagnostic and NVIDIA FG blocker
 
