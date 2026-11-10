@@ -475,7 +475,7 @@ after 45 seconds with zero FG evaluations. The fresh OptiScaler log still says
 is evidence of a provider limitation on this tested configuration, not a
 verified repairable missing DLL or proof that replacing a DLL enables FG.
 
-The analyzer's tamper/mixed-run tests, Python test suite (**83 run, 80 passed, 3 skipped**) and both PowerShell script parser checks have passed at this stage;
+The analyzer's tamper/mixed-run tests, Python test suite (**89 run, 86 passed, 3 skipped**) and both PowerShell script parser checks have passed at this stage;
 the skipped cases belong to already archived, optional diagnostic code. Gate H
 remains **BLOCKED**, as does Gate E (RTXDI stationary pulsing). Native source
 rendering plus a watchdog termination is no substitute for working NVIDIA FG.
@@ -498,6 +498,67 @@ before FG can be certified on the RTX 3070 Ti. Preserve the immutable OFF/ON
 baseline packages; rollback is to stop using the disposable test directories
 and disable the opt-in development adapter without modifying the Minecraft
 profile or pinned binaries.
+
+### 2026-11-10 baseline metadata repair and Computer Use trial
+
+The pinned OFF/ON metadata files omit the optional `frame_generation_output`
+field. PowerShell `Set-StrictMode -Version Latest` previously rejected this
+missing property before running either comparison. The runner now interprets
+its absence as the same `dlssg` default used by the package verifier, rejects
+an explicitly non-DLSSG output, and validates **both** metadata files before
+starting a GPU probe. `-ValidateBaselinesOnly` checks this metadata gate without
+copying binaries or launching a test window:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\native\mfg\run_fg_comparison.ps1 `
+    -RepoRoot (Get-Location).Path -ValidateBaselinesOnly
+```
+
+The real pinned baselines passed this preflight; both complete ON/OFF packages
+also passed `verify_optiscaler_probe.py` with all pinned dependencies and
+paths validated. The `mfg-profile-ngx-ninja`, `mfg-profile-checks` (Release)
+and `mfg-profile-wct-ninja` native CTest configurations each passed 3/3 tests
+on 2026-11-10. A fresh, isolated interactive
+comparison was then launched with `-Frames 140 -AwaitFocusSeconds 95
+-TimeoutSeconds 145` (OFF run directory
+`build/mfg-fg-off-20261109-vram-run-1160ef3cc524421c83f17c0b9648e6fd`).
+Windows reported the probe process's window title as `Isolated Remix native
+test`, but Computer Use did not enumerate that window. The native foreground
+gate timed out with exit 4 before source rendering; independent Desktop
+Duplication returned `0x80070005` with exit 3, leaving **zero** DWM samples.
+The parent comparison failed as intended and never started FG ON. This is a
+**test-environment limitation**, not evidence that NVIDIA FG renders frames.
+
+In a subsequent Computer Use session, the official Minecraft Launcher opened
+the already-installed **Minecraft RTX Remix Community 26.3 Beta (Experimental)**
+Fabric 0.20.1-26.3 profile with game directory
+`C:\Users\vijja\AppData\Roaming\.minecraft-rtx-remix-26.3` (separate from
+vanilla and the 1.21.1 installations). A **new, disposable Creative world**
+named `RTX FG Diagnostic - Disposable 2` was created and loaded; both existing
+`New World` saves dated 04/11 and 05/11 were left untouched. The visible terrain
+rendered, and F3 showed Minecraft 26.3 Fabric, RTX 3070 Ti, NVIDIA driver
+621.01 and OpenGL 4.5. Alt+X opened the RTX Remix developer menu with
+**Raytracing Enabled** checked and reported **2423 MiB / 7249 MiB (33%)** video
+memory usage at the sampled instant. The **Enable DLSS Frame Generation**
+checkbox was greyed out; Graphics Settings showed DLSS Preset **Disabled**,
+Upscaler **None**, and Reflex **Disabled**. A one-time F3 reading of roughly
+73 FPS is source/game telemetry, not a frame-generation benchmark. The world
+was saved and exited normally to the main menu.
+
+This confirms the **installed 26.3 experimental Minecraft profile runs with
+RTX enabled** on the tested PC. That installation has **not** been proven to
+contain the newest isolated NVIDIA MFG ON/OFF packages or this branch's latest
+native binaries. No NVIDIA FG provider evaluations, generated display frames,
+MFG multiplier, or DLSS 5 neural output were established by the game test.
+The separate isolated native comparison is still blocked at foreground capture,
+and a staged-package game A/B and real scanout/latency/VRAM validation remain.
+
+NVIDIA's [current hardware table](https://www.nvidia.com/en-us/geforce/technologies/dlss/)
+does not list RTX 30 for official DLSS Frame Generation, Multi Frame
+Generation, or DLSS 5 neural rendering. The pinned upstream MFG 1.7.0 exposes
+an **experimental** RTX 30 Vulkan route, but no generated NVIDIA FG frame or
+neural evaluation has been demonstrated in this repository on the RTX 3070 Ti.
+Dynamic MFG is unavailable on its Vulkan path. Gate H remains **BLOCKED**.
 
 ### Vulkan FSRFG callback, GPU readback and shutdown traces (2026-11-09)
 

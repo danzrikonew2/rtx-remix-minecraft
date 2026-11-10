@@ -1,7 +1,42 @@
 # RTX Remix v0.1.1 / MFG adapter migration  -  26.3 development branch
 
-Status (2026-11-10): **v0.1.1 x64 bridge/build/tests/archive and runtime ABI probe PASS; exact new runtime hash verified. Isolated NVIDIA MFG OFF/ON packages remain staged and hash-verified; the latest 83 Python tests ran with 80 passed and 3 skipped, and earlier native NGX CTests passed. The comparison now binds source, DWM, provider and observer traces to exact SHA-256 hashes, process PID/birth, and per-run termination evidence; swapped or modified runs are rejected. The latest fresh hidden NVIDIA ON probe rendered 40/40 frames with zero render failures and matching status SHA-256, but timed out in Remix shutdown after 30 seconds; its 95 process-matched status samples show zero FG evaluations/batches. A preceding hidden 70/70 run also timed out after 45 seconds, with zero FG evaluations. The OptiScaler log reports `Dynamic MFG not supported: driver missing required components`. Foreground real-display measurement remains BLOCKED because this process could not acquire focus and Desktop Duplication returned 0x80070005. Earlier isolated r3/r4/r5 OptiScaler diagnostics retain nine exact submodule revisions; an r5 GPU readback showed twelve distinct generated-region hashes, but interpolation quality and physical scanout remain unverified. Plain NGX shutdown and disposable Vulkan teardown completed; device shutdown crashed inside forwarded original NVNGX (0xC0000005), and vendor DLL detach remains untested. Immutable packages and per-run copies preserve evidence. Gate H and actual NVIDIA FG acceptance remain BLOCKED. Gate E RTXDI repair remains BLOCKED pending matching runtime source and controlled reproduction.**
+Status (2026-11-10): **v0.1.1 x64 bridge/build/tests/archive and runtime ABI probe PASS; exact new runtime hash verified. Isolated NVIDIA MFG OFF/ON packages remain staged and hash-verified; the latest 89 Python tests ran with 86 passed and 3 skipped, and earlier native NGX CTests passed. The comparison now binds source, DWM, provider and observer traces to exact SHA-256 hashes, process PID/birth, and per-run termination evidence; swapped or modified runs are rejected. The latest fresh hidden NVIDIA ON probe rendered 40/40 frames with zero render failures and matching status SHA-256, but timed out in Remix shutdown after 30 seconds; its 95 process-matched status samples show zero FG evaluations/batches. A preceding hidden 70/70 run also timed out after 45 seconds, with zero FG evaluations. The OptiScaler log reports `Dynamic MFG not supported: driver missing required components`. Foreground real-display measurement remains BLOCKED because this process could not acquire focus and Desktop Duplication returned 0x80070005. Earlier isolated r3/r4/r5 OptiScaler diagnostics retain nine exact submodule revisions; an r5 GPU readback showed twelve distinct generated-region hashes, but interpolation quality and physical scanout remain unverified. Plain NGX shutdown and disposable Vulkan teardown completed; device shutdown crashed inside forwarded original NVNGX (0xC0000005), and vendor DLL detach remains untested. Immutable packages and per-run copies preserve evidence. Gate H and actual NVIDIA FG acceptance remain BLOCKED. Gate E RTXDI repair remains BLOCKED pending matching runtime source and controlled reproduction.**
 This is a developer-only branch. Do **not** merge or ship it until every required gate passes. The original `feat/minecraft-26.3` branch and known-working MFG development profile are intentionally untouched.
+
+## 2026-11-10 real Minecraft desktop verification and NVIDIA-only preflight
+
+An isolated, disposable Creative world was launched from the official Minecraft
+Launcher using the existing **Minecraft RTX Remix Community 26.3 Beta
+(Experimental)** Fabric profile (game directory
+`C:\Users\vijja\AppData\Roaming\.minecraft-rtx-remix-26.3`). The other two
+existing worlds and all 1.21.1/vanilla profiles remained untouched. Minecraft
+26.3 rendered terrain on RTX 3070 Ti, driver 621.01; Alt+X reported raytracing
+enabled and **2423 / 7249 MiB** video memory allocated at one observed instant.
+The in-game DLSS Frame Generation checkbox was disabled, DLSS Preset was
+Disabled, Upscaler was None and Reflex was Disabled. The F3 display showed
+roughly 73 FPS in one sampled scene, which is not verified FG throughput.
+The new world was saved and exited to the launcher normally.
+
+This is evidence that **the existing installed experimental profile runs with
+RTX**. Its binary identity has not been matched to the newest isolated MFG
+packages, so it does not establish NVIDIA FG, DLSS 5 or this branch's latest
+native adapter functionality. The separate visible native comparison could
+not focus its probe window, returned exit 4 before source frames, and Desktop
+Duplication returned `0x80070005`/exit 3 with zero DWM samples. No NVIDIA FG
+interpolated/displayed frames or neural evaluations were verified; Gate H
+remains **BLOCKED**.
+
+The pinned metadata of both NVIDIA FG OFF/ON baselines passed the new
+`run_fg_comparison.ps1 -ValidateBaselinesOnly` check. Missing legacy
+`frame_generation_output` defaults to `dlssg`, while explicit null or any
+non-`dlssg` value is rejected before launching either test. Full Python
+regression verification on 2026-11-10: **89 tests run, 86 passed, 3 skipped**;
+the skips are archived optional FSR diagnostic source fixtures. Three native
+CTest configurations passed 3/3 tests each. Both full NVIDIA OFF/ON package
+verifications passed, including all pinned binary dependencies. Hash-based
+package validation and rollback controls remain mandatory. See
+[native MFG README](../native/mfg/README.md) for exact test commands and
+observed results.
 
 ## Identified upstream delta (NVIDIA 2026-11-06)
 

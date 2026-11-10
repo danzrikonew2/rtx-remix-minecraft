@@ -18,7 +18,8 @@ param(
     [string]$PythonExe = 'python.exe',
     [string]$OffProbeName = 'mfg-fg-off-20261109-vram',
     [string]$OnProbeName = 'mfg-fg-on-20261109-vram',
-    [switch]$OnDiagnosticPackage
+    [switch]$OnDiagnosticPackage,
+    [switch]$ValidateBaselinesOnly
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -32,10 +33,12 @@ $analyzer = Join-Path $PSScriptRoot 'analyze_probe_frames.py'
 $verifier = Join-Path $PSScriptRoot 'verify_optiscaler_probe.py'
 $copier = Join-Path $PSScriptRoot 'prepare_ngx_run_copy.py'
 $results = @{}
+$baselines = @{}
 if ($OnDiagnosticPackage) {
     throw 'This comparison accepts the pinned NVIDIA DLSSG packages only; FSR diagnostic packages are unsupported.'
 }
 
+# Validate both baseline metadata files before launching either native test.
 foreach ($mode in @('off', 'on')) {
     $name = if ($mode -eq 'off') { $OffProbeName } else { $OnProbeName }
     if ($name -cnotmatch '^[A-Za-z0-9][A-Za-z0-9-]{0,79}$') {
@@ -47,10 +50,28 @@ foreach ($mode in @('off', 'on')) {
         throw "Missing baseline probe metadata: $metadata"
     }
     $inputs = Get-Content -LiteralPath $metadata -Raw | ConvertFrom-Json
-    if ($inputs.frame_generation_requested -ne $mode -or $inputs.frame_generation_output -notin @($null, 'dlssg')) {
+    # Older pinned NVIDIA baselines omit this optional field. Match the
+    # package verifier's legacy default, while rejecting explicit FSR output.
+    $outputProperty = $inputs.PSObject.Properties['frame_generation_output']
+    $fgOutput = if ($null -eq $outputProperty) { 'dlssg' } else { $outputProperty.Value }
+    if ($inputs.frame_generation_requested -ne $mode -or $fgOutput -cne 'dlssg') {
         throw "Probe $name is not a verified NVIDIA FG $mode baseline"
     }
     $hash = [string]$inputs.optiscaler_fork_sha256
+    if ($hash -cnotmatch '^[0-9a-fA-F]{64}$' -or !(Test-Path -LiteralPath $sourcePackage -PathType Container)) {
+        throw "Probe $name has an invalid pinned OptiScaler hash or missing Package directory"
+    }
+    $baselines[$mode] = @{ name = $name; sourcePackage = $sourcePackage; hash = $hash }
+}
+if ($ValidateBaselinesOnly) {
+    Write-Host 'PASS: both pinned NVIDIA DLSSG OFF/ON metadata files passed preflight; no native tests were launched.'
+    return
+}
+
+foreach ($mode in @('off', 'on')) {
+    $name = $baselines[$mode].name
+    $sourcePackage = $baselines[$mode].sourcePackage
+    $hash = $baselines[$mode].hash
     # Each invocation uses fresh native files and independent logs. A provider
     # may rewrite OptiScaler.ini during teardown; signed baseline packages
     # must remain byte-for-byte unchanged.
