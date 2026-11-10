@@ -3,6 +3,37 @@
 Status (2026-11-10): **v0.1.1 x64 bridge/build/tests/archive and runtime ABI probe PASS; exact new runtime hash verified. Isolated NVIDIA MFG OFF/ON packages remain staged and hash-verified; the latest 89 Python tests ran with 86 passed and 3 skipped, and earlier native NGX CTests passed. The comparison now binds source, DWM, provider and observer traces to exact SHA-256 hashes, process PID/birth, and per-run termination evidence; swapped or modified runs are rejected. The latest fresh hidden NVIDIA ON probe rendered 40/40 frames with zero render failures and matching status SHA-256, but timed out in Remix shutdown after 30 seconds; its 95 process-matched status samples show zero FG evaluations/batches. A preceding hidden 70/70 run also timed out after 45 seconds, with zero FG evaluations. The OptiScaler log reports `Dynamic MFG not supported: driver missing required components`. Foreground real-display measurement remains BLOCKED because this process could not acquire focus and Desktop Duplication returned 0x80070005. Earlier isolated r3/r4/r5 OptiScaler diagnostics retain nine exact submodule revisions; an r5 GPU readback showed twelve distinct generated-region hashes, but interpolation quality and physical scanout remain unverified. Plain NGX shutdown and disposable Vulkan teardown completed; device shutdown crashed inside forwarded original NVNGX (0xC0000005), and vendor DLL detach remains untested. Immutable packages and per-run copies preserve evidence. Gate H and actual NVIDIA FG acceptance remain BLOCKED. Gate E RTXDI repair remains BLOCKED pending matching runtime source and controlled reproduction.**
 This is a developer-only branch. Do **not** merge or ship it until every required gate passes. The original `feat/minecraft-26.3` branch and known-working MFG development profile are intentionally untouched.
 
+## 2026-11-10 Vulkan synchronization2 diagnostic and NVIDIA FG blocker
+
+A new opt-in native WSI `--verify-sync2` mode explicitly enables
+`VK_KHR_synchronization2` on Vulkan 1.2, confirms its device command is
+resolved, and performs real image-layout transitions through
+`vkCmdPipelineBarrier2KHR`. On the RTX 3070 Ti with driver 621.01, the
+extension and feature were supported. Legacy and explicit-sync2 source-only
+probes each passed 20/20 source presents and clean shutdown; the latter
+confirmed `sync2_exercised=1`. The probe executable hash is
+`47187e27f80e2d9254f2db3d5e6a288fb52f57212f070eb41a6477702549be0b`.
+
+In two **isolated, hash-verified** pinned OptiScaler copies (vendor DLL
+SHA-256 `0b70d723f61fcf1cc38c26e4033666bd08936f435a848f624222c77dc86ca7fe`),
+NGX init and four source presents succeeded for both legacy and explicit
+sync2. Neither created an FG feature nor evaluated FG. Both hung in plain NGX
+shutdown and their own processes were terminated by a 25-second watchdog.
+The provider reported a maximum of **one** supported generated frame and
+`Dynamic MFG not supported: multi-frame not available` in both runs.
+An earlier full ON probe independently reported missing driver components.
+
+The OptiScaler `No Vulkan 1.3 features ... synchronization2` warning also
+appeared in the explicitly enabled case: the pinned source checks for a
+monolithic Vulkan 1.3 feature struct before later spoof/feature processing.
+That message alone does not establish the final feature state, and enabling
+the feature in the WSI host did not unlock Dynamic MFG. No NVIDIA generated
+output, 2x throughput, 3x–6x support, DLSS 5 neural evaluation, monitor
+scanout or FG end-to-end latency is established. **Gate H remains BLOCKED**.
+The complete commands, hashes and original run logs are documented in the
+[native MFG README](../native/mfg/README.md). Original OFF/ON package pins
+and rollback remain unchanged.
+
 ## 2026-11-10 real Minecraft desktop verification and NVIDIA-only preflight
 
 An isolated, disposable Creative world was launched from the official Minecraft

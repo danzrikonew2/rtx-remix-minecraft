@@ -475,9 +475,80 @@ after 45 seconds with zero FG evaluations. The fresh OptiScaler log still says
 is evidence of a provider limitation on this tested configuration, not a
 verified repairable missing DLL or proof that replacing a DLL enables FG.
 
-The analyzer's tamper/mixed-run tests, Python test suite (**89 run, 86 passed, 3 skipped**) and both PowerShell script parser checks have passed at this stage;
-the skipped cases belong to already archived, optional diagnostic code. Gate H
-remains **BLOCKED**, as does Gate E (RTXDI stationary pulsing). Native source
+The analyzer's tamper/mixed-run tests and both PowerShell script parser checks
+passed at that stage. The skipped Python cases belong to already archived,
+optional diagnostic code.
+
+#### Vulkan synchronization2 A/B diagnostic (2026-11-10, 23:55 WIB)
+
+The native `MfgVulkanWsiProbe` now has an optional `--verify-sync2` path.
+On the RTX 3070 Ti with NVIDIA driver 621.01, the isolated Vulkan 1.2
+instance reports `VK_KHR_synchronization2` and
+`VkPhysicalDeviceSynchronization2FeaturesKHR.synchronization2` both
+supported. This mode explicitly requests the extension and device feature,
+resolves `vkCmdPipelineBarrier2KHR`, and executes real synchronization2
+image-layout barriers on both sides of each source-image clear/present.
+The default legacy-barrier mode remains unchanged.
+
+The independently compiled Ninja executable has SHA-256
+`47187e27f80e2d9254f2db3d5e6a288fb52f57212f070eb41a6477702549be0b`
+at `build/mfg-sync2-diagnostic-ninja/MfgVulkanWsiProbe.exe`. The
+source-only control `run-legacy-barriers/stdout.log` finished with 20/20
+successful source presents and clean teardown (`sync2_exercised=0`);
+`run-sync2-image-barriers/stdout.log` finished 20/20 with clean teardown
+(`sync2_exercised=1`). Both returned exit 0. Neither run invokes an FG
+provider, tests generated frames, or proves display output.
+
+Two separate disposable OptiScaler packages were copied from the untouched
+`build/mfg-fg-on-20261109-vram/Package`, retaining the vendor
+`OptiScaler.dll` SHA-256
+`0b70d723f61fcf1cc38c26e4033666bd08936f435a848f624222c77dc86ca7fe`.
+Each ran `--ngx-init-only --ngx-shutdown-mode plain --skip-vendor-detach
+--frames 4 --interval-ms 0`, once with legacy barriers
+(`vendor-baseline-no-sync2`, PID 28836) and once with `--verify-sync2`
+(`vendor-explicit-sync2`, PID 30392). Each presented 4/4 source frames,
+initialized NGX successfully, created zero FG features, made zero FG
+evaluations, and **hung at `stage=ngx_shutdown_begin mode=plain`**.
+The watchdog terminated only each owned child after 25 seconds
+(`finished=false`, exit -1). Exact per-run output and vendor logs are under
+`build/mfg-sync2-diagnostic-ninja/vendor-{baseline-no-sync2,explicit-sync2}*`.
+No claim of clean vendor shutdown is supported by these two trials;
+previous clean plain shutdowns used a different isolated diagnostic DLL.
+
+Both vendor logs report
+`Multi-frame not supported, max generated frames 1 (SL Plugin supports 5,
+NGX feature supports 1)`, `Dynamic MFG not supported: multi-frame not
+available`, and `DLSSG_Common::QueryState Max supported interpolations: 1`.
+The earlier full hidden ON probe separately reported `driver missing required
+components`; the two distinct provider messages should not be conflated.
+Both new logs include `DLSSG_Vk::EnableFeatures No Vulkan 1.3 features from
+the game ... synchronization2` even for the explicit sync2 case.
+Source inspection shows that warning is emitted when the original device
+`pNext` lacks a monolithic `VkPhysicalDeviceVulkan13Features` struct,
+before OptiScaler's later Vulkan spoof/feature handling; the later log says
+`VK_KHR_synchronization2 already enabled` in the explicit case, versus
+`Adding VK_KHR_synchronization2` in the baseline. This warning **cannot**
+alone establish the final effective feature state at the real
+`vkCreateDevice`. The explicit feature/command path did not lift the
+provider's interpolation limit or fix NGX shutdown.
+
+For a fresh source-only check after compiling this target, run
+`MfgVulkanWsiProbe.exe --frames 20 --interval-ms 0` and then a separate
+`MfgVulkanWsiProbe.exe --verify-sync2 --frames 20 --interval-ms 0`
+from distinct disposable working directories with bounded process owners.
+For a vendor test, first use `prepare_ngx_run_copy.py` to create a *new*
+checksummed package and run the DLL from that copy under a process timeout.
+Never run the immutable package itself; vendor NGX shutdown may hang.
+This is a diagnostic of source Vulkan features, not a device driver patch,
+DLSS 5 activation, official NVIDIA 2x FG result, or support for 3x–6x.
+Gate H remains **BLOCKED**.
+
+Verification on 2026-11-11: the probe incremental build passed and retained
+the executable SHA-256 above. `python -m unittest discover -s native/mfg/tests
+-p 'test_*.py'` ran **89 tests: 86 passed, 3 skipped**. Native CTest suites in
+`build/mfg-profile-ngx-ninja`, `build/mfg-profile-checks` (Release), and
+`build/mfg-profile-wct-ninja` each passed **3/3**. Gate H remains **BLOCKED**,
+as does Gate E (RTXDI stationary pulsing). Native source
 rendering plus a watchdog termination is no substitute for working NVIDIA FG.
 For the next acceptance attempt, use this exact bounded command **locally at
 the physical, interactive Windows desktop**; click and keep each native probe

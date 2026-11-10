@@ -139,6 +139,8 @@ bool HasExtension(VkPhysicalDevice gpu, const char* name) {
 }
 
 struct Wsi {
+    bool verifySync2 = false;
+    PFN_vkCmdPipelineBarrier2KHR cmdPipelineBarrier2 = nullptr;
     HINSTANCE application = GetModuleHandleW(nullptr);
     HWND window = nullptr;
     VkInstance instance = VK_NULL_HANDLE;
@@ -251,17 +253,33 @@ struct Wsi {
         }
         if (queueFamily == UINT32_MAX) throw std::runtime_error("no_graphics_present_queue");
 
+        const bool sync2Extension = HasExtension(gpu, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
+        VkPhysicalDeviceSynchronization2FeaturesKHR supportedSync2{
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR};
         VkPhysicalDeviceVulkan12Features supported12{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+        supported12.pNext = &supportedSync2;
         VkPhysicalDeviceFeatures2 supported{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
         supported.pNext = &supported12;
         vkGetPhysicalDeviceFeatures2(gpu, &supported);
         std::cout << "timelineSemaphore=" << supported12.timelineSemaphore
                   << " descriptorIndexing=" << supported12.descriptorIndexing
                   << " pushDescriptor=" << HasExtension(gpu, VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME) << '\n';
+        std::cout << "sync2_extension_supported=" << sync2Extension
+                  << " sync2_feature_supported=" << supportedSync2.synchronization2
+                  << " sync2_explicitly_requested=" << verifySync2
+                  << " instance_api=1.2\n";
+        if (verifySync2 && (!sync2Extension || supportedSync2.synchronization2 != VK_TRUE))
+            throw std::runtime_error("synchronization2_unsupported_on_selected_gpu");
 
         VkPhysicalDeviceVulkan12Features enable12{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
         enable12.timelineSemaphore = supported12.timelineSemaphore;
         enable12.descriptorIndexing = supported12.descriptorIndexing;
+        VkPhysicalDeviceSynchronization2FeaturesKHR enableSync2{
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR};
+        if (verifySync2) {
+            enableSync2.synchronization2 = VK_TRUE;
+            enable12.pNext = &enableSync2;
+        }
         float priority = 1.0f;
         VkDeviceQueueCreateInfo queueCreate{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
         queueCreate.queueFamilyIndex = queueFamily;
@@ -270,6 +288,8 @@ struct Wsi {
         std::vector<const char*> extensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
         if (HasExtension(gpu, VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME))
             extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+        if (verifySync2)
+            extensions.push_back(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
         VkDeviceCreateInfo deviceCreate{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
         deviceCreate.pNext = &enable12;
         deviceCreate.queueCreateInfoCount = 1;
@@ -277,6 +297,13 @@ struct Wsi {
         deviceCreate.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
         deviceCreate.ppEnabledExtensionNames = extensions.data();
         Check(vkCreateDevice(gpu, &deviceCreate, nullptr, &device), "vkCreateDevice");
+        if (verifySync2) {
+            cmdPipelineBarrier2 = reinterpret_cast<PFN_vkCmdPipelineBarrier2KHR>(
+                vkGetDeviceProcAddr(device, "vkCmdPipelineBarrier2KHR"));
+            if (!cmdPipelineBarrier2)
+                throw std::runtime_error("vkCmdPipelineBarrier2KHR_unavailable_after_enable");
+            std::cout << "stage=sync2_device_feature_enabled command_resolved=1\n";
+        }
         vkGetDeviceQueue(device, queueFamily, 0, &queue);
         if (!queue) throw std::runtime_error("vkGetDeviceQueue_null");
         std::cout << "stage=vulkan_device_created\n";
@@ -365,8 +392,25 @@ struct Wsi {
         toTransfer.image = images[index];
         toTransfer.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
         toTransfer.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        vkCmdPipelineBarrier(command, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                             0, 0, nullptr, 0, nullptr, 1, &toTransfer);
+        if (verifySync2) {
+            VkImageMemoryBarrier2KHR imageBarrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR};
+            imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT_KHR;
+            imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR;
+            imageBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT_KHR;
+            imageBarrier.oldLayout = toTransfer.oldLayout;
+            imageBarrier.newLayout = toTransfer.newLayout;
+            imageBarrier.srcQueueFamilyIndex = toTransfer.srcQueueFamilyIndex;
+            imageBarrier.dstQueueFamilyIndex = toTransfer.dstQueueFamilyIndex;
+            imageBarrier.image = toTransfer.image;
+            imageBarrier.subresourceRange = toTransfer.subresourceRange;
+            VkDependencyInfoKHR dependency{VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR};
+            dependency.imageMemoryBarrierCount = 1;
+            dependency.pImageMemoryBarriers = &imageBarrier;
+            cmdPipelineBarrier2(command, &dependency);
+        } else {
+            vkCmdPipelineBarrier(command, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                 0, 0, nullptr, 0, nullptr, 1, &toTransfer);
+        }
         VkImageSubresourceRange subresource{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
         if (render) {
             render(command, images[index]);
@@ -387,8 +431,25 @@ struct Wsi {
         toPresent.image = images[index];
         toPresent.subresourceRange = subresource;
         toPresent.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        vkCmdPipelineBarrier(command, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                             0, 0, nullptr, 0, nullptr, 1, &toPresent);
+        if (verifySync2) {
+            VkImageMemoryBarrier2KHR imageBarrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR};
+            imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR;
+            imageBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT_KHR;
+            imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT_KHR;
+            imageBarrier.oldLayout = toPresent.oldLayout;
+            imageBarrier.newLayout = toPresent.newLayout;
+            imageBarrier.srcQueueFamilyIndex = toPresent.srcQueueFamilyIndex;
+            imageBarrier.dstQueueFamilyIndex = toPresent.dstQueueFamilyIndex;
+            imageBarrier.image = toPresent.image;
+            imageBarrier.subresourceRange = toPresent.subresourceRange;
+            VkDependencyInfoKHR dependency{VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR};
+            dependency.imageMemoryBarrierCount = 1;
+            dependency.pImageMemoryBarriers = &imageBarrier;
+            cmdPipelineBarrier2(command, &dependency);
+        } else {
+            vkCmdPipelineBarrier(command, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                                 0, 0, nullptr, 0, nullptr, 1, &toPresent);
+        }
         Check(vkEndCommandBuffer(command), "end_commands");
         VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
@@ -423,6 +484,7 @@ int wmain(int argc, wchar_t** argv) {
         int interval = 16;
         bool ngxEvaluate = false;
         bool ngxInitOnly = false;
+        bool verifySync2 = false;
         bool traceShutdownAv = false;
         NgxFixture::ShutdownMode ngxShutdownMode = NgxFixture::ShutdownMode::Device;
         for (int i = 1; i < argc; ++i) {
@@ -432,6 +494,7 @@ int wmain(int argc, wchar_t** argv) {
             else if (key == L"--interval-ms" && i + 1 < argc) interval = std::stoi(argv[++i]);
             else if (key == L"--ngx-evaluate") ngxEvaluate = true;
             else if (key == L"--ngx-init-only") ngxInitOnly = true;
+            else if (key == L"--verify-sync2") verifySync2 = true;
             else if (key == L"--ngx-shutdown-mode" && i + 1 < argc) {
                 const std::wstring mode = argv[++i];
                 if (mode == L"device") ngxShutdownMode = NgxFixture::ShutdownMode::Device;
@@ -441,7 +504,7 @@ int wmain(int argc, wchar_t** argv) {
             }
             else if (key == L"--skip-vendor-detach") skipVendorDetach = true;
             else if (key == L"--trace-ngx-shutdown-av") traceShutdownAv = true;
-            else throw std::runtime_error("usage: MfgVulkanWsiProbe [--optiscaler ABSOLUTE_DLL_PATH] [--ngx-evaluate|--ngx-init-only] [--ngx-shutdown-mode device|plain|skip] [--skip-vendor-detach] [--trace-ngx-shutdown-av] [--frames 1..1000] [--interval-ms 0..100]");
+            else throw std::runtime_error("usage: MfgVulkanWsiProbe [--optiscaler ABSOLUTE_DLL_PATH] [--ngx-evaluate|--ngx-init-only] [--verify-sync2] [--ngx-shutdown-mode device|plain|skip] [--skip-vendor-detach] [--trace-ngx-shutdown-av] [--frames 1..1000] [--interval-ms 0..100]");
         }
         if (frames < 1 || frames > 1000 || interval < 0 || interval > 100)
             throw std::runtime_error("invalid_frames_or_interval");
@@ -466,7 +529,8 @@ int wmain(int argc, wchar_t** argv) {
             std::cout << "stage=shutdown_av_observer_registered mode=diagnostic_only\n";
         }
         std::cout << "probe=real_win32_vulkan_wsi source_present_only=" << !ngxEvaluate
-                  << " ngx_evaluate=" << ngxEvaluate << " ngx_init_only=" << ngxInitOnly << " fg_proven=0\n";
+                  << " ngx_evaluate=" << ngxEvaluate << " ngx_init_only=" << ngxInitOnly
+                  << " verify_sync2=" << verifySync2 << " fg_proven=0\n";
         HMODULE opti = nullptr;
         if (!optiscaler.empty()) {
             if (!optiscaler.is_absolute() || !std::filesystem::is_regular_file(optiscaler))
@@ -482,6 +546,7 @@ int wmain(int argc, wchar_t** argv) {
         }
         {
             Wsi wsi;
+            wsi.verifySync2 = verifySync2;
             wsi.CreateProbeWindow();
             wsi.InitVulkan();
             std::unique_ptr<NgxFixture> ngx;
@@ -519,7 +584,8 @@ int wmain(int argc, wchar_t** argv) {
         const bool skippedShutdown = ngxShutdownMode == NgxFixture::ShutdownMode::Skip;
         std::cout << "result=" << (ngxInitOnly ? "NGX_INIT_ONLY_SOURCE_PRESENT_PASS" :
                   ngxEvaluate ? (skippedShutdown ? "NGX_EVALUATE_PRESENT_SHUTDOWN_SKIPPED" : "NGX_EVALUATE_PRESENT_PASS") : "SOURCE_PRESENT_PASS")
-                  << " fg_proven=0 generated_frames_verified=0 clean_shutdown_proven=" << !skippedShutdown << '\n';
+                  << " fg_proven=0 generated_frames_verified=0 sync2_exercised=" << verifySync2
+                  << " clean_shutdown_proven=" << !skippedShutdown << '\n';
         if (skipVendorDetach) {
             // The vendor's DLL_PROCESS_DETACH may deadlock after the last
             // vkDestroyInstance, even when all source frames were presented.
