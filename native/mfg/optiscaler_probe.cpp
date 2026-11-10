@@ -179,9 +179,12 @@ int wmain(int argc, wchar_t** argv) {
     remixapi_MaterialInfoOpaqueEXT opaque{};
     opaque.sType=REMIXAPI_STRUCT_TYPE_MATERIAL_INFO_OPAQUE_EXT;
     opaque.albedoConstant={0.8f,0.4f,0.2f}; opaque.opacityConstant=1.0f; opaque.roughnessConstant=0.5f;
+    // Match MaterialInfoOpaqueEXT's opaque default (VK_COMPARE_OP_ALWAYS).
+    opaque.alphaTestType=7;
     remixapi_MaterialInfo materialInfo{};
     materialInfo.sType=REMIXAPI_STRUCT_TYPE_MATERIAL_INFO; materialInfo.pNext=&opaque; materialInfo.hash=0x4D464750524F4245ull;
     materialInfo.emissiveIntensity=2.0f; materialInfo.emissiveColorConstant={1,0.3f,0.1f};
+    materialInfo.spriteSheetRow=1; materialInfo.spriteSheetCol=1;
     remixapi_MaterialHandle material{};
     Check(api.CreateMaterial(&materialInfo,&material),"CreateMaterial");
     remixapi_HardcodedVertex vertices[3]{};
@@ -214,7 +217,7 @@ int wmain(int argc, wchar_t** argv) {
         printf("Source-present QPC trace enabled, clockHz=%lld\n", static_cast<long long>(frequency.QuadPart));
         displayAdapter = FindDisplayAdapter(window);
         printf("DXGI local memory query adapter found=%u; usage may be unavailable\n", displayAdapter != nullptr);
-        presentTrace << "sourceFrame,beforePresentQpc,afterPresentQpc,foreground,qpcHz,gpuLocalUsageBytes,gpuLocalBudgetBytes\n";
+        presentTrace << "sourceFrame,beforePresentQpc,afterPresentQpc,foreground,qpcHz,gpuLocalUsageBytes,gpuLocalBudgetBytes,instanceX,expectedCropCentroidX\n";
     }
     for (int frame=0; frame<frameLimit && IsWindow(window); ++frame) {
         MSG message{};
@@ -233,10 +236,8 @@ int wmain(int argc, wchar_t** argv) {
         parameterized.fovYInDegrees=60; parameterized.aspect=800.0f/600.0f; parameterized.nearPlane=0.1f; parameterized.farPlane=128;
         remixapi_CameraInfo camera{};
         camera.sType=REMIXAPI_STRUCT_TYPE_CAMERA_INFO;
-        parameterized.position.x=0.5f*std::sin(float(frame)/8.0f);
         camera.pNext=&parameterized;
         for(int k=0;k<4;++k) camera.view[k][k]=1;
-        camera.view[3][0]=-parameterized.position.x;
         const float focal=1.7320508f;
         camera.projection[0][0]=focal/parameterized.aspect;
         camera.projection[1][1]=focal;
@@ -245,6 +246,8 @@ int wmain(int argc, wchar_t** argv) {
         camera.projection[3][2]=-parameterized.nearPlane*parameterized.farPlane/(parameterized.farPlane-parameterized.nearPlane);
         camera.type=REMIXAPI_CAMERA_TYPE_WORLD;
         Check(api.SetupCamera(&camera), "SetupCamera");
+        const float instanceX=0.5f*std::sin(float(frame)/8.0f);
+        instance.transform.matrix[0][3]=instanceX;
         Check(api.DrawInstance(&instance),"DrawInstance");
         auto submit=remixapi_SubmitInfo_init();
         Check(api.Submit(&submit), "Submit");
@@ -287,6 +290,11 @@ int wmain(int argc, wchar_t** argv) {
         ++presents;
         if (GetForegroundWindow() == window) ++foregroundPresents;
         if (presentTrace) {
+            // Triangle centroid is local x=0,z=4. The observer crops the center 256 pixels
+            // of the 800-wide client area, so this predicts its ideal crop-space x position
+            // for the explicit instance translation above.
+            const float expectedCropCentroidX =
+                128.0f + instanceX * camera.projection[0][0] * 100.0f;
             presentTrace << presents << ',' << beforePresent.QuadPart << ',' << afterPresent.QuadPart
                          << ',' << (GetForegroundWindow() == window ? 1 : 0) << ','
                          << frequency.QuadPart << ',';
@@ -297,7 +305,7 @@ int wmain(int argc, wchar_t** argv) {
             } else {
                 presentTrace << ',';
             }
-            presentTrace << '\n';
+            presentTrace << ',' << instanceX << ',' << expectedCropCentroidX << '\n';
             if (presents % 60 == 0) presentTrace.flush();
         }
         if (visible && (frame % 60 == 59)) {

@@ -40,6 +40,8 @@ class ProbeFgOutputTests(unittest.TestCase):
         config.read(self.ini)
         self.assertEqual(config.get("FrameGen", "FGOutput"), "dlssg")
         self.assertEqual(config.get("FrameGen", "Enabled"), "true")
+        self.assertEqual(config.get("Menu", "OverlayMenu"), "true")
+        self.assertEqual(config.get("Menu", "DisableSplash"), "true")
 
     def test_explicit_fsrfg_on_and_off(self):
         for state in ("on", "off"):

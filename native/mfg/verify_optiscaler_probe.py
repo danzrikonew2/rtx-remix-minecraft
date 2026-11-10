@@ -133,6 +133,7 @@ def verify(root: Path, package: Path, installed: Path) -> None:
         ("FrameGen", "FGNvngxReplacement"): "None",
         ("DLSSG", "InterpolationCount"): "1",
         ("Menu", "OverlayMenu"): "true",
+        ("Menu", "DisableSplash"): "true",
         ("Menu", "ShortcutKey"): "45",
         ("Menu", "FGShortcutKey"): "35",
         ("Plugins", "LoadAsiPlugins"): "true",

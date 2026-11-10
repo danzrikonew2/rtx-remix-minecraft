@@ -762,8 +762,54 @@ Nine dependency submodules are installed at their exact revisions in the
 diagnostic clones only; both r3/r4 instrumented DLLs compiled successfully.
 Keep the pinned upstream checkout, original `OptiScaler.dll`, r3/r4/r5 logs,
 and original r4 INI/manifest evidence unchanged. Gate H stays **BLOCKED**
-until useful motion interpolation, foreground OFF/ON testing and independent
-physical displayed-frame and stability measurements succeed.
+until physical scanout, Minecraft integration and stability measurements
+succeed. Useful interpolation is now verified at the DWM-compositor level by
+the 2026-11-11 deterministic OFF/ON test below.
+
+### 2026-11-11 deterministic NVIDIA DLSS-G compositor proof
+
+The visible probe now moves the orange triangle instance with the same
+deterministic sine path in FG OFF and ON runs, records its ideal crop-space
+centroid with each source present, and keeps the camera fixed. The independent
+Desktop Duplication observer records orange-target centroid/bounds plus edge and
+mean-color diagnostics. The runner sets only process-local automation controls
+to suppress Remix blocking dialogs and make first-use shader compilation
+synchronous, preventing the old welcome/compile overlays from contaminating the
+measured motion window.
+
+For the matched 180-present `syncshader-off-180` / `syncshader-on-180` runs,
+source frame 30 onward contains 150 changed orange states with FG OFF and 300
+with FG ON. Their measured state rates are 59.394 and 119.202 Hz. All 150 OFF
+endpoint centroids are present in the ON sequence within 0.01 px, with maximum
+error 0.002 px, and all 149 adjacent endpoint pairs contain exactly one ON-only
+state. After excluding five intervals with less than 0.15 px endpoint motion,
+143/144 intermediate states fall within normalized position 0.5 +/- 0.15.
+Median normalized position is 0.5271; median/p95 absolute spatial midpoint
+error is 0.0628/0.300 px. Starting the proof at source frame 40 or 60 still
+passes. This distinguishes interpolation from a duplicated-endpoint 2x stream.
+
+The same bound run records controlled provider activity in the measured overlap
+(112 evaluations, 112 successes, 112 batches, zero failed batches). Its
+OptiScaler log finds `nvngx_dlssg.dll`, creates the NVIDIA DLSS-G feature,
+reports maximum supported interpolations=5, and contains 165/165 successful
+DLSS-G Vulkan evaluation results. Source, DWM, status and observer artifacts
+match the SHA-256 values recorded by each run's termination report.
+
+Reproduce the proof with `native/mfg/analyze_dlssg_compositor_motion.py`, giving
+the matched OFF/ON source, desktop, status, termination and observer files plus
+the ON `OptiScaler.log`. The analyzer requires identical deterministic source
+motion, approximately 2x changed-state rate, endpoint preservation and midpoint
+placement. Its regression suite includes a doubled endpoint-duplicate control
+that must fail. The native MFG Python suite currently runs **92 tests: 89 passed
+and 3 skipped**.
+
+This result verifies correctly ordered intermediate image content in
+**DWM-composited pixels** for the isolated probe. Desktop Duplication is not
+physical monitor scanout, and the proof does not yet establish Minecraft
+gameplay integration, latency, VRR behavior, long-session stability, >2x MFG or
+DLSS 5 neural rendering. The ON process still hangs during Remix shutdown; the
+OFF process was manually stopped only after all render/source/DWM evidence had
+flushed. Treat shutdown as a separate unresolved issue.
 
 `-AwaitFocusSeconds` requests foreground activation for the native probe's own
 window and waits for the user to click it if Windows rejects the request. An
@@ -772,11 +818,11 @@ requires `-Mode visible` and the built `MfgDisplayFrameObserver.exe`. It records
 one CSV of source `api.Present` QPC timestamps and one independent CSV of 256x256
 desktop-composed pixel hashes with DWM presentation times, only while this
 specific test window owns the foreground. Its observer log records unsupported
-desktop duplication (for example remote desktop/HDR) explicitly. Neither
-successfully duplicated DWM pixels nor distinct pixel hashes proves that FG
-interpolated those pixels or that they reached physical monitor scanout. Use
-controlled FG OFF/ON testing and independent displayed-frame validation before
-certifying the feature; do not count CPU process memory as GPU VRAM.
+desktop duplication (for example remote desktop/HDR) explicitly. Distinct pixel
+hashes alone remain insufficient; the deterministic midpoint analyzer above
+adds source-motion correspondence and rejects endpoint duplication. Even a
+passing DWM midpoint proof is compositor evidence rather than physical monitor
+scanout. Do not count CPU process memory as GPU VRAM.
 
 Insert (`VK_INSERT=45`) opens the shared OptiScaler menu; End (`VK_END=35`)
 toggles its FG. The standalone `RTXMFG-UI.ini` does not configure these shared

@@ -40,6 +40,7 @@ required = {
     "DLSSG": {"InterpolationCount": "1"},
     "Menu": {
         "OverlayMenu": "true",
+        "DisableSplash": "true",
         "ShortcutKey": "45",
         "FGShortcutKey": "35",
     },

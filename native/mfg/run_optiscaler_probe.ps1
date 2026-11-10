@@ -131,6 +131,16 @@ $start.UseShellExecute = $false
 $start.RedirectStandardOutput = $true
 $start.RedirectStandardError = $true
 $start.CreateNoWindow = ($Mode -eq 'hidden')
+# Keep Remix's first-use/privacy guide and other blocking dialogs out of the
+# isolated automation run without writing the user's persistent LocalData.
+# NVIDIA's runtime exposes this option specifically for automation.
+$start.EnvironmentVariables['RTX_AUTOMATION_DISABLE_BLOCKING_DIALOG_BOXES'] = '1'
+# The probe has no game loading screen to hide background shader compilation.
+# Compile only shaders it actually exercises and make first use synchronous so
+# source-present measurements cannot begin while Remix is still rendering the
+# temporary "compiling shaders" state. Both overrides are process-local.
+$start.EnvironmentVariables['RTX_ASYNC_SHADER_PREWARMING'] = '0'
+$start.EnvironmentVariables['RTX_ENABLE_ASYNC_COMPILATION'] = '0'
 if ($CaptureDisplayFrames) {
     $start.EnvironmentVariables['MFG_PROBE_PRESENT_TRACE_PATH'] = $sourceFramesPath
 }

@@ -1,7 +1,46 @@
 # RTX Remix v0.1.1 / MFG adapter migration  -  26.3 development branch
 
-Status (2026-11-10): **v0.1.1 x64 bridge/build/tests/archive and runtime ABI probe PASS; exact new runtime hash verified. Isolated NVIDIA MFG OFF/ON packages remain staged and hash-verified; the latest 89 Python tests ran with 86 passed and 3 skipped, and earlier native NGX CTests passed. The comparison now binds source, DWM, provider and observer traces to exact SHA-256 hashes, process PID/birth, and per-run termination evidence; swapped or modified runs are rejected. The latest fresh hidden NVIDIA ON probe rendered 40/40 frames with zero render failures and matching status SHA-256, but timed out in Remix shutdown after 30 seconds; its 95 process-matched status samples show zero FG evaluations/batches. A preceding hidden 70/70 run also timed out after 45 seconds, with zero FG evaluations. The OptiScaler log reports `Dynamic MFG not supported: driver missing required components`. Foreground real-display measurement remains BLOCKED because this process could not acquire focus and Desktop Duplication returned 0x80070005. Earlier isolated r3/r4/r5 OptiScaler diagnostics retain nine exact submodule revisions; an r5 GPU readback showed twelve distinct generated-region hashes, but interpolation quality and physical scanout remain unverified. Plain NGX shutdown and disposable Vulkan teardown completed; device shutdown crashed inside forwarded original NVNGX (0xC0000005), and vendor DLL detach remains untested. Immutable packages and per-run copies preserve evidence. Gate H and actual NVIDIA FG acceptance remain BLOCKED. Gate E RTXDI repair remains BLOCKED pending matching runtime source and controlled reproduction.**
+Status (2026-11-11): **v0.1.1 x64 bridge/build/tests/archive and runtime ABI probe PASS; exact new runtime hash verified. Isolated NVIDIA MFG OFF/ON packages remain staged and hash-verified. The native MFG Python suite now runs 92 tests: 89 passed and 3 skipped; the earlier native NGX CTests passed. A matched foreground RTX 3070 Ti comparison now verifies NVIDIA DLSS-G interpolation at the DWM-compositor level: after source frame 30 the FG-OFF trace contains 150 changed orange-target states at 59.394 Hz and FG-ON contains 300 at 119.202 Hz (2.000x state count, 2.007x state rate). All 150 OFF endpoint centroids reappear in ON within 0.01 px (maximum error 0.002 px); every one of the 149 adjacent endpoint intervals contains exactly one additional ON state; 144 intervals have enough motion for normalized midpoint measurement, and 143/144 (99.31%) land within 0.5 +/- 0.15, with 0.063 px median and 0.300 px p95 midpoint error. The same proof remains PASS when the analysis starts at source frame 40 or 60. Bound source/DWM/provider/observer SHA-256 identities pass, the measured provider window records 112 evaluations / 112 successes / 112 batches / 0 failures, and the matching OptiScaler log loads `nvngx_dlssg.dll`, creates DLSS-G successfully, reports max supported interpolations=5, and records 165/165 successful DLSS-G Vulkan evaluations. This establishes correctly ordered intermediate pixels in DWM composition for the isolated deterministic probe. Physical monitor scanout, Minecraft gameplay presentation, input latency, long-session stability, >2x MFG and DLSS 5 neural rendering remain unverified. The OFF run was manually stopped after complete render evidence and the ON run timed out during Remix shutdown, so shutdown remains a separate unresolved issue. Gate H remains BLOCKED because it requires physical scanout/game acceptance; Gate E RTXDI repair remains BLOCKED pending matching runtime source and controlled reproduction.**
 This is a developer-only branch. Do **not** merge or ship it until every required gate passes. The original `feat/minecraft-26.3` branch and known-working MFG development profile are intentionally untouched.
+
+## 2026-11-11 NVIDIA DLSS-G DWM compositor midpoint proof
+
+The visible isolated probe was changed to move the rendered triangle instance
+instead of the camera and to record its deterministic expected crop centroid.
+The independent Desktop Duplication observer now records orange-target centroid,
+bounds, edge and mean-color features in addition to the original ROI hash. The
+runner suppresses Remix's blocking first-use dialog process-locally and disables
+shader prewarming/asynchronous compilation for this diagnostic so the measured
+window begins only after the required shader is synchronously available.
+
+Matched 180-source-present OFF/ON captures use identical source motion. From
+source frame 30 onward, OFF produced 150 changed orange-target DWM states and ON
+produced 300. The ON sequence contains the complete OFF endpoint sequence plus
+one state between every adjacent endpoint. Endpoint matching is 150/150 within
+0.01 px; 145/150 are identical at CSV precision and the worst mismatch is
+0.002 px. Of 149 endpoint intervals, all 149 contain exactly one extra ON state.
+Five near-turning-point intervals are excluded because endpoint motion is under
+0.15 px. In the remaining 144 intervals the generated state's normalized
+position has median 0.5271, p05 0.4512 and p95 0.6246; absolute midpoint error
+has median 0.0628 px and p95 0.300 px. 143/144 intervals are within the explicit
+0.5 +/- 0.15 acceptance band. Sensitivity windows beginning at frames 40 and 60
+remain PASS with 99.26% and 99.13% respectively inside that band.
+
+`native/mfg/analyze_dlssg_compositor_motion.py` reproduces this result and
+fails closed if the OFF/ON source motion differs, endpoint correspondence is
+missing, the state-rate multiplier is absent, or doubled states merely repeat
+an endpoint instead of landing near the midpoint. When given the bound status,
+termination and observer artifacts it also verifies their recorded SHA-256
+identities without treating shutdown completion as part of the already-flushed
+render proof. With the matching OptiScaler log it additionally requires the
+DLSS-G output configuration, `nvngx_dlssg.dll`, successful feature creation,
+successful NVIDIA Vulkan evaluations, and Streamline's enabled interpolation
+state. The resulting report is `build/mfg-syncshader-dlssg-compositor-proof.json`.
+
+This is a major Gate D milestone but is deliberately narrower than physical
+display certification. Desktop Duplication observes DWM-composited pixels; it
+does not prove panel scanout, motion-to-photon latency, VRR behavior or Minecraft
+integration. Those remain separate acceptance work.
 
 ## 2026-11-10 Vulkan synchronization2 diagnostic and NVIDIA FG blocker
 
@@ -172,6 +211,15 @@ but the actual generated pixel motion, scanout, FG 2x throughput, latency,
 VRAM and production unload remain unverified. See the r5 commands and source
 and trace SHA-256 values in [native MFG README](../native/mfg/README.md).
 Gate H is **BLOCKED**; no public build/installer was updated.
+
+The later 2026-11-11 matched NVIDIA DLSS-G OFF/ON compositor test resolves the
+generated-motion and 2x-compositor-throughput parts for the isolated probe: its
+deterministic moving target preserves every OFF endpoint in ON, adds one
+intermediate state in every adjacent interval, and places 143/144 measurable
+intermediates inside the 0.5 +/- 0.15 midpoint band while doubling changed DWM
+states from 150 to 300. Gate H remains BLOCKED because Desktop Duplication is
+not physical monitor scanout and Minecraft gameplay integration has not yet
+reproduced this presentation proof.
 
 Use RTX 3070 Ti 8 GB, the new runtime, a focused visible window and a fixed Minecraft camera path.
 

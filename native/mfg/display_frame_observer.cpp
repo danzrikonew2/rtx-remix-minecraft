@@ -47,20 +47,111 @@ bool IsOwnForeground(HWND window) {
     return IsWindowVisible(window) && !IsIconic(window) && GetForegroundWindow() == window;
 }
 
-uint64_t HashMappedPixels(const D3D11_MAPPED_SUBRESOURCE& mapped) {
+struct VisualFeatures {
     uint64_t hash = 14695981039346656037ull;
-    for (UINT row = 0; row < kCrop; row += kStride) {
+    uint64_t orangePixels = 0;
+    double orangeCentroidX = -1.0;
+    double orangeCentroidY = -1.0;
+    int orangeMinX = -1;
+    int orangeMinY = -1;
+    int orangeMaxX = -1;
+    int orangeMaxY = -1;
+    uint64_t edgePixels = 0;
+    double edgeCentroidX = -1.0;
+    double edgeCentroidY = -1.0;
+    uint64_t edgeWeight = 0;
+    double meanR = 0.0;
+    double meanG = 0.0;
+    double meanB = 0.0;
+};
+
+VisualFeatures AnalyzeMappedPixels(const D3D11_MAPPED_SUBRESOURCE& mapped) {
+    VisualFeatures features{};
+    uint64_t redSum = 0;
+    uint64_t greenSum = 0;
+    uint64_t blueSum = 0;
+    uint64_t orangeX = 0;
+    uint64_t orangeY = 0;
+    uint64_t edgeX = 0;
+    uint64_t edgeY = 0;
+    UINT orangeMinX = kCrop;
+    UINT orangeMinY = kCrop;
+    UINT orangeMaxX = 0;
+    UINT orangeMaxY = 0;
+
+    for (UINT row = 0; row < kCrop; ++row) {
         const auto* pixels = static_cast<const uint8_t*>(mapped.pData) +
                              static_cast<size_t>(row) * mapped.RowPitch;
-        for (UINT col = 0; col < kCrop; col += kStride) {
+        const auto* previousRow = row == 0 ? nullptr :
+            static_cast<const uint8_t*>(mapped.pData) +
+            static_cast<size_t>(row - 1) * mapped.RowPitch;
+        for (UINT col = 0; col < kCrop; ++col) {
             const auto* color = pixels + col * 4;
-            for (UINT channel = 0; channel < 3; ++channel) {
-                hash ^= color[channel];
-                hash *= 1099511628211ull;
+            const uint8_t blue = color[0];
+            const uint8_t green = color[1];
+            const uint8_t red = color[2];
+            redSum += red;
+            greenSum += green;
+            blueSum += blue;
+
+            unsigned gradient = 0;
+            if (col != 0) {
+                const auto* left = color - 4;
+                gradient += static_cast<unsigned>(std::abs(int(red) - int(left[2])));
+                gradient += static_cast<unsigned>(std::abs(int(green) - int(left[1])));
+                gradient += static_cast<unsigned>(std::abs(int(blue) - int(left[0])));
+            }
+            if (previousRow != nullptr) {
+                const auto* up = previousRow + col * 4;
+                gradient += static_cast<unsigned>(std::abs(int(red) - int(up[2])));
+                gradient += static_cast<unsigned>(std::abs(int(green) - int(up[1])));
+                gradient += static_cast<unsigned>(std::abs(int(blue) - int(up[0])));
+            }
+            if (gradient >= 48) {
+                ++features.edgePixels;
+                features.edgeWeight += gradient;
+                edgeX += static_cast<uint64_t>(gradient) * col;
+                edgeY += static_cast<uint64_t>(gradient) * row;
+            }
+
+            if ((row % kStride) == 0 && (col % kStride) == 0) {
+                for (UINT channel = 0; channel < 3; ++channel) {
+                    features.hash ^= color[channel];
+                    features.hash *= 1099511628211ull;
+                }
+            }
+
+            // Broad enough to tolerate Remix tonemapping while rejecting the dark background.
+            if (red >= 72 && red >= green + 14 && green >= blue + 6 &&
+                static_cast<unsigned>(red) + green >= 150) {
+                ++features.orangePixels;
+                orangeX += col;
+                orangeY += row;
+                orangeMinX = std::min(orangeMinX, col);
+                orangeMinY = std::min(orangeMinY, row);
+                orangeMaxX = std::max(orangeMaxX, col);
+                orangeMaxY = std::max(orangeMaxY, row);
             }
         }
     }
-    return hash;
+
+    constexpr double pixelCount = static_cast<double>(kCrop) * kCrop;
+    features.meanR = redSum / pixelCount;
+    features.meanG = greenSum / pixelCount;
+    features.meanB = blueSum / pixelCount;
+    if (features.orangePixels) {
+        features.orangeCentroidX = static_cast<double>(orangeX) / features.orangePixels;
+        features.orangeCentroidY = static_cast<double>(orangeY) / features.orangePixels;
+        features.orangeMinX = static_cast<int>(orangeMinX);
+        features.orangeMinY = static_cast<int>(orangeMinY);
+        features.orangeMaxX = static_cast<int>(orangeMaxX);
+        features.orangeMaxY = static_cast<int>(orangeMaxY);
+    }
+    if (features.edgeWeight) {
+        features.edgeCentroidX = static_cast<double>(edgeX) / features.edgeWeight;
+        features.edgeCentroidY = static_cast<double>(edgeY) / features.edgeWeight;
+    }
+    return features;
 }
 
 struct Capture {
@@ -148,7 +239,9 @@ int wmain(int argc, wchar_t** argv) {
     if (!process) { printf("FAIL: cannot open probe PID=%lu error=%lu\n", pid, GetLastError()); return 3; }
     std::ofstream log(std::filesystem::path(argv[2]), std::ios::out | std::ios::trunc);
     if (!log) { CloseHandle(process); puts("FAIL: cannot open isolated CSV path"); return 3; }
-    log << "sample,captureQpc,desktopPresentQpc,accumulatedFrames,hashChanged,roiHash,qpcHz\n";
+    log << "sample,captureQpc,desktopPresentQpc,accumulatedFrames,hashChanged,roiHash,qpcHz,"
+           "orangePixels,orangeCentroidX,orangeCentroidY,orangeMinX,orangeMinY,orangeMaxX,orangeMaxY,"
+           "edgePixels,edgeCentroidX,edgeCentroidY,edgeWeight,meanR,meanG,meanB\n";
     LARGE_INTEGER frequency{};
     QueryPerformanceFrequency(&frequency);
     printf("Observer PID=%lu clockHz=%lld ROI=256x256 foreground-only; DWM duplication is not physical scanout\n",
@@ -205,18 +298,25 @@ int wmain(int argc, wchar_t** argv) {
                                                   desktopTexture.Get(), 0, &region);
             D3D11_MAPPED_SUBRESOURCE mapped{};
             if (SUCCEEDED(capture.context->Map(capture.staging.Get(), 0, D3D11_MAP_READ, 0, &mapped))) {
-                const uint64_t hash = HashMappedPixels(mapped);
+                const VisualFeatures features = AnalyzeMappedPixels(mapped);
                 capture.context->Unmap(capture.staging.Get(), 0);
                 LARGE_INTEGER stamp{};
                 QueryPerformanceCounter(&stamp);
-                const bool changed = !haveHash || previousHash != hash;
+                const bool changed = !haveHash || previousHash != features.hash;
                 distinct += changed ? 1u : 0u;
                 ++samples;
                 log << samples << ',' << stamp.QuadPart << ',' << info.LastPresentTime.QuadPart
                     << ',' << info.AccumulatedFrames << ',' << (changed ? 1 : 0)
-                    << ',' << hash << ',' << frequency.QuadPart << '\n';
+                    << ',' << features.hash << ',' << frequency.QuadPart
+                    << ',' << features.orangePixels << ',' << features.orangeCentroidX
+                    << ',' << features.orangeCentroidY << ',' << features.orangeMinX
+                    << ',' << features.orangeMinY << ',' << features.orangeMaxX
+                    << ',' << features.orangeMaxY << ',' << features.edgePixels
+                    << ',' << features.edgeCentroidX << ',' << features.edgeCentroidY
+                    << ',' << features.edgeWeight << ',' << features.meanR
+                    << ',' << features.meanG << ',' << features.meanB << '\n';
                 haveHash = true;
-                previousHash = hash;
+                previousHash = features.hash;
             }
         }
         capture.duplication->ReleaseFrame();

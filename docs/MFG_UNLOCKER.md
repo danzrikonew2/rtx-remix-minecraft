@@ -100,9 +100,17 @@ creates one real NVIDIA DLSS FG feature on the RTX 3070 Ti through the documente
 OptiScaler adapter. Its native cache/program and six presentation buffers pass
 the existing checks. A focused native run now completes 785 successful FG
 evaluations and 785 submitted batches with no batch failures or rejections.
-The provider executes and Streamline enables interpolation; unique displayed
-images, a measured frame-rate multiplier and Minecraft compatibility remain
-unverified. Source, exact dependencies, test
+The provider executes and Streamline enables interpolation. A later matched
+2026-11-11 FG OFF/ON run advances this result to DWM-compositor verification:
+source frame 30 onward contains 150 OFF versus 300 ON changed target states,
+59.394 versus 119.202 Hz; all 150 real-frame endpoint centroids are preserved,
+all 149 adjacent endpoint intervals contain exactly one ON-only state, and
+143/144 measurable intermediates land within normalized midpoint 0.5 +/- 0.15.
+The matching provider log loads `nvngx_dlssg.dll`, creates DLSS-G, and records
+165/165 successful NVIDIA Vulkan evaluations. This verifies correctly ordered
+intermediate pixels at the Windows DWM compositor for the isolated probe.
+Physical monitor scanout, Minecraft presentation, latency and >2x operation
+remain unverified. Source, exact dependencies, test
 results and reproduction are in the
 [native adapter guide](https://github.com/danzrikonew2/rtx-remix-minecraft/blob/feat/minecraft-26.3/native/mfg/README.md#private-streamline-vulkan-startup).
 
