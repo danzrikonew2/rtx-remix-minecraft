@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <dxgi1_4.h>
+#include <wrl/client.h>
+#include <cerrno>
 #include <cstdio>
 #include <cmath>
+#include <cwchar>
 #include <filesystem>
+#include <fstream>
 #include <string>
 #include "single_module_status.h"
 #include "remix_c.h"
@@ -14,14 +19,50 @@ static void Check(remixapi_ErrorCode code, const char* operation) {
         ExitProcess(1);
     }
 }
+// DXGI reports this process's current local video-memory usage on the adapter
+// driving the probe window. It is a WDDM allocation estimate, not total GPU
+// consumption, physical scanout, or an input-to-photon latency measurement.
+static Microsoft::WRL::ComPtr<IDXGIAdapter3> FindDisplayAdapter(HWND window) {
+    Microsoft::WRL::ComPtr<IDXGIFactory1> factory;
+    if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&factory)))) return {};
+    const HMONITOR monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
+    for (UINT ai = 0; ; ++ai) {
+        Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
+        if (factory->EnumAdapters1(ai, &adapter) == DXGI_ERROR_NOT_FOUND) break;
+        for (UINT oi = 0; ; ++oi) {
+            Microsoft::WRL::ComPtr<IDXGIOutput> output;
+            if (adapter->EnumOutputs(oi, &output) == DXGI_ERROR_NOT_FOUND) break;
+            DXGI_OUTPUT_DESC desc{};
+            if (SUCCEEDED(output->GetDesc(&desc)) && desc.Monitor == monitor) {
+                Microsoft::WRL::ComPtr<IDXGIAdapter3> modern;
+                if (SUCCEEDED(adapter.As(&modern))) return modern;
+            }
+        }
+    }
+    return {};
+}
 int wmain(int argc, wchar_t** argv) {
-    if (argc < 3 || argc > 7) { puts("Usage: OptiRemixProbe.exe OPTISCALER_DLL REMIX_DLL [visible|hidden] [frame-count] [lighting-conf] [controls]"); return 2; }
+    if (argc < 3 || argc > 7) { puts("Usage: OptiRemixProbe.exe OPTISCALER_DLL REMIX_DLL [visible|hidden] [frame-count] [lighting-conf|request-focus|await-focus=N] [controls]"); return 2; }
     const bool visible = argc > 3 && wcscmp(argv[3], L"visible") == 0;
     if (argc > 3 && !visible && wcscmp(argv[3], L"hidden") != 0) return 2;
     const int frameLimit = argc > 4 ? _wtoi(argv[4]) : 600;
     if (frameLimit < 40 || frameLimit > 3600) return 2;
     const bool controls = argc > 6 && wcscmp(argv[6], L"controls") == 0;
     if (argc > 6 && (!controls || frameLimit < 140)) return 2;
+    const bool awaitFocusArg = argc > 5 && wcsncmp(argv[5], L"await-focus=", 12) == 0;
+    unsigned awaitFocusSeconds = 0;
+    if (awaitFocusArg) {
+        wchar_t* end = nullptr;
+        errno = 0;
+        const unsigned long parsed = wcstoul(argv[5] + 12, &end, 10);
+        if (errno || end == argv[5] + 12 || *end || parsed < 5 || parsed > 180) {
+            puts("FAIL: await-focus requires a whole number of seconds between 5 and 180");
+            return 2;
+        }
+        awaitFocusSeconds = static_cast<unsigned>(parsed);
+    }
+    const bool requestFocus = awaitFocusArg || (argc > 5 && wcscmp(argv[5], L"request-focus") == 0);
+    if (requestFocus && !visible) { puts("FAIL: foreground focus options require a visible probe window"); return 2; }
     setvbuf(stdout, nullptr, _IONBF, 0);
     SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
     const auto addon = std::filesystem::absolute(argv[1]);
@@ -35,14 +76,21 @@ int wmain(int argc, wchar_t** argv) {
     const auto query = mfg ? reinterpret_cast<MfgSingleModuleQueryFn>(GetProcAddress(mfg, "MfgUnlockSingleModuleQuery")) : nullptr;
     if (!query) { puts("FAIL: candidate load"); return 1; }
     using ReadyFn = BOOL (WINAPI*)();
+    using RemixHostFn = BOOL (WINAPI*)(HMODULE);
     const auto startupReady = reinterpret_cast<ReadyFn>(GetProcAddress(mfg, "MfgUnlockPrivateVulkanStartupReady"));
     const auto deviceReady = reinterpret_cast<ReadyFn>(GetProcAddress(mfg, "MfgUnlockPrivateVulkanDeviceReady"));
-    if (!startupReady || !deviceReady) { puts("FAIL: missing startup readiness exports"); return 1; }
+    const auto registerHost = reinterpret_cast<RemixHostFn>(GetProcAddress(mfg, "MfgUnlockRegisterRemixVulkanHost"));
+    const auto retireHost = reinterpret_cast<RemixHostFn>(GetProcAddress(mfg, "MfgUnlockRetireRemixVulkanHost"));
+    if (!startupReady || !deviceReady || !registerHost || !retireHost) {
+        puts("FAIL: missing readiness or Remix host lifecycle exports"); return 1;
+    }
     MfgSingleModuleStatus status{};
     for (int i=0; i<500; ++i) { status.size=sizeof(status); if (query(&status) && status.backendOwner && startupReady()) break; Sleep(10); }
     if (!status.backendOwner || !startupReady()) { puts("FAIL: early startup prerequisites not ready"); return 1; }
     const auto remix = LoadLibraryExW(runtime.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
     if (!remix) { puts("FAIL: renderer registration"); return 1; }
+    if (!registerHost(remix)) { puts("FAIL: pinned Remix Vulkan host registration"); return 1; }
+    puts("Pinned Remix Vulkan host registered before InitializeLibrary");
     auto initialize = reinterpret_cast<PFN_remixapi_InitializeLibrary>(GetProcAddress(remix, "remixapi_InitializeLibrary"));
     if (!initialize) { puts("FAIL: runtime C API export"); return 1; }
     remixapi_InitializeLibraryInfo init{};
@@ -92,14 +140,42 @@ int wmain(int argc, wchar_t** argv) {
     Check(api.SetConfigVariable(speedKey, "2.0"), "Set gentle adaptation speed");
     Check(api.SetConfigVariable(queryKey, "false"), "Disable foliage cache query for diagnostic");
     remixapi_ConfigLayerHandle lightingLayer{};
-    if (argc > 5) {
+    if (argc > 5 && !requestFocus) {
         const auto encoded = std::filesystem::absolute(argv[5]).u8string();
         const std::string path(encoded.begin(), encoded.end());
         Check(api.AcquireConfigLayer(path.c_str(), 3101.0f, 0.5f, &lightingLayer), "Acquire lighting settling layer");
         Check(api.SetConfigLayerBlending(lightingLayer, 1.0f, 0.5f), "Enable lighting settling layer");
     }
     if (visible) { ShowWindow(window,SW_SHOW); UpdateWindow(window); }
+    if (requestFocus) {
+        // Opt-in foreground request for this probe's own window only. Windows
+        // may deny it; never inject input or change another window's state.
+        SetLastError(0);
+        const BOOL focusAccepted = SetForegroundWindow(window);
+        printf("Own-window foreground request accepted=%u win32=%lu\n", focusAccepted != 0, GetLastError());
+    }
     printf("Probe owns foreground: %u\n", GetForegroundWindow()==window);
+    if (awaitFocusSeconds) {
+        printf("Awaiting foreground focus for up to %u seconds: click the isolated Remix native test window.\n",
+               awaitFocusSeconds);
+        const ULONGLONG deadline = GetTickCount64() + static_cast<ULONGLONG>(awaitFocusSeconds) * 1000;
+        while (IsWindow(window) && GetForegroundWindow() != window && GetTickCount64() < deadline) {
+            MSG pending{};
+            while (PeekMessageW(&pending, nullptr, 0, 0, PM_REMOVE)) {
+                if (pending.message == WM_QUIT) break;
+                TranslateMessage(&pending);
+                DispatchMessageW(&pending);
+            }
+            Sleep(50);
+        }
+        if (!IsWindow(window) || GetForegroundWindow() != window) {
+            puts("FOCUS GATE FAILED: no foreground focus; ending before FG render measurements.");
+            // Deliberately terminate this isolated probe without entering the
+            // known potentially blocking stock-Remix Shutdown path.
+            return 4;
+        }
+        puts("FOCUS GATE PASSED: foreground acquired; starting GPU frame measurements.");
+    }
     remixapi_MaterialInfoOpaqueEXT opaque{};
     opaque.sType=REMIXAPI_STRUCT_TYPE_MATERIAL_INFO_OPAQUE_EXT;
     opaque.albedoConstant={0.8f,0.4f,0.2f}; opaque.opacityConstant=1.0f; opaque.roughnessConstant=0.5f;
@@ -124,6 +200,22 @@ int wmain(int argc, wchar_t** argv) {
 
     unsigned foregroundPresents = 0;
     unsigned presents = 0;
+    wchar_t tracePath[32768]{};
+    const DWORD traceChars = GetEnvironmentVariableW(L"MFG_PROBE_PRESENT_TRACE_PATH", tracePath,
+                                                   static_cast<DWORD>(_countof(tracePath)));
+    std::ofstream presentTrace;
+    LARGE_INTEGER frequency{};
+    Microsoft::WRL::ComPtr<IDXGIAdapter3> displayAdapter;
+    if (traceChars >= _countof(tracePath)) { puts("FAIL: source-present trace path exceeds buffer"); return 1; }
+    if (traceChars) {
+        presentTrace.open(std::filesystem::path(tracePath), std::ios::trunc);
+        if (!presentTrace) { puts("FAIL: cannot open source-present timestamp CSV"); return 1; }
+        QueryPerformanceFrequency(&frequency);
+        printf("Source-present QPC trace enabled, clockHz=%lld\n", static_cast<long long>(frequency.QuadPart));
+        displayAdapter = FindDisplayAdapter(window);
+        printf("DXGI local memory query adapter found=%u; usage may be unavailable\n", displayAdapter != nullptr);
+        presentTrace << "sourceFrame,beforePresentQpc,afterPresentQpc,foreground,qpcHz,gpuLocalUsageBytes,gpuLocalBudgetBytes\n";
+    }
     for (int frame=0; frame<frameLimit && IsWindow(window); ++frame) {
         MSG message{};
         while (PeekMessageW(&message,nullptr,0,0,PM_REMOVE)) { TranslateMessage(&message); DispatchMessageW(&message); }
@@ -157,7 +249,11 @@ int wmain(int argc, wchar_t** argv) {
         auto submit=remixapi_SubmitInfo_init();
         Check(api.Submit(&submit), "Submit");
         auto present=remixapi_PresentInfo_init();
+        LARGE_INTEGER beforePresent{};
+        LARGE_INTEGER afterPresent{};
+        if (presentTrace) QueryPerformanceCounter(&beforePresent);
         Check(api.Present(&present), "Present");
+        if (presentTrace) QueryPerformanceCounter(&afterPresent);
         if (frame == 10) {
             if (_stricmp(readOption(sparseKey).c_str(), "false") != 0
                     || std::abs(std::stof(readOption(sparseQualityKey)) - 0.5f) > 0.001f) {
@@ -190,9 +286,28 @@ int wmain(int argc, wchar_t** argv) {
         }
         ++presents;
         if (GetForegroundWindow() == window) ++foregroundPresents;
+        if (presentTrace) {
+            presentTrace << presents << ',' << beforePresent.QuadPart << ',' << afterPresent.QuadPart
+                         << ',' << (GetForegroundWindow() == window ? 1 : 0) << ','
+                         << frequency.QuadPart << ',';
+            DXGI_QUERY_VIDEO_MEMORY_INFO videoMemory{};
+            if (displayAdapter && SUCCEEDED(displayAdapter->QueryVideoMemoryInfo(
+                    0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &videoMemory))) {
+                presentTrace << videoMemory.CurrentUsage << ',' << videoMemory.Budget;
+            } else {
+                presentTrace << ',';
+            }
+            presentTrace << '\n';
+            if (presents % 60 == 0) presentTrace.flush();
+        }
+        if (visible && (frame % 60 == 59)) {
+            printf("Focus checkpoint: presents=%u foreground=%u current=%u\n",
+                presents, foregroundPresents, GetForegroundWindow()==window);
+        }
         Sleep(16);
     }
     printf("Probe presents=%u foreground presents=%u\n", presents, foregroundPresents);
+    if (presentTrace) presentTrace.flush();
     if (controls) {
         if (_stricmp(readOption("rtx.dlfg.enable").c_str(), "false") != 0) {
             puts("FAIL: conflicting native FG request was not cleared"); return 1;
@@ -212,10 +327,15 @@ int wmain(int argc, wchar_t** argv) {
     if (!query(&status)) return 1;
     printf("Real Remix: Vulkan hooked=%u presents=%llu menu draws=%llu failures=%u\n",
         status.vulkanHooked,status.vulkanFrames,status.renderedFrames,status.renderFailures);
+    puts("Retiring Remix Vulkan swapchain hooks before renderer shutdown");
+    if (!retireHost(remix)) { puts("FAIL: Remix Vulkan host retirement"); return 1; }
+    puts("Remix Vulkan host retired");
     // This test owns its window. Remove runtime/addon subclass callbacks
     // before disposing the native renderer they reference.
     SetWindowLongPtrW(window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(DefWindowProcW));
+    puts("Beginning Remix Shutdown");
     Check(api.Shutdown(), "Shutdown");
+    puts("Remix Shutdown completed");
     DestroyWindow(window);
 
     puts("Probe completed. Validate fresh MFG status: created features, evaluations, failures and presentation count. Menu counters alone do not establish FG.");

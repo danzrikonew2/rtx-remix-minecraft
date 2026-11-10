@@ -8,11 +8,21 @@ from pathlib import Path
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--ini", type=Path, required=True)
 parser.add_argument("--package", type=Path, required=True)
+parser.add_argument("--final-package", type=Path, required=True)
+parser.add_argument("--fg-state", choices=("on", "off"), default="on")
+parser.add_argument("--fg-output", choices=("dlssg", "fsrfg"), default="dlssg")
 args = parser.parse_args()
 ini = args.ini.resolve(strict=True)
 package = args.package.resolve(strict=True)
+final_package = args.final_package.resolve(strict=False)
 if ini.parent != package:
     raise SystemExit("Refusing to edit an INI outside the isolated package directory")
+if package.name != "Package" or final_package.name != "Package":
+    raise SystemExit("Both staging and final package directories must end in Package")
+if final_package == package:
+    raise SystemExit("A staging package must be published to a different directory")
+if final_package.exists():
+    raise SystemExit("Refusing to configure paths to an existing published package")
 
 config = configparser.ConfigParser(interpolation=None)
 config.optionxform = str
@@ -22,9 +32,9 @@ with ini.open("r", encoding="utf-8-sig") as stream:
 required = {
     "Upscalers": {"VulkanUpscaler": "dlss"},
     "FrameGen": {
-        "Enabled": "true",
+        "Enabled": "true" if args.fg_state == "on" else "false",
         "FGInput": "upscaler",
-        "FGOutput": "dlssg",
+        "FGOutput": args.fg_output,
         "FGNvngxReplacement": "None",
     },
     "DLSSG": {"InterpolationCount": "1"},
@@ -35,9 +45,9 @@ required = {
     },
     "Plugins": {
         "LoadAsiPlugins": "true",
-        "Path": str(package / "OptiScaler" / "plugins"),
+        "Path": str(final_package / "OptiScaler" / "plugins"),
     },
-    "Libraries": {"OptiDllPath": str(package / "OptiScaler")},
+    "Libraries": {"OptiDllPath": str(final_package / "OptiScaler")},
     "Log": {"LogToFile": "true", "LogLevel": "1"},
 }
 for section, properties in required.items():
@@ -59,4 +69,4 @@ finally:
     temporary.unlink(missing_ok=True)
 
 print(f"PASS: isolated OptiScaler probe INI configured: {ini}")
-print("Probe requests DLSSG x2 via OptiScaler; configured mode is not proof of FG.")
+print(f"Probe FG {args.fg_state.upper()} output={args.fg_output} configured; displayed FG is unverified.")

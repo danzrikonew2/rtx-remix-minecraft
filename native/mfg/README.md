@@ -22,8 +22,10 @@ upstream MFG 1.7.0 DLL. These sources build a separate local candidate.
   Unknown images and non-x64 binaries remain rejected. The runtime DLL may be
   outside the private Java directory; its Vulkan imports and resolvers use the
   addon's existing gateways.
-- `MfgUnlockRetireRemixVulkanHost` before Remix shutdown. The native probe
-  originally hung during shutdown; retiring the menu first resolves that hang.
+- `MfgUnlockRetireRemixVulkanHost` before Remix shutdown. This retires the
+  adapter's Vulkan host callbacks; it does not guarantee that Remix's own
+  `Shutdown` completes. Recent bounded stock-runtime controls, including one
+  with zero rendered frames and no adapter, also hung inside `Shutdown`.
 
 No CUDA instruction, provider DLL or Remix runtime binary is patched on disk.
 Recovered inputs remain local build data under ignored `build/`; their original
@@ -187,8 +189,11 @@ Upstream `VulkanDynamicMenuTests` passed: 34 presents/menu draws, recreation,
 keyboard toggles, UI pixel readback, zero reported render failures and unchanged
 Vulkan-loader executable sections. Native status tests passed 29 checks. The
 real-runtime menu probe passed 40 presents/menu draws with zero reported render
-failures. Its stock control and corrected candidate shut down. Both report the
-runtime's existing 42 undisposed common-device objects; this is not fixed here.
+failures. In that earlier configuration, stock control and corrected candidate
+shut down, but newer isolated stock controls (including zero frames) hang during
+`Shutdown` and require a hard timeout. This behavior has not been attributed
+to the adapter. Both earlier runs reported the runtime's existing 42
+undisposed common-device objects; this is not fixed here.
 
 ## Remaining FG integration
 
@@ -245,6 +250,28 @@ records one midpoint request per source frame with valid output descriptors.
 This establishes successful FG provider execution through the actual Remix
 runtime on the 3070 Ti. It does not establish unique interpolated display
 images, a measured 2x frame rate or Minecraft visual/performance acceptance.
+
+A later bounded visible 360-present probe had **zero foreground presents**;
+its process-matched status samples showed no FG feature creation, evaluations
+or presentation batches. This does not contradict the earlier focused-run
+provider results. It demonstrates that merely showing a window does not prove
+the foreground requirement was satisfied. The latest bounded GPU runs stalled
+at `Beginning Remix Shutdown` and were externally terminated. Wait-chain
+capture found blocked threads; raw addresses near NVIDIA telemetry modules
+are diagnostic candidates, not authoritative stack traces or a proven cause.
+
+**2026-11-09 repeat with explicit own-window foreground request:** the newly
+rebuilt visible probe completed 600/600 real Remix presents with zero reported
+render failures, but Windows rejected `SetForegroundWindow`; all 600 presents
+were unfocused. Across 146 process-matched status samples, FG creation,
+evaluation, presentation buffers and presentation batches remained zero. The
+final route was `pending` with reason `awaiting first game FG options request`.
+After host retirement, `Shutdown` again hung and the runner terminated the
+process at 120 seconds. The package's 11 Streamline DLLs, four NGX provider
+copies, MFG/Remix hashes and license/source notices were reverified; all three
+native CTests passed. The evidence is under ignored
+`build/mfg-optiscaler-probe-focus-20261109-1250/probe-logs/`. This run did
+not advance the displayed-frame gate.
 
 Earlier hidden and unfocused runs recorded no evaluations; Streamline logged
 `DLSS-G disabled: window not focused`. A 60-frame hidden control exited normally
@@ -340,6 +367,284 @@ to focus it. It closes automatically after the requested 40–3600 frames;
 `hidden` is available for startup checks. It does not open Minecraft or access
 accounts/worlds. Verify the current process's `RTXMFG-Universal.status.json`
 and runtime logs for successful evaluations and generated presentation batches.
+
+For reproducible, bounded diagnostics the runner verifies package hashes first,
+captures process-matched status samples, and can request foreground activation
+of **only its own window**. Windows may deny that request; the stdout focus
+checkpoints and `foreground presents` count are authoritative for whether the
+probe actually owned the foreground. Use a freshly staged `ProbeName`, for
+example (after rebuilding the current native probes):
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\native\mfg\run_optiscaler_probe.ps1 `
+    -RepoRoot (Get-Location).Path -ProbeName UNIQUE_STAGED_PROBE_NAME `
+    -Mode visible -Frames 600 -AwaitFocusSeconds 45 -CaptureStatus `
+    -CaptureDisplayFrames `
+    -CaptureWaitChain -CaptureStacks -TimeoutSeconds 120 `
+    -DiagnosticsLeadSeconds 30 -StatusIntervalMs 700
+```
+
+The runner kills a hung probe at its timeout, preserves stdout/stderr, status
+NDJSON and optional wait-chain diagnostics under `build/`. An FG provider's
+successful evaluation and an internal presentation count still require
+independent evidence of distinct, actually displayed intermediate frames,
+OFF/ON frame pacing, latency and VRAM before claiming working 2x generation.
+
+### 2026-11-09 FG OFF/ON interactive comparison
+
+The isolated, newly rebuilt and checksum-verified baseline packages are
+`build/mfg-fg-off-20261109-vram/Package` and
+`build/mfg-fg-on-20261109-vram/Package`. Both preserve the pinned Remix,
+Streamline, OptiScaler and MFG DLL hashes. The native probe and observer
+executables are independently hashed per package. Run this **from a local,
+interactive Windows PowerShell session at the physical display**, with access
+to the test window and monitor. Do not run from Codex's isolated process
+account, a disconnected desktop, or a remote session without display access:
+
+```powershell
+cd 'D:\Projects\RTX Remix\rtx-remix-v011'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\native\mfg\run_fg_comparison.ps1 `
+    -RepoRoot (Get-Location).Path -Frames 600 -AwaitFocusSeconds 45 -TimeoutSeconds 240
+```
+
+Click **each isolated test window** when it opens and keep it in the foreground
+until the test completes; the OFF and ON runs execute sequentially. If
+Desktop Duplication fails with `0x80070005`, record the observer log and stop
+at Gate H BLOCKED. Do not alter Windows security settings to bypass it.
+The comparison report is written to a unique `build/mfg-fg-off-on-compare-*.json`
+path and contains source FPS, compositor-update FPS, overlapping sample
+intervals, source `Present` call duration, and any available per-process DXGI
+local-video-memory usage/budget (a WDDM estimate, **not total GPU VRAM**).
+Each run gets a unique trace ID. Provider statuses must match the launched
+process's PID **and process-creation FILETIME**, have a matching QPC clock,
+and show positive FG evaluation/success/batch counter deltas **during the
+measured foreground source/DWM overlap**, within **one contiguous run of at
+least two snapshots where both `fgEnabled` and `fgApplied` are true**.
+The report retains total overlap `counter_delta` while
+`provider_measured_windows.on.enabled_activity.intervals` details each active
+run and its counter increases. Deltas crossing disabled snapshots or separate
+active runs cannot qualify. The OFF trial must keep both flags false and
+evaluation/success/batch/failure counters at zero. Snapshot states are only
+observed at polling instants; they do not prove continuous FG application.
+The comparison polls these snapshots every 250 ms by default; use
+`-StatusIntervalMs 200` or a higher `-Frames` value if the render interval is
+too short for provider deltas to be observed. Counter increases during startup
+or shutdown cannot satisfy the controlled diagnostic.
+These counters do not measure physical scanout or end-to-end input latency.
+Even apparently doubled compositor FPS requires independent verification of
+generated Vulkan image identity, monitor display output and stability.
+
+Earlier direct Codex-runtime attempt on the FG ON package at 13:38 WIB failed
+the interactive foreground gate (`exit 4`), and the desktop observer returned
+`0x80070005` (`exit 3`). There were 0 source frames, 0 desktop samples and
+0 FG provider evaluations. The staged packages, 57 Python regression tests and
+both native 3-test CTest configurations and isolated verification passed;
+**Gate H remains BLOCKED**.
+
+### 2026-11-10 independent run identity and trace-hash revalidation
+
+The native runner now records a unique `.termination.json` for each invocation,
+including the real process PID and Windows process-creation FILETIME, whether
+the requested render loop finished, the exit/timeout outcome, and SHA-256
+digests of each collected source-present CSV, DWM CSV, status NDJSON, and
+observer log. Uncollected artifacts have `null` hashes. The OFF/ON analyzer
+requires all four populated, matching hashes for each visible run, plus the
+observer's target PID and the process identity in its provider status. Swapped,
+modified, missing, or stale traces fail closed; they cannot establish Gate H.
+
+An isolated hash-binding confirmation used the **unchanged, verified NVIDIA ON
+baseline** `build/mfg-fg-on-20261109-vram/Package` and a fresh disposable copy
+at `build/mfg-fg-on-hashcheck-91e51f53648e/Package`. The 2026-11-10 01:41 WIB
+hidden trial (real PID **20856**, process birth **134387232961432322**)
+completed **40/40** native source presents with zero Remix render failures and
+retired the Vulkan host. It then hung after `Beginning Remix Shutdown`, was
+terminated at the enforced **30-second** deadline, and returned runner exit **1**.
+Its termination result is `shutdown_timeout_after_complete_render`, **not**
+`clean_shutdown`; it remains eligible only for tightly checked diagnostics.
+The **95** matching provider-status snapshots reported **zero** FG feature
+creations, evaluations, successful evaluations, and batches, with both FG
+enabled/applied flags false; there were **15** transient status-read races and
+**zero** process-birth mismatches. The real `.status.ndjson` SHA-256 matched
+the termination's `trace_sha256.status` field exactly:
+`e1d853fcfb5a476e6c0032ec44fa712056c1b5401e17c675558bab75299b59c9`.
+The exact record is in `build/mfg-fg-on-hashcheck-91e51f53648e/probe-logs/`.
+No foreground, DWM, or physical scanout evidence was collected in this hidden
+trial. A separate preceding 70/70 hidden trial also timed out during shutdown
+after 45 seconds with zero FG evaluations. The fresh OptiScaler log still says
+`Dynamic MFG not supported: driver missing required components`; this message
+is evidence of a provider limitation on this tested configuration, not a
+verified repairable missing DLL or proof that replacing a DLL enables FG.
+
+The analyzer's tamper/mixed-run tests, Python test suite (**83 run, 80 passed, 3 skipped**) and both PowerShell script parser checks have passed at this stage;
+the skipped cases belong to already archived, optional diagnostic code. Gate H
+remains **BLOCKED**, as does Gate E (RTXDI stationary pulsing). Native source
+rendering plus a watchdog termination is no substitute for working NVIDIA FG.
+For the next acceptance attempt, use this exact bounded command **locally at
+the physical, interactive Windows desktop**; click and keep each native probe
+window in the foreground when it appears:
+
+```powershell
+cd 'D:\Projects\RTX Remix\rtx-remix-v011'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\native\mfg\run_fg_comparison.ps1 `
+    -RepoRoot (Get-Location).Path -Frames 600 -AwaitFocusSeconds 45 `
+    -TimeoutSeconds 240 -PythonExe 'C:\Users\vijja\miniconda3\python.exe'
+```
+
+Any nonzero observer exit, absent genuine provider evaluations/batches, or
+failure to acquire focus leaves comparison blocked. Even a passing controlled
+provider/DWM comparison still needs GPU-completed intermediate-image identity,
+physical scanout, latency, dedicated/shared GPU VRAM, and frame-pacing tests
+before FG can be certified on the RTX 3070 Ti. Preserve the immutable OFF/ON
+baseline packages; rollback is to stop using the disposable test directories
+and disable the opt-in development adapter without modifying the Minecraft
+profile or pinned binaries.
+
+### Vulkan FSRFG callback, GPU readback and shutdown traces (2026-11-09)
+
+The isolated Vulkan WSI + NGX test completed 64 source presents and NGX
+evaluations. Compiled, pinned r3/r4 OptiScaler diagnostic DLLs now record 54
+successful FFX callback Dispatch begin/end pairs (frames 11–64), 54 requested
+generated frames, 118 `VK_SUCCESS` provider output-present calls, 118
+output-image slot events, and nine adapter image-handle events. The successful
+64-frame r4b repeat used PID 7504; its log SHA-256 is
+`732e0ddd3159e86ea9796469157fc40c9e71e90197c5e4a5ae7a9339f5407c5d`.
+The audit reported no callback duplicates, cancels, or Dispatch failures.
+FFX frame-pacing-tuning Configure previously returned an independent runtime
+error; that optional path remains unresolved. The r5 section below records
+bounded GPU-completed pixels; actual monitor scanout, latency, VRAM and useful
+2x FG remain unproven.
+
+The compiled r4 shutdown trace shows `plain` NGX shutdown, feature release,
+parameter destruction and Vulkan WSI teardown all completed in 4-frame and
+64-frame isolated runs. The `device` variant crashed with `0xC0000005` inside
+the original forwarded `NVNGXProxy::VULKAN_Shutdown1(VkDevice)` before
+`Nvngx_FG::VULKAN_Shutdown1`. The source delegates from Shutdown1 to plain
+Shutdown, so any future fix must also audit double-cleanup semantics. The
+original vendor DLL is deliberately not detached in this disposable fixture;
+normal production unload is not yet verified.
+
+`prepare_fsrfg_trace.py` checks pinned OptiScaler commit
+`aeb1f29783106b96c89ba71ce9b6db80eacdae46`, and emitted the original r2
+source-only overlay without changing upstream inputs. Its exact-revision nine
+submodules were then initialized in separate disposable r3/r4 clones; the r3
+callback/present and r4 shutdown diagnostic DLLs were compiled and hashed.
+Both keep PID-scoped callback entry/cancellation/Dispatch results and Vulkan
+present results and slot hashes. These are CPU observations; slot hashes do
+not establish GPU completion, image content, or physical monitor scanout.
+
+The r4 DLL SHA-256 is
+`40a997387cc6f219fbc5fb2b5a123e1ff2e5eeb6c996c54b69930ddf597fd7af`;
+the untouched upstream OptiScaler DLL is
+`0b70d723f61fcf1cc38c26e4033666bd08936f435a848f624222c77dc86ca7fe`.
+OptiScaler rewrites its own INI and log when executed. Running inside the first
+r4 diagnostic package invalidated its original INI hash in the manifest. Keep
+that evidence unchanged. A new verified package was staged at
+`build/mfg-fg-fsrfg-shutdown-20261109-r4b/Package` and is **never run directly**;
+`run_ngx_wsi_probe.ps1` first invokes `prepare_ngx_run_copy.py` to verify its
+manifest and clone it to a fresh unique `build/` path. The source r4b manifest
+still passes verification after both completed probes.
+
+Reproduce a bounded NGX dispatch and cleanup diagnostic using a **new** tag:
+
+```powershell
+cd 'D:\Projects\RTX Remix\rtx-remix-v011'
+& .\native\mfg\run_ngx_wsi_probe.ps1 -RepoRoot (Get-Location).Path `
+    -Dll '.\build\mfg-fg-fsrfg-shutdown-20261109-r4b\Package\OptiScaler.dll' `
+    -ExpectedSha256 '40a997387cc6f219fbc5fb2b5a123e1ff2e5eeb6c996c54b69930ddf597fd7af' `
+    -ShutdownMode plain -Frames 64 -IntervalMs 20 -TimeoutSeconds 38 `
+    -PythonExe 'C:\Users\vijja\miniconda3\python.exe' -Tag UNIQUE-RUN-TAG
+& 'C:\Users\vijja\miniconda3\python.exe' `
+    native/mfg/prepare_shutdown_diagnostic_package.py --repo-root . `
+    --probe-name mfg-fg-fsrfg-shutdown-20261109-r4b --verify-only
+```
+
+Use the `Probe PID` and `providerLog` printed by that run for the separate
+`analyze_fsrfg_trace.py` audit. Four frames cover only warm-up and therefore
+have no Dispatch events; use 64 frames for an audit expecting FG callback
+Dispatch. The previous r4b 64-frame audit is
+`build/mfg-profile-ngx-ninja/validation-20261109/r4b-copy-plain64-20261109-a.trace-audit.json`.
+
+When a new isolated diagnostic run completes, audit its log using the actual
+process PID:
+
+```powershell
+python native/mfg/analyze_fsrfg_trace.py --log ABSOLUTE_TRACE_LOG `
+    --expected-pid ACTUAL_PROBE_PID --output ABSOLUTE_NEW_AUDIT_JSON
+```
+
+The audit rejects mismatched or out-of-order callbacks, requested-count
+changes, duplicate skips, failed FFX dispatch, failed output present and mixed
+PIDs without an explicit target. It also checks opt-in GPU-copy/completion
+matching, SHA-256 syntax, uniqueness and per-frame distinctness. Unattributed
+GPU readbacks in mixed-PID logs are rejected. Even a valid audit leaves Gate H
+**BLOCKED** pending independent displayed-frame evidence, OFF/ON frame pacing,
+VRAM, latency, useful interpolation and fully validated normal shutdown.
+
+### r5 isolated GPU-content diagnostic (2026-11-09)
+
+The separately built `build/optiscaler-fsrfg-gpucontent-build-20261109-r5`
+OptiScaler fork is pinned to `aeb1f29783106b96c89ba71ce9b6db80eacdae46`
+and the same nine submodule revisions. Its diagnostic DLL SHA-256 is
+`a8e0d5b2bb4f5e13baa5a7694573c78a1187afbc1063974281368150320e6e7f`.
+`native/mfg/prepare_gpucontent_diagnostic_package.py --repo-root .
+--probe-name mfg-fg-fsrfg-gpucontent-20261109-r5 --verify-only` checks the
+immutable `build/mfg-fg-fsrfg-gpucontent-20261109-r5/Package` without modifying
+it. `-GpuContent` on `run_ngx_wsi_probe.ps1` enables up to 12 paired, 64x64
+image-to-staging copies and GPU-event completion checks, with SHA-256 of the
+generated and real output regions. This instrumentation changes pacing and
+is suitable only for isolated content probes.
+
+The first r5 run (PID 38720) completed 12/12 copies, 12 generated-vs-real
+distinct samples, 11 unique generated hashes and 11 unique real hashes. Its
+sampled center region **did not cover the moving object**, so it cannot prove
+useful motion interpolation. An opt-in-only native NGX fixture change positions
+the moving 90x70 source box across the output's center ROI, while preserving
+ordinary test stimulus and per-frame motion vectors. The fresh aligned r5
+run, `gpucontent-r5-roialigned-20261109-2321` (PID 6808), exited 0 with 64
+NGX evaluations, 54 successful FFX Dispatch callbacks, 118 successful provider
+present calls, and 12/12 GPU-completed samples. All 12 generated hashes are
+different from their corresponding real hashes; each of the generated and real
+series has 12 unique hashes. Its provider log SHA-256 is
+`1b895a79086ae0199d4790874885d60a52fda8cb70da55baeac409591f454b51`.
+Its native stimulus log SHA-256 is
+`0936fb0e409461dcc4f04cedb88c24ec9e6c04d97ea28354f1b9b76979c32d70`.
+The correlated audit confirms that the **source box projects into all 12
+sampled regions** and its moving left edge crosses the mapped region; it does
+not prove the upscaler's generated pixels actually represent the intended
+intermediate motion. Both traces leave independently composited/displayed
+frames, physical scanout, pacing and useful 2x FG **BLOCKED**.
+
+To reproduce, use a NEW unique tag and the verified r5 DLL above with
+`run_ngx_wsi_probe.ps1 -GpuContent -ShutdownMode plain -Frames 64
+-IntervalMs 20 -TimeoutSeconds 38`. Give the fresh provider log and stdout
+to `analyze_fsrfg_trace.py --log PROVIDER_LOG --stimulus-log SOURCE_STDOUT
+--expected-pid ACTUAL_PID --output NEW_AUDIT_JSON`. The successful audited
+result is in `build/mfg-profile-ngx-ninja/validation-20261109/
+gpucontent-r5-roialigned-20261109-2321.stimulus-gpu-audit.json` (line wrap
+omitted in the actual filename). The `plain` NGX path finished the disposable
+Vulkan teardown; final vendor DLL detach remains intentionally skipped. The
+`device` shutdown crash is still unresolved. The r5 source/package and pinned
+baseline have not been modified.
+
+Nine dependency submodules are installed at their exact revisions in the
+diagnostic clones only; both r3/r4 instrumented DLLs compiled successfully.
+Keep the pinned upstream checkout, original `OptiScaler.dll`, r3/r4/r5 logs,
+and original r4 INI/manifest evidence unchanged. Gate H stays **BLOCKED**
+until useful motion interpolation, foreground OFF/ON testing and independent
+physical displayed-frame and stability measurements succeed.
+
+`-AwaitFocusSeconds` requests foreground activation for the native probe's own
+window and waits for the user to click it if Windows rejects the request. An
+unfocused run exits before rendering and cannot verify FG. `-CaptureDisplayFrames`
+requires `-Mode visible` and the built `MfgDisplayFrameObserver.exe`. It records
+one CSV of source `api.Present` QPC timestamps and one independent CSV of 256x256
+desktop-composed pixel hashes with DWM presentation times, only while this
+specific test window owns the foreground. Its observer log records unsupported
+desktop duplication (for example remote desktop/HDR) explicitly. Neither
+successfully duplicated DWM pixels nor distinct pixel hashes proves that FG
+interpolated those pixels or that they reached physical monitor scanout. Use
+controlled FG OFF/ON testing and independent displayed-frame validation before
+certifying the feature; do not count CPU process memory as GPU VRAM.
 
 Insert (`VK_INSERT=45`) opens the shared OptiScaler menu; End (`VK_END=35`)
 toggles its FG. The standalone `RTXMFG-UI.ini` does not configure these shared

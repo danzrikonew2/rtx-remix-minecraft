@@ -1,6 +1,6 @@
 # RTX Remix v0.1.1 / MFG adapter migration  -  26.3 development branch
 
-Status: **v0.1.1 x64 bridge/build/tests/archive and runtime ABI probe PASS. Exact new runtime hash verified. MFG native revalidation is in progress; GPU acceptance is deferred at user request. Native RTXDI repair is BLOCKED on matching unpublished runtime source and a controlled reproduction.**
+Status (2026-11-10): **v0.1.1 x64 bridge/build/tests/archive and runtime ABI probe PASS; exact new runtime hash verified. Isolated NVIDIA MFG OFF/ON packages remain staged and hash-verified; the latest 83 Python tests ran with 80 passed and 3 skipped, and earlier native NGX CTests passed. The comparison now binds source, DWM, provider and observer traces to exact SHA-256 hashes, process PID/birth, and per-run termination evidence; swapped or modified runs are rejected. The latest fresh hidden NVIDIA ON probe rendered 40/40 frames with zero render failures and matching status SHA-256, but timed out in Remix shutdown after 30 seconds; its 95 process-matched status samples show zero FG evaluations/batches. A preceding hidden 70/70 run also timed out after 45 seconds, with zero FG evaluations. The OptiScaler log reports `Dynamic MFG not supported: driver missing required components`. Foreground real-display measurement remains BLOCKED because this process could not acquire focus and Desktop Duplication returned 0x80070005. Earlier isolated r3/r4/r5 OptiScaler diagnostics retain nine exact submodule revisions; an r5 GPU readback showed twelve distinct generated-region hashes, but interpolation quality and physical scanout remain unverified. Plain NGX shutdown and disposable Vulkan teardown completed; device shutdown crashed inside forwarded original NVNGX (0xC0000005), and vendor DLL detach remains untested. Immutable packages and per-run copies preserve evidence. Gate H and actual NVIDIA FG acceptance remain BLOCKED. Gate E RTXDI repair remains BLOCKED pending matching runtime source and controlled reproduction.**
 This is a developer-only branch. Do **not** merge or ship it until every required gate passes. The original `feat/minecraft-26.3` branch and known-working MFG development profile are intentionally untouched.
 
 ## Identified upstream delta (NVIDIA 2026-11-06)
@@ -59,6 +59,53 @@ A Reddit-suggested RTX 20/30-series method stages the author's `dlssg_for_sm86` 
 **This is not a proven Minecraft 26.3 solution.** Our mod explicitly loads `remix-sdk/d3d9.dll` from Java, and mere placement of a `version.dll` in `.trex` does not guarantee the Java/Vulkan rendering process loads that proxy. Never advertise working FG without module-load, NGX feature, unique-image and presentation evidence. Do **not** automatically invoke this in the ordinary installer or combine it with the existing development OptiScaler/MFG route. The pinned rebuilt adapter remains the primary engineering path.
 
 ## Gate D: actual presentation & resource acceptance
+
+**2026-11-09 isolated Vulkan diagnostic (source-side evidence only):** The
+64-frame NGX WSI test completed 64 source presents/evaluations, 54 successful
+FFX callback Dispatch calls (all requested one generated frame), 118
+`provider_output_present` calls returning `VK_SUCCESS`, 118 output-image slot
+events, and nine adapter image-handle events. There were zero duplicate,
+canceled, or failed callback events. A second run from a fresh copy (PID 7504,
+trace SHA-256 `732e0ddd3159e86ea9796469157fc40c9e71e90197c5e4a5ae7a9339f5407c5d`)
+matched those counts. Callback return, image-slot reuse, and CPU-side queue
+present success do **not** prove GPU completion, unique generated image content,
+the monitor's physical scanout, actual 2x speed, or stable frame pacing.
+Optional FFX frame-pacing-tuning Configure previously returned a separate
+underlying runtime error.
+
+All nine exact-revision OptiScaler dependencies are present in isolated clones;
+the checksummed r3 FSRFG callback trace and r4 shutdown trace have been compiled
+into separate disposable DLLs. The r4 DLL SHA-256 is
+`40a997387cc6f219fbc5fb2b5a123e1ff2e5eeb6c996c54b69930ddf597fd7af`.
+The unmodified original DLL remains pinned at
+`0b70d723f61fcf1cc38c26e4033666bd08936f435a848f624222c77dc86ca7fe`.
+The original r4 package's INI was rewritten by OptiScaler during execution, so
+its original manifest no longer verifies and must not be rewritten to match.
+The fresh `build/mfg-fg-fsrfg-shutdown-20261109-r4b/Package` is verified and
+`native/mfg/prepare_ngx_run_copy.py` creates a new package for every bounded
+probe, preventing further mutation of the source package. Four-frame and
+64-frame r4b `plain` shutdown runs exited 0, completed NGX and Vulkan teardown,
+and left the r4b source package hash-verified. The `device` shutdown variant
+crashed inside the forwarded original `NVNGXProxy::VULKAN_Shutdown1(VkDevice)`
+with `0xC0000005` before FG-provider shutdown; the underlying cause is still
+unresolved. The fixture deliberately skips final vendor DLL detach, so a
+production cleanup is **not** certified. Do not silently substitute a skip
+or double-shutdown workaround. See [native MFG README](../native/mfg/README.md)
+for bounded test commands, trace files, and remaining verification steps.
+
+The later pinned r5 GPU-completed ROI readback uses diagnostic DLL SHA-256
+`a8e0d5b2bb4f5e13baa5a7694573c78a1187afbc1063974281368150320e6e7f`
+from an immutable isolated package. An opt-in NGX moving-box stimulus places
+the moving object across the center 64x64 output ROI in frames 11-22. In
+isolated PID 6808, all 12 GPU-completion events are paired with copies and
+successful FFX callbacks; 12/12 generated-versus-real hashes differ, all 12
+generated hashes are unique, and the independently logged source positions
+and motion vectors verify projected ROI intersection and edge movement. This
+validates GPU-completed **sampled image bytes** and the intended scene geometry,
+but the actual generated pixel motion, scanout, FG 2x throughput, latency,
+VRAM and production unload remain unverified. See the r5 commands and source
+and trace SHA-256 values in [native MFG README](../native/mfg/README.md).
+Gate H is **BLOCKED**; no public build/installer was updated.
 
 Use RTX 3070 Ti 8 GB, the new runtime, a focused visible window and a fixed Minecraft camera path.
 
